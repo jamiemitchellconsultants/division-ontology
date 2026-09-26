@@ -1,0 +1,10 @@
+{
+  "source": "jamiemitchellconsultants/JointBooking",
+  "links": [
+    {
+      "local": "https://jointbooking.internal/ontology#StaffId",
+      "shared": "https://github.com/jamiemitchellconsultants/division-ontology#StaffId",
+      "relation": "exact"
+    }
+  ]
+}

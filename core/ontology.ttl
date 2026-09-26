@@ -1,0 +1,12 @@
+@prefix : <https://github.com/jamiemitchellconsultants/division-ontology#> .
+@prefix kit: <https://ontology-kit.dev/schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+:_meta a owl:Ontology ;
+    owl:versionInfo "0.1.0" .
+
+:StaffId a owl:Class ;
+    rdfs:subClassOf kit:ValueObject ;
+    rdfs:label "StaffId" ;
+    rdfs:comment "The enterprise-wide staff number issued by the HR system and used as the internal primary key by older enterprise systems. Exactly 7 characters: U or N followed by 6 digits, case-insensitive and normalised to uppercase. Unique per member of staff, never reissued and never changed. The identity provider is its source of truth; applications read it from a token claim and do not edit it." .
