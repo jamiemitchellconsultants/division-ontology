@@ -34,35 +34,35 @@
 
 **Interfaces:** `parseTurtle(text, baseIRI)` returns RDF quads; `loadSources(manifestPath)` returns validated source descriptors; `resolveSource(source, checkoutOverrides)` returns `{directory, commit, cleanup}` and rejects dirty checkouts.
 
-- [ ] Write `test/sources.test.mjs` covering malformed Turtle, duplicate IDs, namespace mismatch and dirty checkouts.
-- [ ] Run `node --test test/sources.test.mjs`; observe failure for missing functions.
-- [ ] Implement the exact interfaces above, use `execFileSync` for Git, and pin `n3@2.7.12`.
-- [ ] Run `node --test test/sources.test.mjs`; require all tests pass.
-- [ ] Commit the task.
+- [x] Write `test/sources.test.mjs` covering malformed Turtle, duplicate IDs, namespace mismatch and dirty checkouts.
+- [x] Run `node --test test/sources.test.mjs`; observe failure for missing functions.
+- [x] Implement the exact interfaces above, use `execFileSync` for Git, and pin `n3@2.7.12`.
+- [x] Run `node --test test/sources.test.mjs`; require all tests pass.
+- [x] Commit the task.
 
 ### Task 2: Catalog and alignments
 
 **Files:** `src/catalog.mjs`, `test/catalog.test.mjs`, `core/ontology.ttl`, `sources.json`, `links/JointBooking.json`
 
-**Interfaces:** `buildCatalog({coreQuads, sourceQuads, sources, links})` returns `{catalog, quads}`; `loadLinks(path)` returns validated exact/specializes links. The catalog includes source and core concepts, relations, rules and source commits.
+**Interfaces:** `buildCatalog({coreQuads, sources, links, coreNamespace})` returns `{catalog, quads}`; `loadLinks(path)` returns validated exact/specializes links. The catalog includes source and core concepts, relations, rules and source commits.
 
-- [ ] Write `test/catalog.test.mjs` for complete concept inclusion, duplicate labels with distinct IRIs, valid `StaffId` link, missing link targets and mismatched exact labels.
-- [ ] Run `node --test test/catalog.test.mjs`; observe failure for missing functions.
-- [ ] Implement the catalog and link loader; add the approved core term, source manifest and initial link.
-- [ ] Run `node --test test/catalog.test.mjs`; require all tests pass.
-- [ ] Commit the task.
+- [x] Write `test/catalog.test.mjs` for complete concept inclusion, duplicate labels with distinct IRIs, valid `StaffId` link, missing link targets and mismatched exact labels.
+- [x] Run `node --test test/catalog.test.mjs`; observe failure for missing functions.
+- [x] Implement the catalog and link loader; add the approved core term, source manifest and initial link.
+- [x] Run `node --test test/catalog.test.mjs`; require all tests pass.
+- [x] Commit the task.
 
 ### Task 3: Deterministic outputs and CLI
 
 **Files:** `src/output.mjs`, `src/cli.mjs`, `test/cli.test.mjs`, `.gitignore`
 
-**Interfaces:** `renderOutputs(catalog, quads)` returns a map of the three generated filenames to strings; `runCli(argv, options)` runs `build` or `check` with repeatable `--checkout owner/name=/path` overrides.
+**Interfaces:** `renderOutputs(catalog, quads)` resolves to a map of the three generated filenames to strings; `runCli(argv, options)` runs `build` or `check` with repeatable `--checkout owner/name=/path` overrides.
 
-- [ ] Write `test/cli.test.mjs` for stable output, stale check, source change, and unchanged output after failure.
-- [ ] Run `node --test test/cli.test.mjs`; observe failure for missing functions.
-- [ ] Implement rendering and CLI. Render fully before writing a temporary output directory; replace `dist` only after success.
-- [ ] Run `node --test test/cli.test.mjs`; require all tests pass.
-- [ ] Commit the task.
+- [x] Write `test/cli.test.mjs` for stable output, stale check, source change, and unchanged output after failure.
+- [x] Run `node --test test/cli.test.mjs`; observe failure for missing functions.
+- [x] Implement rendering and CLI. Render fully before writing a temporary output directory; replace `dist` only after success.
+- [x] Run `node --test test/cli.test.mjs`; require all tests pass.
+- [x] Commit the task.
 
 ### Task 4: Pilot and delivery
 
@@ -70,7 +70,7 @@
 
 **Interfaces:** `npm test` runs every test; `npm run build -- --checkout jamiemitchellconsultants/JointBooking=/path` builds from a clean local checkout; `npm run check -- --checkout ...` verifies current output.
 
-- [ ] Add concise usage, stewardship, provenance and credential guidance; add CI that runs `npm ci` and `npm test` only.
-- [ ] Run `npm test` and build against the local JointBooking checkout; inspect counts and the approved link.
-- [ ] Run `npm run check -- --checkout jamiemitchellconsultants/JointBooking=/Users/jamesmitchell/RiderProjects/JointBooking`; require success.
-- [ ] Commit the first generated catalog and repository documentation.
+- [x] Add concise usage, stewardship, provenance and credential guidance; add CI that runs `npm ci` and `npm test` only.
+- [x] Run `npm test` and build against the local JointBooking checkout; inspect counts and the approved link.
+- [x] Run `npm run check -- --checkout jamiemitchellconsultants/JointBooking=/Users/jamesmitchell/RiderProjects/JointBooking`; require success.
+- [x] Commit the first generated catalog and repository documentation.
