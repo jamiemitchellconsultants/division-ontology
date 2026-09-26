@@ -1,7 +1,7 @@
 # Division catalog automation — design
 
 **Date:** 2026-09-26
-**Status:** In-chat design approved; written specification awaiting review.
+**Status:** Approved by the user for implementation planning.
 
 ## Purpose and scope
 
@@ -19,7 +19,7 @@ GitHub documents [scheduled and manual workflow triggers](https://docs.github.co
 
 ## Source access and sync
 
-An installed GitHub App can read configured private source repositories and write branches and pull requests in this repository. The App installation is limited to participating repositories plus `division-ontology`. Its private key is stored as an Actions secret, with its App ID as a variable. The workflow mints separate short-lived tokens: a read-scoped token for source clones and a write-scoped token restricted to `division-ontology` for PR creation. A single App is simpler to set up but has latent Contents write permission on every repository in its installation; organizations requiring strict separation should use two Apps with separate read and write installations. Source-clone credentials live only in environment variables; they are never written into tracked files, Git configuration, command arguments or generated output. Tokens are not exposed to pull-request code.
+An installed GitHub App can read configured private source repositories and write branches and pull requests in this repository. The App installation is limited to participating repositories plus `division-ontology`. Its private key is stored as an Actions secret, with its client ID as a variable. The workflow mints separate short-lived tokens: a read-scoped token for source clones and a write-scoped token restricted to `division-ontology` for PR creation. A single App is simpler to set up but has latent Contents write permission on every repository in its installation; organizations requiring strict separation should use two Apps with separate read and write installations. Source-clone credentials live only in environment variables; they are never written into tracked files, Git configuration, command arguments or generated output. Tokens are not exposed to pull-request code.
 
 The sync workflow runs on the default branch under a concurrency group. It obtains the App token, installs pinned dependencies, invokes the existing builder against the current configured source refs, and checks the generated output. If nothing changed, it exits without a PR or notification. If source access, parsing, namespace validation or link validation fails, it leaves `dist/` on `main` unchanged and fails visibly with the source ID and cause. The next scheduled run retries after the source is repaired. `workflow_dispatch` provides an immediate retry without typing a command.
 
