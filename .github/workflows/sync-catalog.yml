@@ -1,0 +1,99 @@
+name: Sync division catalog
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch: {}
+
+concurrency:
+  group: division-catalog-sync
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check App setup
+        env:
+          APP_CLIENT_ID: ${{ vars.DIVISION_SYNC_APP_CLIENT_ID }}
+          APP_PRIVATE_KEY: ${{ secrets.DIVISION_SYNC_APP_PRIVATE_KEY }}
+        run: |
+          if [ -z "$APP_CLIENT_ID" ] || [ -z "$APP_PRIVATE_KEY" ]; then
+            echo '::error::Set DIVISION_SYNC_APP_CLIENT_ID variable and DIVISION_SYNC_APP_PRIVATE_KEY secret; see docs/automation-setup.md.'
+            exit 1
+          fi
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Create source-read token
+        id: source-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.DIVISION_SYNC_APP_CLIENT_ID }}
+          private-key: ${{ secrets.DIVISION_SYNC_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          permission-contents: read
+      - name: Create division-writer token
+        id: writer-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.DIVISION_SYNC_APP_CLIENT_ID }}
+          private-key: ${{ secrets.DIVISION_SYNC_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: division-ontology
+          permission-contents: write
+          permission-pull-requests: write
+      - name: Build current catalog and prepare PR body
+        id: build
+        env:
+          GH_SOURCE_TOKEN: ${{ steps.source-token.outputs.token }}
+          GIT_ASKPASS: ${{ github.workspace }}/scripts/git-askpass.sh
+          GIT_TERMINAL_PROMPT: '0'
+        run: |
+          npm run build
+          mode=$(node src/refresh-body.mjs prepare "$RUNNER_TEMP/refresh-body.md")
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+      - name: Create or update generated-only PR
+        if: steps.build.outputs.mode != 'none'
+        id: create
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ steps.writer-token.outputs.token }}
+          branch: automation/catalog-refresh
+          base: main
+          title: 'chore: refresh division ontology catalog'
+          commit-message: 'chore: refresh generated division catalog'
+          body-path: ${{ runner.temp }}/refresh-body.md
+          add-paths: dist/
+          delete-branch: false
+      - name: Finalize PR fingerprint and merge mode
+        if: steps.create.outputs.pull-request-number != ''
+        env:
+          GH_TOKEN: ${{ steps.writer-token.outputs.token }}
+          GH_SOURCE_TOKEN: ${{ steps.source-token.outputs.token }}
+          GIT_ASKPASS: ${{ github.workspace }}/scripts/git-askpass.sh
+          GIT_TERMINAL_PROMPT: '0'
+          PR_NUMBER: ${{ steps.create.outputs.pull-request-number }}
+          REFRESH_MODE: ${{ steps.build.outputs.mode }}
+          AUTO_MERGE_READY: ${{ vars.DIVISION_AUTO_MERGE_READY }}
+        run: |
+          git fetch --no-tags origin 'refs/heads/automation/catalog-refresh:refs/remotes/origin/automation/catalog-refresh'
+          head_sha=$(git rev-parse 'refs/remotes/origin/automation/catalog-refresh')
+          merge_base=$(git merge-base "$GITHUB_SHA" "$head_sha")
+          fingerprint=$(git diff "$merge_base" "$head_sha" | sha256sum | cut -c1-12)
+          node src/refresh-body.mjs finalize "$RUNNER_TEMP/refresh-body.md" "$fingerprint"
+          gh pr edit "$PR_NUMBER" --body-file "$RUNNER_TEMP/refresh-body.md"
+          if [ "$REFRESH_MODE" = automatic ] && [ "$AUTO_MERGE_READY" = true ]; then
+            gh pr merge "$PR_NUMBER" --auto --squash
+          else
+            gh pr merge "$PR_NUMBER" --disable-auto || true
+          fi
