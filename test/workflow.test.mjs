@@ -19,3 +19,21 @@ test('scheduled sync is manually runnable and restricts PR updates to generated 
   assert.equal(appTokens[1].with.repositories, 'division-ontology');
   assert.ok(!JSON.stringify(steps).includes('git config credential'));
 });
+
+test('merge gate runs trusted base code and exposes source credentials only to generated refreshes', () => {
+  const policy = workflow('merge-policy.yml');
+  assert.ok(policy.on.pull_request_target);
+  assert.ok(policy.on.pull_request_review);
+  const gate = policy.jobs['merge-policy'];
+  assert.ok(gate);
+  const steps = gate.steps;
+  assert.equal(steps[0].with.ref, '${{ github.event.pull_request.base.sha }}');
+  assert.equal(steps[0].with['persist-credentials'], false);
+  const candidate = steps.find((step) => step.name === 'Checkout candidate as data');
+  assert.equal(candidate.with['persist-credentials'], false);
+  assert.match(candidate.if, /generated_only/);
+  const token = steps.find((step) => step.id === 'source-token');
+  assert.match(token.if, /generated_only/);
+  assert.equal(token.with['permission-contents'], 'read');
+  assert.ok(!steps.some((step) => step.run?.includes('_candidate/src/')));
+});
