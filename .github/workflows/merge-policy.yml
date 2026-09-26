@@ -1,0 +1,64 @@
+name: Division merge policy
+
+on:
+  pull_request_target:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review, edited]
+
+concurrency:
+  group: division-merge-policy-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  merge-policy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout trusted default-branch code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Inspect current PR files
+        id: inspect
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: node src/merge-policy.mjs inspect "$RUNNER_TEMP/policy-input.json"
+      - name: Checkout candidate as data
+        if: steps.inspect.outputs.generated_only == 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: _candidate
+          persist-credentials: false
+      - name: Create source-read token
+        if: steps.inspect.outputs.generated_only == 'true'
+        uses: actions/create-github-app-token@v3
+        id: source-token
+        with:
+          client-id: ${{ vars.DIVISION_SYNC_APP_CLIENT_ID }}
+          private-key: ${{ secrets.DIVISION_SYNC_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          permission-contents: read
+      - name: Evaluate trusted policy
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_SOURCE_TOKEN: ${{ steps.source-token.outputs.token }}
+          GIT_ASKPASS: ${{ github.workspace }}/scripts/git-askpass.sh
+          GIT_TERMINAL_PROMPT: '0'
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: node src/merge-policy.mjs check "$RUNNER_TEMP/policy-input.json"

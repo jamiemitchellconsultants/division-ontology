@@ -1,3 +1,10 @@
-# Default owner for everything in the repository, unless a later, more
-# specific pattern overrides it.
-* @jamiemitchellconsultants
+# Reviewed changes to shared meaning, source registration, policy, and guidance.
+/core/ @jamiemitchellconsultants
+/links/ @jamiemitchellconsultants
+/sources.json @jamiemitchellconsultants
+/.github/ @jamiemitchellconsultants
+/src/ @jamiemitchellconsultants
+/scripts/ @jamiemitchellconsultants
+/AGENTS.md @jamiemitchellconsultants
+/GOVERNANCE.md @jamiemitchellconsultants
+/README.md @jamiemitchellconsultants

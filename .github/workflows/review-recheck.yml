@@ -1,0 +1,50 @@
+name: Recheck division reviews
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch: {}
+
+concurrency:
+  group: division-review-recheck
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  recheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - name: Check App setup
+        id: setup
+        env:
+          APP_CLIENT_ID: ${{ vars.DIVISION_SYNC_APP_CLIENT_ID }}
+          APP_PRIVATE_KEY: ${{ secrets.DIVISION_SYNC_APP_PRIVATE_KEY }}
+        run: |
+          if [ -z "$APP_CLIENT_ID" ] || [ -z "$APP_PRIVATE_KEY" ]; then
+            echo 'Sync App is not configured; existing branch review rule remains in force.'
+            echo 'configured=false' >> "$GITHUB_OUTPUT"
+          else
+            echo 'configured=true' >> "$GITHUB_OUTPUT"
+          fi
+      - name: Create division PR token
+        if: steps.setup.outputs.configured == 'true'
+        id: writer-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.DIVISION_SYNC_APP_CLIENT_ID }}
+          private-key: ${{ secrets.DIVISION_SYNC_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: division-ontology
+          permission-contents: read
+          permission-pull-requests: write
+      - name: Recheck review decisions
+        if: steps.setup.outputs.configured == 'true'
+        env:
+          GH_TOKEN: ${{ steps.writer-token.outputs.token }}
+        run: node src/review-recheck.mjs

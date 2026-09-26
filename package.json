@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "test": "node --test test/*.test.mjs",
     "build": "node src/cli.mjs build",
@@ -11,5 +13,8 @@
   },
   "dependencies": {
     "n3": "2.7.12"
+  },
+  "devDependencies": {
+    "yaml": "2.8.1"
   }
 }

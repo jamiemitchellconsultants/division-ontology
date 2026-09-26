@@ -14,4 +14,6 @@ A link is a reviewed assertion, never an automatic conclusion from a matching na
 
 ## Publication
 
-Build and check against clean source checkouts. Commit `dist/` only after validation and tests pass. A failed build leaves the last complete output untouched. Review the source commit list before publishing so readers can judge freshness. This private repository is intended for the shared readership of all participating source repositories.
+Build and check against clean source checkouts. Authored changes to the core, source list, links or policy need a reviewed PR. A scheduled or manually triggered sync proposes `dist/` in a separate generated-only PR. It merges automatically only after a trusted fresh build matches every output file and existing linked concepts retain their meaning-bearing statements. Changes to linked concepts wait for current division steward approval. If a source fails to build, the last published catalog remains intact and the sync run fails for investigation.
+
+The catalog records source commits so readers can judge freshness. This private repository is intended for the shared readership of all participating source repositories. New private sources need an administrator to expand the reader App installation; source registration never gives the agent repository access by itself.
