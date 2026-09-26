@@ -13,6 +13,7 @@ function pilot() {
   const checkout = join(root, 'booking');
   mkdirSync(checkout);
   execFileSync('git', ['init', '-q', '-b', 'main', checkout]);
+  execFileSync('git', ['remote', 'add', 'origin', checkout], { cwd: checkout });
   mkdirSync(join(checkout, 'docs'));
   writeFileSync(join(checkout, 'docs/ontology.ttl'), '@prefix : <https://example.test/booking#> . @prefix owl: <http://www.w3.org/2002/07/owl#> . @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> . :StaffId a owl:Class; rdfs:label "StaffId" .\n');
   execFileSync('git', ['add', '.'], { cwd: checkout });
@@ -60,5 +61,16 @@ test('failed validation leaves the last complete catalog untouched', async () =>
     writeFileSync(join(data.root, 'links/booking.json'), JSON.stringify({ source: sourceId, links: [{ local: 'https://example.test/booking#Missing', shared: `${coreNamespace}StaffId`, relation: 'exact' }] }));
     await assert.rejects(runCli(['build', '--checkout', data.override], { root: data.root }), /local.*not found/i);
     assert.deepEqual(['catalog.json', 'catalog.md', 'combined.nq'].map((name) => readFileSync(join(data.root, 'dist', name), 'utf8')), before);
+  } finally { rmSync(data.root, { recursive: true, force: true }); }
+});
+
+test('blank nodes produce identical output in repeated build and check calls', async () => {
+  const data = pilot();
+  try {
+    writeFileSync(join(data.checkout, 'docs/ontology.ttl'), '@prefix : <https://example.test/booking#> . @prefix owl: <http://www.w3.org/2002/07/owl#> . @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> . :StaffId a owl:Class; rdfs:label "StaffId"; rdfs:comment [ rdfs:label "A note" ] .');
+    execFileSync('git', ['add', '.'], { cwd: data.checkout });
+    execFileSync('git', ['-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', 'commit', '-q', '-m', 'blank node'], { cwd: data.checkout });
+    await runCli(['build', '--checkout', data.override], { root: data.root });
+    await runCli(['check', '--checkout', data.override], { root: data.root });
   } finally { rmSync(data.root, { recursive: true, force: true }); }
 });

@@ -8,6 +8,7 @@ const RDFS_DOMAIN = 'http://www.w3.org/2000/01/rdf-schema#domain';
 const RDFS_RANGE = 'http://www.w3.org/2000/01/rdf-schema#range';
 const RDFS_SUBCLASS = 'http://www.w3.org/2000/01/rdf-schema#subClassOf';
 const OWL_OBJECT_PROPERTY = 'http://www.w3.org/2002/07/owl#ObjectProperty';
+const OWL_CLASS = 'http://www.w3.org/2002/07/owl#Class';
 const OWL_EQUIVALENT_CLASS = 'http://www.w3.org/2002/07/owl#equivalentClass';
 const OWL_VERSION_INFO = 'http://www.w3.org/2002/07/owl#versionInfo';
 const { namedNode, quad } = DataFactory;
@@ -102,6 +103,7 @@ export function buildCatalog({ coreQuads, sources, links, coreNamespace }) {
     if (!local || local.source !== link.source) throw new Error(`link local concept ${link.local} not found in ${link.source}`);
     const shared = conceptByIri.get(link.shared);
     if (!shared || shared.source !== 'division-core') throw new Error(`link shared concept ${link.shared} not found in division core`);
+    if (!local.types.includes(OWL_CLASS) || !shared.types.includes(OWL_CLASS)) throw new Error(`link ${link.local} and ${link.shared} must both have owl:Class type`);
     if (!['exact', 'specializes'].includes(link.relation)) throw new Error(`link relation must be exact or specializes`);
     if (link.relation === 'exact' && local.label !== shared.label) throw new Error(`exact link label differs: ${local.label} vs ${shared.label}`);
     if (seenLinks.has(link.local)) throw new Error(`duplicate link for ${link.local}`);

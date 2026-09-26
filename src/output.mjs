@@ -31,7 +31,8 @@ function markdown(catalog) {
 
 function nquads(quads) {
   const writer = new Writer({ format: 'N-Quads' });
-  const ordered = [...quads].sort((a, b) => byCodepoint(`${a.graph.value}|${a.subject.value}|${a.predicate.value}|${a.object.termType}|${a.object.value}`, `${b.graph.value}|${b.subject.value}|${b.predicate.value}|${b.object.termType}|${b.object.value}`));
+  const key = (item) => JSON.stringify([item.graph.termType, item.graph.id, item.subject.termType, item.subject.id, item.predicate.id, item.object.termType, item.object.id]);
+  const ordered = [...quads].sort((a, b) => byCodepoint(key(a), key(b)));
   writer.addQuads(ordered);
   return new Promise((resolve, reject) => writer.end((error, result) => error ? reject(error) : resolve(result)));
 }

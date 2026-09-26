@@ -17,7 +17,7 @@ Create a stewarded shared vocabulary and a complete, sourced view of participati
 
 ## Build and outputs
 
-A Node.js CLI uses the N3 RDF parser to read Turtle. It accepts `--checkout owner/name=/absolute/path` to use a clean local checkout, or clones configured GitHub URLs into temporary directories when no checkout override is supplied. Git commands use argument arrays, never shell interpolation. All files are read at a single source commit. The build rejects dirty supplied checkouts to keep provenance honest.
+A Node.js CLI uses the N3 RDF parser to read Turtle. It accepts `--checkout owner/name=/absolute/path` to use a clean local checkout, or clones configured GitHub URLs into temporary directories when no checkout override is supplied. Git commands use argument arrays, never shell interpolation. Source Turtle is read from a regular blob at the recorded commit. The build rejects dirty supplied checkouts and checks their `origin` against the source manifest to keep provenance honest.
 
 `node src/cli.mjs build` validates all inputs and writes these generated files only after the entire build succeeds:
 
@@ -29,7 +29,7 @@ A concept is a named subject inside a source namespace with a label or RDF type.
 
 ## Validation and failure policy
 
-- Parse with a general Turtle parser. Reject malformed Turtle, missing sources, a source namespace mismatch, duplicate source IDs, uncommitted source changes, invalid link relation, unresolved link IRIs, and an `exact` link whose labels differ.
+- Parse with a general Turtle parser. Reject malformed Turtle, missing sources, a source namespace mismatch, duplicate source IDs, uncommitted source changes, mismatched checkout origins, non-regular ontology blobs, invalid link relations, unresolved link IRIs, links between non-classes, and an `exact` link whose labels differ.
 - A `specializes` link need not share the core label. Similarity and duplicate-name suggestions are advisory and outside the blocking first release.
 - On validation failure, leave all previously generated output files intact. The committed catalog records each source commit, making freshness inspectable.
 - A local build can use the existing JointBooking checkout. Remote cloning depends on the operator's existing GitHub access; no credential is stored in this repository.

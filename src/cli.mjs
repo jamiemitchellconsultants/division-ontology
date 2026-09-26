@@ -36,7 +36,7 @@ export async function runCli(argv, options = {}) {
   for (const source of configuredSources) {
     const resolved = resolveSource(source, overrides);
     try {
-      sources.push({ id: source.id, namespace: source.namespace, commit: resolved.commit, quads: readSourceOntology(source, resolved.directory) });
+      sources.push({ id: source.id, namespace: source.namespace, commit: resolved.commit, quads: readSourceOntology(source, resolved.directory, resolved.commit) });
       if (source.linksPath) {
         const sourceLinks = loadLinks(join(root, source.linksPath));
         if (sourceLinks.some((link) => link.source !== source.id)) throw new Error(`${source.linksPath}: source does not match ${source.id}`);

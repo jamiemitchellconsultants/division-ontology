@@ -40,6 +40,12 @@ test('exact alignment rejects a different local label', () => {
   assert.throws(() => buildCatalog({ coreQuads, sources, links: [wrong], coreNamespace: shared }), /exact.*label/i);
 });
 
+test('a property cannot be aligned as a class even when its label matches', () => {
+  const property = parseTurtle(`@prefix : <${booking}> . @prefix owl: <http://www.w3.org/2002/07/owl#> . @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> . :StaffId a owl:ObjectProperty; rdfs:label "StaffId" .`, booking);
+  const modified = [{ ...sources[0], quads: property }];
+  assert.throws(() => buildCatalog({ coreQuads, sources: modified, links: [exactLink], coreNamespace: shared }), /class.*type|not.*class/i);
+});
+
 test('alignment rejects unresolved shared or local IRIs', () => {
   assert.throws(() => buildCatalog({ coreQuads, sources, links: [{ ...exactLink, shared: `${shared}Missing` }], coreNamespace: shared }), /shared.*not found/i);
   assert.throws(() => buildCatalog({ coreQuads, sources, links: [{ ...exactLink, local: `${booking}Missing` }], coreNamespace: shared }), /local.*not found/i);

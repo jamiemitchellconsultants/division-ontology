@@ -11,6 +11,14 @@ function safeRelativePath(path) {
   return typeof path === 'string' && path.length > 0 && !isAbsolute(path) && !path.split(/[\\/]/).includes('..');
 }
 
+function sourceIdentity(url) {
+  const ssh = /^git@([^:]+):(.+)$/.exec(url);
+  const remote = ssh ? `https://${ssh[1]}/${ssh[2]}` : url;
+  if (!/^https?:\/\//.test(remote) && !/^ssh:\/\//.test(remote)) return `file:${realpathSync(remote)}`;
+  const parsed = new URL(remote);
+  return `${parsed.hostname.toLowerCase()}/${parsed.pathname.replace(/^\/+|\/+$/g, '').replace(/\.git$/i, '')}`;
+}
+
 export function loadSources(manifestPath) {
   const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
   if (!manifest || !Array.isArray(manifest.sources) || manifest.sources.length === 0) {
@@ -22,6 +30,8 @@ export function loadSources(manifestPath) {
     if (seen.has(source.id)) throw new Error(`duplicate source ${source.id}`);
     seen.add(source.id);
     if (typeof source.url !== 'string' || !source.url) throw new Error(`${source.id}: url is required`);
+    const identity = sourceIdentity(source.url);
+    if (identity.startsWith('github.com/') && identity.slice('github.com/'.length).toLowerCase() !== source.id.toLowerCase()) throw new Error(`${source.id}: url identifies a different GitHub repository`);
     if (typeof source.ref !== 'string' || !source.ref) throw new Error(`${source.id}: ref is required`);
     if (!safeRelativePath(source.ontologyPath)) throw new Error(`${source.id}: ontologyPath must stay inside the repository`);
     if (typeof source.namespace !== 'string' || !/^https?:\/\//.test(source.namespace)) throw new Error(`${source.id}: namespace must be an HTTP IRI`);
@@ -38,6 +48,10 @@ export function resolveSource(source, checkoutOverrides = new Map()) {
     if (temporary) git(['clone', '--quiet', '--depth', '1', '--branch', source.ref, source.url, directory], undefined);
     const root = git(['rev-parse', '--show-toplevel'], directory);
     if (realpathSync(root) !== realpathSync(directory)) throw new Error(`${source.id}: checkout path is not a repository root`);
+    let origin;
+    try { origin = git(['remote', 'get-url', 'origin'], directory); }
+    catch { throw new Error(`${source.id}: checkout has no origin remote to verify source identity`); }
+    if (sourceIdentity(origin) !== sourceIdentity(source.url)) throw new Error(`${source.id}: checkout origin does not match configured source url`);
     if (git(['status', '--porcelain', '--untracked-files=all'], directory)) throw new Error(`${source.id}: checkout has uncommitted changes`);
     const commit = git(['rev-parse', 'HEAD'], directory);
     return { directory, commit, cleanup: () => { if (temporary) rmSync(directory, { recursive: true, force: true }); } };

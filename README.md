@@ -2,7 +2,7 @@
 
 A stewarded shared vocabulary and a complete, sourced catalog of ontology concepts from related repositories. This private repository currently includes [JointBooking](https://github.com/jamiemitchellconsultants/JointBooking). Its first approved shared term is `StaffId`.
 
-The shared vocabulary lives in [`core/ontology.ttl`](core/ontology.ttl). Each source remains authoritative for its local concepts. [`sources.json`](sources.json) names participating repositories; [`links/`](links/) holds explicit relationships to shared terms. The generated [`dist/catalog.md`](dist/catalog.md) is the readable view. [`dist/catalog.json`](dist/catalog.json) and [`dist/combined.nq`](dist/combined.nq) carry the same content for tools, with source commits and RDF named graphs for provenance.
+The shared vocabulary lives in [`core/ontology.ttl`](core/ontology.ttl). Each source remains authoritative for its local concepts. [`sources.json`](sources.json) names participating repositories; [`links/`](links/) holds explicit relationships to shared terms. The generated [`dist/catalog.md`](dist/catalog.md) is the readable view. [`dist/catalog.json`](dist/catalog.json) is a structured catalog; [`dist/combined.nq`](dist/combined.nq) preserves every source triple in named graphs. Both record source provenance.
 
 The first catalog contains **73 JointBooking concepts, 13 rules, and one explicit shared link**, built from JointBooking commit `6957928a6c9054372dda915b359f63b73969ebee`. The division core contributes one approved term. Concepts with similar names remain separate unless an explicit link relates them.
 
@@ -17,7 +17,7 @@ npm run build -- --checkout jamiemitchellconsultants/JointBooking=/path/to/Joint
 npm run check -- --checkout jamiemitchellconsultants/JointBooking=/path/to/JointBooking
 ```
 
-`build` writes the three files in `dist/` after all sources and links validate. `check` compares them against the current source commits without writing. A failed build leaves the previous complete catalog in place. Omit `--checkout` to clone the repositories named in `sources.json` with your existing Git credentials; this repository stores no credential. A dirty local checkout is rejected because its commit would not identify the ontology that was read.
+`build` writes the three files in `dist/` after all sources and links validate. `check` compares them against the current source commits without writing. A failed build leaves the previous complete catalog in place. Omit `--checkout` to clone the repositories named in `sources.json` with your existing Git credentials; this repository stores no credential. A local checkout must be clean and have an `origin` matching its configured source URL. The ontology is read directly from the recorded commit.
 
 ## Contribute
 
