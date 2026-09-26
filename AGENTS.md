@@ -14,12 +14,25 @@ file, not those.**
 
 Before changing a shared term, read its source evidence and `GOVERNANCE.md`. Preserve stable IRIs; never infer equivalence from a matching name. `exact` requires genuinely equivalent meaning and equal labels. A source repository owns its own ontology; this repository reads it and records its commit without rewriting it.
 
-After changing core, sources, links or builder code, run `npm test`, build against clean source checkouts, and run `npm run check` with the same checkouts. Review the generated catalog, source commits, and staged diff before commit. Do not put credentials in files or command arguments.
+After changing core, sources, links or builder code, run `npm test`, build against clean source checkouts, and run `npm run check` with the same checkouts. Review the generated catalog, source commits, and staged diff before commit. Keep authored changes and generated `dist/` changes in separate PRs: scheduled sync creates the catalog PR after the authored PR merges. Do not put credentials in files or command arguments.
+
+## Short agent requests
+
+For Claude, Codex, Copilot or another coding agent, a person can say **“Add `owner/repo` to division ontology”** or **“Sync division ontology now”**. For onboarding:
+
+1. Inspect the named repository for its canonical committed Turtle ontology, namespace and default ref. If no deterministic Turtle file exists, stop and explain that an import adapter or source-side Turtle projection is needed. Do not invent ontology content.
+2. Add one entry to `sources.json`. Include all concepts; do not curate a subset. Propose a link only with evidence of matching meaning, and keep it in a separate reviewed PR if needed.
+3. Build and check against clean checkouts for every configured source. Review the source commits and generated catalog locally. Commit only the source registration and related explanation to its PR; scheduled sync makes the generated-only PR after merge. Do not mix `dist/` and authored files in one PR.
+4. Follow the Narrative and AI fingerprint PR rules below. A division steward approves the source registration. A person with App administration access adds the private repository to the sync App installation; the agent cannot grant itself this access.
+
+For an immediate sync, trigger `workflow_dispatch` on `Sync division catalog`, then report the workflow result or generated PR. A source validation or access failure needs its underlying cause fixed before retrying.
 
 ## Git and review discipline
 
-- `main` is protected. Every change reaches it through a pull request that has a code owner's
-  approval (see `.github/CODEOWNERS`).
+- `main` is protected. Every change reaches it through a pull request. Until the automation setup
+  in `docs/automation-setup.md` is complete, the existing blanket code-owner review still applies.
+  After setup, the required `merge-policy` check enforces current steward approval for authored
+  changes and linked-concept drift; verified routine catalog PRs may merge automatically.
 - Do not bypass required review or CI, and do not push directly to `main`.
 - Preserve unrelated user changes. Keep commits and pull requests focused.
 - Do not commit secrets.
