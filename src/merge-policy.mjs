@@ -34,11 +34,17 @@ async function pages(path) {
   }
 }
 
+export function validatePrTarget(pr, repository) {
+  if (pr.base?.ref !== 'main') throw new Error('policy only runs for protected main');
+  if (pr.base?.repo?.full_name !== repository) throw new Error('PR base repository does not match workflow repository');
+}
+
 async function currentPr() {
   const repo = process.env.GITHUB_REPOSITORY;
   const number = Number(process.env.PR_NUMBER);
   if (!/^[\w.-]+\/[\w.-]+$/.test(repo ?? '') || !Number.isSafeInteger(number) || number < 1) throw new Error('repository and PR number are required');
   const pr = await api(`/repos/${repo}/pulls/${number}`);
+  validatePrTarget(pr, repo);
   if (pr.head.sha !== process.env.PR_HEAD_SHA || pr.base.sha !== process.env.PR_BASE_SHA) throw new Error('PR head or base moved; wait for the next policy run');
   return { repo, number };
 }

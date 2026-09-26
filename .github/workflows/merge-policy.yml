@@ -2,9 +2,8 @@ name: Division merge policy
 
 on:
   pull_request_target:
-    types: [opened, synchronize, reopened, ready_for_review]
-  pull_request_review:
-    types: [submitted, dismissed, edited]
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review, edited]
 
 concurrency:
   group: division-merge-policy-${{ github.event.pull_request.number }}
@@ -18,10 +17,10 @@ jobs:
   merge-policy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout trusted base code
+      - name: Checkout trusted default-branch code
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.base.sha }}
+          ref: ${{ github.event.repository.default_branch }}
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:

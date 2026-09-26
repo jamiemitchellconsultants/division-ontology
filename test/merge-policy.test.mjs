@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { evaluateMergePolicy } from '../src/merge-policy.mjs';
+import { evaluateMergePolicy, validatePrTarget } from '../src/merge-policy.mjs';
 
 const headSha = 'a'.repeat(40);
 const approval = (state = 'APPROVED', commitId = headSha, user = 'jamiemitchellconsultants', id = 1) => ({ state, commit_id: commitId, user: { login: user }, id });
@@ -22,3 +22,9 @@ test('stale and unrelated approvals do not satisfy policy', () => {
 test('later changes requested supersedes an approval', () => assert.equal(evaluate(['sources.json'], 'review', [approval(), approval('CHANGES_REQUESTED', headSha, 'jamiemitchellconsultants', 2)]).allowed, false));
 test('mixed generated and authored files are never silently merged', () => assert.equal(evaluate(['sources.json', 'dist/catalog.json'], 'automatic', [approval()]).allowed, false));
 test('no diff is not an automatic merge', () => assert.equal(evaluate([], 'none').allowed, false));
+test('privileged policy rejects a PR targeting an unprotected branch or another repository', () => {
+  const pr = { base: { ref: 'main', repo: { full_name: 'example/division-ontology' } } };
+  assert.doesNotThrow(() => validatePrTarget(pr, 'example/division-ontology'));
+  assert.throws(() => validatePrTarget({ base: { ...pr.base, ref: 'feature' } }, 'example/division-ontology'), /protected main/i);
+  assert.throws(() => validatePrTarget({ base: { ...pr.base, repo: { full_name: 'example/other' } } }, 'example/division-ontology'), /repository/i);
+});

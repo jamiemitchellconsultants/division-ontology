@@ -32,7 +32,8 @@ For an immediate sync, trigger `workflow_dispatch` on `Sync division catalog`, t
 - `main` is protected. Every change reaches it through a pull request. Until the automation setup
   in `docs/automation-setup.md` is complete, the existing blanket code-owner review still applies.
   After setup, the required `merge-policy` check enforces current steward approval for authored
-  changes and linked-concept drift; verified routine catalog PRs may merge automatically.
+  changes and linked-concept drift; verified routine catalog PRs may merge automatically. Review
+  decisions are rechecked by a trusted poller every five minutes.
 - Do not bypass required review or CI, and do not push directly to `main`.
 - Preserve unrelated user changes. Keep commits and pull requests focused.
 - Do not commit secrets.
