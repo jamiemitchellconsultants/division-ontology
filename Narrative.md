@@ -8,7 +8,24 @@ This document records what was asked, what was decided, why, and what followed.
 
 | # | Date | Title | Kind | Decision summary |
 |---|---|---|---|---|
-
+| [1](#entry-automate-division-ontology-catalog-sync-with-trusted-merge-policy) | 2026-09-26 | Automate division ontology catalog sync with trusted merge policy | product | Run a 30-minute and manual sync in division-ontology, using scoped GitHub App installation tokens to read sources and update a fixed catalog PR. Verify generated output from trusted default-branch code before an automatic merge. |
 
 ---
 
+<a id="entry-automate-division-ontology-catalog-sync-with-trusted-merge-policy"></a>
+
+## Entry 1 — 2026-09-26 — Automate division ontology catalog sync with trusted merge policy
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The division catalog currently lives in one repository and needs to collect all concepts from approved related repositories. Routine source changes should arrive without repeated human instructions, while division stewards retain authority over shared meaning, links and source registration.
+
+## Decision
+
+Run a 30-minute and manual sync in division-ontology, using scoped GitHub App installation tokens to read sources and update a fixed catalog PR. Verify generated output from trusted default-branch code before an automatic merge. Require a current division steward approval for authored changes and linked-concept drift. Poll review decisions from the default branch and retrigger the trusted gate. Keep source onboarding and generated output in separate PRs.
+
+## Consequences
+
+After the one-time App and branch-rule setup, unchanged or unlinked source updates require no human action. A new private source still needs steward approval and addition to the App installation. Linked-concept changes wait for a current steward decision. Scheduled runs can fail visibly when a source is inaccessible or malformed, leaving the published catalog intact. The App has latent write permission on all installed repositories; the setup guide documents a two-App alternative.
