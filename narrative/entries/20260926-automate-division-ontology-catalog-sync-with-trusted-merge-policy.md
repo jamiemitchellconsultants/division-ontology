@@ -20,4 +20,3 @@ Run a 30-minute and manual sync in division-ontology, using scoped GitHub App in
 ## Consequences
 
 After the one-time App and branch-rule setup, unchanged or unlinked source updates require no human action. A new private source still needs steward approval and addition to the App installation. Linked-concept changes wait for a current steward decision. Scheduled runs can fail visibly when a source is inaccessible or malformed, leaving the published catalog intact. The App has latent write permission on all installed repositories; the setup guide documents a two-App alternative.
-
