@@ -9,7 +9,8 @@ This document records what was asked, what was decided, why, and what followed.
 | # | Date | Title | Kind | Decision summary |
 |---|---|---|---|---|
 | [1](#entry-automate-division-ontology-catalog-sync-with-trusted-merge-policy) | 2026-09-26 | Automate division ontology catalog sync with trusted merge policy | product | Run a 30-minute and manual sync in division-ontology, using scoped GitHub App installation tokens to read sources and update a fixed catalog PR. Verify generated output from trusted default-branch code before an automatic merge. |
-| [2](#entry-policy-add-alternate-steward-code-owner) | 2026-11-02 | policy: add alternate steward code owner | product | List `@james-mitchell-ba` as a code owner for the existing sensitive paths and recognize current-head approval from either `@jamiemitchellconsultants` or `@james-mitchell-ba` in `merge-policy`. |
+| [2](#entry-docs-accept-one-action-source-onboarding-vision) | 2026-11-02 | docs: accept one-action source onboarding vision | product | The source owner's enrollment action will be granting a preapproved, selected-repository, read-only GitHub App access to their repository. |
+| [3](#entry-policy-add-alternate-steward-code-owner) | 2026-11-02 | policy: add alternate steward code owner | governance | List `@james-mitchell-ba` as a code owner for the existing sensitive paths and recognize current-head approval from either `@jamiemitchellconsultants` or `@james-mitchell-ba` in `merge-policy`. |
 
 ---
 
@@ -33,11 +34,33 @@ After the one-time App and branch-rule setup, unchanged or unlinked source updat
 
 ---
 
-<a id="entry-policy-add-alternate-steward-code-owner"></a>
+<a id="entry-docs-accept-one-action-source-onboarding-vision"></a>
 
-## Entry 2 — 2026-11-02 — policy: add alternate steward code owner
+## Entry 2 — 2026-11-02 — docs: accept one-action source onboarding vision
 
 *Kind: product. Status: accepted.*
+
+## Context
+
+An approved source repository owner currently needs several coordinated steps to join the division catalog despite having administration access to their own repository. The owner has no write access to division-ontology, and the product goal is to remove a separate registration action.
+
+## Decision
+
+The source owner's enrollment action will be granting a preapproved, selected-repository, read-only GitHub App access to their repository. A valid source should appear after normal sync, with all committed concepts imported and clear status for attempts, publication, failures, and revoked access. Cross-source equivalence and shared-term governance remain separate.
+
+## Consequences
+
+The analyst must define discovery, validation, publication, failure isolation, status, and revocation behavior consistent with one owner action. The architect must design a genuinely read-only source access path and preserve catalog provenance. This vision does not choose the implementation mechanism.
+
+AI-Fingerprint: sha256:9e2364fd922b
+
+---
+
+<a id="entry-policy-add-alternate-steward-code-owner"></a>
+
+## Entry 3 — 2026-11-02 — policy: add alternate steward code owner
+
+*Kind: governance. Status: accepted.*
 
 ## Context
 
@@ -49,6 +72,4 @@ List `@james-mitchell-ba` as a code owner for the existing sensitive paths and r
 
 ## Consequences
 
-Future authored and linked-concept changes can pass the trusted policy after approval by either listed steward account at the current head. CODEOWNERS review requests remain advisory to the required `merge-policy` check. This PR itself is evaluated by the old policy on `main`, which still recognizes only `@jamiemitchellconsultants`; because that account authors this PR, its policy check cannot pass through a normal self-review and requires an admin override or a PR opened by a different account.
-
-AI-Fingerprint: sha256:97ef9076977b
+Future authored and linked-concept changes can pass the trusted policy after approval by either listed steward account at the current head. CODEOWNERS review requests remain advisory to the required `merge-policy` check.

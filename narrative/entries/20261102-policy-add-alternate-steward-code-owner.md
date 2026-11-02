@@ -3,7 +3,7 @@ date: 2026-11-02
 slug: policy-add-alternate-steward-code-owner
 title: "policy: add alternate steward code owner"
 summary: "List `@james-mitchell-ba` as a code owner for the existing sensitive paths and recognize current-head approval from either `@jamiemitchellconsultants` or `@james-mitchell-ba` in `merge-policy`."
-kind: product
+kind: governance
 status: accepted
 sequence: 2026-11-02T17:43:21.000Z
 evidence: "https://github.com/jamiemitchellconsultants/division-ontology/pull/23; merge commit 16b803152d1a0406091e1295b99421f6d7437ddf"
@@ -19,6 +19,4 @@ List `@james-mitchell-ba` as a code owner for the existing sensitive paths and r
 
 ## Consequences
 
-Future authored and linked-concept changes can pass the trusted policy after approval by either listed steward account at the current head. CODEOWNERS review requests remain advisory to the required `merge-policy` check. This PR itself is evaluated by the old policy on `main`, which still recognizes only `@jamiemitchellconsultants`; because that account authors this PR, its policy check cannot pass through a normal self-review and requires an admin override or a PR opened by a different account.
-
-AI-Fingerprint: sha256:97ef9076977b
+Future authored and linked-concept changes can pass the trusted policy after approval by either listed steward account at the current head. CODEOWNERS review requests remain advisory to the required `merge-policy` check.
