@@ -9,6 +9,7 @@ This document records what was asked, what was decided, why, and what followed.
 | # | Date | Title | Kind | Decision summary |
 |---|---|---|---|---|
 | [1](#entry-automate-division-ontology-catalog-sync-with-trusted-merge-policy) | 2026-09-26 | Automate division ontology catalog sync with trusted merge policy | product | Run a 30-minute and manual sync in division-ontology, using scoped GitHub App installation tokens to read sources and update a fixed catalog PR. Verify generated output from trusted default-branch code before an automatic merge. |
+| [2](#entry-policy-add-alternate-steward-code-owner) | 2026-11-02 | policy: add alternate steward code owner | product | List `@james-mitchell-ba` as a code owner for the existing sensitive paths and recognize current-head approval from either `@jamiemitchellconsultants` or `@james-mitchell-ba` in `merge-policy`. |
 
 ---
 
@@ -29,3 +30,25 @@ Run a 30-minute and manual sync in division-ontology, using scoped GitHub App in
 ## Consequences
 
 After the one-time App and branch-rule setup, unchanged or unlinked source updates require no human action. A new private source still needs steward approval and addition to the App installation. Linked-concept changes wait for a current steward decision. Scheduled runs can fail visibly when a source is inaccessible or malformed, leaving the published catalog intact. The App has latent write permission on all installed repositories; the setup guide documents a two-App alternative.
+
+---
+
+<a id="entry-policy-add-alternate-steward-code-owner"></a>
+
+## Entry 2 — 2026-11-02 — policy: add alternate steward code owner
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+PR #21 exposed a review deadlock: the trusted policy recognized only `@jamiemitchellconsultants`, which had authored the PR and could not approve its own work. An alternate account with write access is available for review.
+
+## Decision
+
+List `@james-mitchell-ba` as a code owner for the existing sensitive paths and recognize current-head approval from either `@jamiemitchellconsultants` or `@james-mitchell-ba` in `merge-policy`. An unresolved changes request by either steward continues to block the check.
+
+## Consequences
+
+Future authored and linked-concept changes can pass the trusted policy after approval by either listed steward account at the current head. CODEOWNERS review requests remain advisory to the required `merge-policy` check. This PR itself is evaluated by the old policy on `main`, which still recognizes only `@jamiemitchellconsultants`; because that account authors this PR, its policy check cannot pass through a normal self-review and requires an admin override or a PR opened by a different account.
+
+AI-Fingerprint: sha256:97ef9076977b
