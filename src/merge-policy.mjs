@@ -5,15 +5,19 @@ import { verifyRefresh } from './verify-refresh.mjs';
 
 const generated = new Set(['dist/catalog.json', 'dist/catalog.md', 'dist/combined.nq']);
 
-export function evaluateMergePolicy({ changedPaths, classification, reviews, headSha, stewardLogin }) {
+export function evaluateMergePolicy({ changedPaths, classification, reviews, headSha, stewardLogins }) {
   if (!changedPaths.length) return { allowed: false, reason: 'pull request has no changed files' };
   const generatedChange = changedPaths.some((path) => generated.has(path));
   const otherChange = changedPaths.some((path) => !generated.has(path));
   if (generatedChange && otherChange) return { allowed: false, reason: 'generated catalog and authored files must use separate pull requests' };
   if (generatedChange && classification?.mode === 'automatic') return { allowed: true, reason: 'current generated catalog verified with no linked-concept drift' };
-  const stewardReviews = reviews.filter((review) => review.user?.login?.toLowerCase() === stewardLogin.toLowerCase()).sort((a, b) => a.id - b.id);
-  const latest = stewardReviews.at(-1);
-  if (latest?.state === 'APPROVED' && latest.commit_id === headSha) return { allowed: true, reason: 'current head approved by division steward' };
+  const stewards = new Set(stewardLogins.map((login) => login.toLowerCase()));
+  const stewardReviews = reviews.filter((review) => stewards.has(review.user?.login?.toLowerCase())).sort((a, b) => a.id - b.id);
+  const latestBySteward = new Map();
+  for (const review of stewardReviews) latestBySteward.set(review.user.login.toLowerCase(), review);
+  const latestReviews = [...latestBySteward.values()];
+  if (latestReviews.some((review) => review.state === 'CHANGES_REQUESTED')) return { allowed: false, reason: 'division steward requested changes' };
+  if (latestReviews.some((review) => review.state === 'APPROVED' && review.commit_id === headSha)) return { allowed: true, reason: 'current head approved by division steward' };
   return { allowed: false, reason: 'current head needs division steward approval' };
 }
 
@@ -66,7 +70,7 @@ export async function checkPr(path) {
     ? await verifyRefresh({ baseRoot: resolve('.'), candidateDist: resolve('_candidate/dist'), changedPaths })
     : { mode: 'review', reasons: ['authored file change'] };
   const reviews = await pages(`/repos/${repo}/pulls/${number}/reviews`);
-  const decision = evaluateMergePolicy({ changedPaths, classification, reviews, headSha: process.env.PR_HEAD_SHA, stewardLogin: 'jamiemitchellconsultants' });
+  const decision = evaluateMergePolicy({ changedPaths, classification, reviews, headSha: process.env.PR_HEAD_SHA, stewardLogins: ['jamiemitchellconsultants', 'james-mitchell-ba'] });
   console.log(decision.reason);
   if (!decision.allowed) process.exitCode = 1;
 }
