@@ -10,6 +10,7 @@ This document records what was asked, what was decided, why, and what followed.
 |---|---|---|---|---|
 | [1](#entry-automate-division-ontology-catalog-sync-with-trusted-merge-policy) | 2026-09-26 | Automate division ontology catalog sync with trusted merge policy | product | Run a 30-minute and manual sync in division-ontology, using scoped GitHub App installation tokens to read sources and update a fixed catalog PR. Verify generated output from trusted default-branch code before an automatic merge. |
 | [2](#entry-docs-accept-one-action-source-onboarding-vision) | 2026-11-02 | docs: accept one-action source onboarding vision | product | The source owner's enrollment action will be granting a preapproved, selected-repository, read-only GitHub App access to their repository. |
+| [3](#entry-policy-add-alternate-steward-code-owner) | 2026-11-02 | policy: add alternate steward code owner | governance | List `@james-mitchell-ba` as a code owner for the existing sensitive paths and recognize current-head approval from either `@jamiemitchellconsultants` or `@james-mitchell-ba` in `merge-policy`. |
 
 ---
 
@@ -52,3 +53,23 @@ The source owner's enrollment action will be granting a preapproved, selected-re
 The analyst must define discovery, validation, publication, failure isolation, status, and revocation behavior consistent with one owner action. The architect must design a genuinely read-only source access path and preserve catalog provenance. This vision does not choose the implementation mechanism.
 
 AI-Fingerprint: sha256:9e2364fd922b
+
+---
+
+<a id="entry-policy-add-alternate-steward-code-owner"></a>
+
+## Entry 3 — 2026-11-02 — policy: add alternate steward code owner
+
+*Kind: governance. Status: accepted.*
+
+## Context
+
+PR #21 exposed a review deadlock: the trusted policy recognized only `@jamiemitchellconsultants`, which had authored the PR and could not approve its own work. An alternate account with write access is available for review.
+
+## Decision
+
+List `@james-mitchell-ba` as a code owner for the existing sensitive paths and recognize current-head approval from either `@jamiemitchellconsultants` or `@james-mitchell-ba` in `merge-policy`. An unresolved changes request by either steward continues to block the check.
+
+## Consequences
+
+Future authored and linked-concept changes can pass the trusted policy after approval by either listed steward account at the current head. CODEOWNERS review requests remain advisory to the required `merge-policy` check.
