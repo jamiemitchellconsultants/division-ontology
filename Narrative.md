@@ -9,6 +9,7 @@ This document records what was asked, what was decided, why, and what followed.
 | # | Date | Title | Kind | Decision summary |
 |---|---|---|---|---|
 | [1](#entry-automate-division-ontology-catalog-sync-with-trusted-merge-policy) | 2026-09-26 | Automate division ontology catalog sync with trusted merge policy | product | Run a 30-minute and manual sync in division-ontology, using scoped GitHub App installation tokens to read sources and update a fixed catalog PR. Verify generated output from trusted default-branch code before an automatic merge. |
+| [2](#entry-docs-accept-one-action-source-onboarding-vision) | 2026-11-02 | docs: accept one-action source onboarding vision | product | The source owner's enrollment action will be granting a preapproved, selected-repository, read-only GitHub App access to their repository. |
 
 ---
 
@@ -29,3 +30,25 @@ Run a 30-minute and manual sync in division-ontology, using scoped GitHub App in
 ## Consequences
 
 After the one-time App and branch-rule setup, unchanged or unlinked source updates require no human action. A new private source still needs steward approval and addition to the App installation. Linked-concept changes wait for a current steward decision. Scheduled runs can fail visibly when a source is inaccessible or malformed, leaving the published catalog intact. The App has latent write permission on all installed repositories; the setup guide documents a two-App alternative.
+
+---
+
+<a id="entry-docs-accept-one-action-source-onboarding-vision"></a>
+
+## Entry 2 — 2026-11-02 — docs: accept one-action source onboarding vision
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+An approved source repository owner currently needs several coordinated steps to join the division catalog despite having administration access to their own repository. The owner has no write access to division-ontology, and the product goal is to remove a separate registration action.
+
+## Decision
+
+The source owner's enrollment action will be granting a preapproved, selected-repository, read-only GitHub App access to their repository. A valid source should appear after normal sync, with all committed concepts imported and clear status for attempts, publication, failures, and revoked access. Cross-source equivalence and shared-term governance remain separate.
+
+## Consequences
+
+The analyst must define discovery, validation, publication, failure isolation, status, and revocation behavior consistent with one owner action. The architect must design a genuinely read-only source access path and preserve catalog provenance. This vision does not choose the implementation mechanism.
+
+AI-Fingerprint: sha256:9e2364fd922b
