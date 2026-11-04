@@ -7,14 +7,16 @@ const {namedNode, literal, quad}=DataFactory;
 const K='https://ontology-kit.dev/schema#', RDF='http://www.w3.org/1999/02/22-rdf-syntax-ns#', RDFS='http://www.w3.org/2000/01/rdf-schema#';
 function graph(root, base) {
   const path='src/app.ts', code='export const api = 1;\n'; put(root,path,code);
+  for(const [name,content] of [['src/App.cs','class App {}\n'],['src/App.java','class App {}\n'],['src/app.py','pass\n'],['infra/main.tf','resource x {}\n']]) put(root,name,content);
   const blob=git(root,'hash-object',path), w=new Writer();
   const add=(s,p,o)=>w.addQuad(quad(namedNode(base+s),namedNode(p),o));
   const iri=x=>namedNode(K+x), lit=x=>literal(String(x));
   const type=(s,t)=>add(s,RDF+'type',iri(t));
   type('graph','SourceKnowledgeGraph'); add('graph',K+'schemaVersion',lit(1));
-  for (const [n,label,kind] of [['system','Alpha API','system'],['external','Beta','system']]) {type(n,'GraphNode'); add(n,K+'kind',iri(kind)); add(n,RDFS+'label',lit(label));}
+  for (const [n,label,kind] of [['system','Alpha API','system'],['external','Beta','system'],['container','Alpha service','component'],['component','API handler','component'],['code','handle','source-symbol']]) {type(n,'GraphNode'); add(n,K+'kind',iri(kind)); add(n,RDFS+'label',lit(label));}
   type('evidence','GraphEvidence'); for(const [key,val] of Object.entries({path,startLine:1,endLine:1,blobId:blob})) add('evidence',K+key,lit(val)); add('evidence',K+'role',iri('implementation'));
   type('assertion','GraphAssertion'); for(const [key,val] of Object.entries({subject:'system',object:'external'})) add('assertion',K+key,namedNode(base+val)); add('assertion',K+'relationship',iri('communicates-with')); add('assertion',K+'basis',iri('inferred')); add('assertion',K+'evidence',namedNode(base+'evidence'));
+  for(const [name,subject,object] of [['contains1','system','container'],['contains2','container','component'],['contains3','component','code']]) {type(name,'GraphAssertion'); add(name,K+'subject',namedNode(base+subject)); add(name,K+'object',namedNode(base+object)); add(name,K+'relationship',iri('contains')); add(name,K+'basis',iri('direct')); add(name,K+'evidence',namedNode(base+'evidence'));}
   type('coverage','GraphCoverage'); add('coverage',K+'pathSelector',lit('src/**')); add('coverage',K+'priority',lit(1)); add('coverage',K+'status',iri('covered'));
   let result; w.end((e,text)=>{if(e) throw e; result=text}); put(root,'graph/manifest.ttl',result);
   put(root,'ontology.config.json',JSON.stringify({sourceGraph:{enabled:true,root:'graph',evidence:{implementation:['src/**']}}}));
@@ -36,10 +38,11 @@ export async function withPilotFixture(run) {
     init(divisionRoot,'https://github.com/fixture/division.git');
     put(divisionRoot,'sources.json',JSON.stringify({sources:sources.map(([id])=>({id,url:`https://github.com/${id}.git`}))}));
     put(divisionRoot,'dist/catalog.json',JSON.stringify({schemaVersion:1,sources:[{id:'fixture/Alpha',commit:sourceCommits.alpha},{id:'fixture/Beta',commit:sourceCommits.beta}],concepts:[]}));
-    const keys={alphaSystem:{sourceId:'fixture/Alpha',nodeIri:'https://alpha.example/#system'},alphaComponent:{sourceId:'fixture/Alpha',nodeIri:'https://alpha.example/#component'},externalBeta:{sourceId:'fixture/Alpha',nodeIri:'https://alpha.example/#external'},betaSystem:{sourceId:'fixture/Beta',nodeIri:'https://beta.example/#system'}};
+    const keys={alphaSystem:{sourceId:'fixture/Alpha',nodeIri:'https://alpha.example/#system'},alphaContainer:{sourceId:'fixture/Alpha',nodeIri:'https://alpha.example/#container'},alphaComponent:{sourceId:'fixture/Alpha',nodeIri:'https://alpha.example/#component'},alphaCode:{sourceId:'fixture/Alpha',nodeIri:'https://alpha.example/#code'},externalBeta:{sourceId:'fixture/Alpha',nodeIri:'https://alpha.example/#external'},betaSystem:{sourceId:'fixture/Beta',nodeIri:'https://beta.example/#system'}};
     const mapping={sourceId:'fixture/Alpha',nodeIri:keys.alphaSystem.nodeIri,level:'context',role:'software-system',supportAssertionIri:'https://alpha.example/#assertion',supportEvidenceIri:'https://alpha.example/#evidence'};
     const binding={fromSourceId:'fixture/Alpha',externalNodeIri:keys.externalBeta.nodeIri,toSourceId:'fixture/Beta',targetNodeIri:keys.betaSystem.nodeIri,sourceAssertionIri:'https://alpha.example/#assertion',sourceEvidenceIri:'https://alpha.example/#evidence',identityEvidence:{sourceId:'fixture/Alpha',path:'src/app.ts',startLine:1,endLine:1,blobId:git(alpha,'hash-object','src/app.ts'),reason:'reviewed identity'}};
-    put(divisionRoot,'c4/mappings.json',JSON.stringify({schemaVersion:1,mappings:[mapping]}));
+    const additional=[['alphaContainer','container','container','alphaSystem','contains1'],['alphaComponent','component','component','alphaContainer','contains2'],['alphaCode','code','code','alphaComponent','contains3']].map(([key,level,role,parent,support])=>({...keys[key],level,role,parent:keys[parent],supportAssertionIri:'https://alpha.example/#'+support,supportEvidenceIri:'https://alpha.example/#evidence'}));
+    put(divisionRoot,'c4/mappings.json',JSON.stringify({schemaVersion:1,mappings:[mapping,...additional]}));
     put(divisionRoot,'c4/bindings.json',JSON.stringify({schemaVersion:1,bindings:[binding]}));
     const catalogCommit=commit(divisionRoot,'catalog');
     await run({divisionRoot,catalogCommit,registryCommit:catalogCommit,checkouts:new Map(sources),sourceCommits,keys,codeSupplement:()=>({sourceId:'fixture/Alpha',path:'src/app.ts',startLine:1,endLine:1,blobId:git(alpha,'hash-object','src/app.ts'),component:keys.alphaComponent,reason:'Inspected code',role:'implementation'}),outputDir:join(root,'output'),writeDivision:(p,d)=>put(divisionRoot,p,d),readDivision:p=>readFileSync(join(divisionRoot,p),'utf8'),commitDivision:m=>commit(divisionRoot,m),readSource:(id,p)=>readFileSync(join(new Map(sources).get(id),p),'utf8'),writeSource:(id,p,d)=>put(new Map(sources).get(id),p,d),commitSource:(id,m)=>commit(new Map(sources).get(id),m)});

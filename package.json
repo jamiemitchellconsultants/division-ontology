@@ -9,7 +9,8 @@
   "scripts": {
     "test": "node --test test/*.test.mjs",
     "build": "node src/cli.mjs build",
-    "check": "node src/cli.mjs check"
+    "check": "node src/cli.mjs check",
+    "c4": "node src/c4/cli.mjs"
   },
   "dependencies": {
     "n3": "2.7.12"
