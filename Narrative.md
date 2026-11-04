@@ -11,8 +11,12 @@ This document records what was asked, what was decided, why, and what followed.
 | [1](#entry-automate-division-ontology-catalog-sync-with-trusted-merge-policy) | 2026-09-26 | Automate division ontology catalog sync with trusted merge policy | product | Run a 30-minute and manual sync in division-ontology, using scoped GitHub App installation tokens to read sources and update a fixed catalog PR. Verify generated output from trusted default-branch code before an automatic merge. |
 | [2](#entry-docs-accept-one-action-source-onboarding-vision) | 2026-11-02 | docs: accept one-action source onboarding vision | product | The source owner's enrollment action will be granting a preapproved, selected-repository, read-only GitHub App access to their repository. |
 | [3](#entry-policy-add-alternate-steward-code-owner) | 2026-11-02 | policy: add alternate steward code owner | governance | List `@james-mitchell-ba` as a code owner for the existing sensitive paths and recognize current-head approval from either `@jamiemitchellconsultants` or `@james-mitchell-ba` in `merge-policy`. |
-| [4](#entry-define-runtime-knowledge-workspace-behaviours) | 2026-11-04 | Define runtime knowledge workspace behaviours | product | Retain contributions when endpoints disappear, mark them unavailable and exclude their relationships from default traversal while allowing explicit inclusion. |
-| [5](#entry-narrow-merge-policy-to-ontology-imports) | 2026-11-04 | Narrow merge policy to ontology imports | product | Require the check's current steward approval for source registration changes and linked-concept drift. Verified routine refreshes pass automatically; other changes pass the check. |
+| [4](#entry-define-runtime-knowledge-workspace-vision) | 2026-11-04 | Define runtime knowledge workspace vision | product | Accept the runtime knowledge workspace vision, including a persistent contribution layer, immediate relationship traversal, externally managed access, and optional repository codification. |
+| [5](#entry-define-runtime-knowledge-workspace-behaviours) | 2026-11-04 | Define runtime knowledge workspace behaviours | product | Retain contributions when endpoints disappear, mark them unavailable and exclude their relationships from default traversal while allowing explicit inclusion. |
+| [6](#entry-narrow-merge-policy-to-ontology-imports) | 2026-11-04 | Narrow merge policy to ontology imports | product | Require the check's current steward approval for source registration changes and linked-concept drift. Verified routine refreshes pass automatically; other changes pass the check. |
+| [7](#entry-define-c4-impact-assessment-vision) | 2026-11-04 | Define C4 impact assessment vision | product | Adopt a vision in which architects use source-backed C4 views to make and explain impact assessments. |
+| [8](#entry-define-c4-impact-assessment-behaviours) | 2026-11-04 | Define C4 impact assessment behaviours | product | Accept the 15 observable behaviours in `02-behaviours.md`. An architect may start with a change request description alone, confirm candidate elements, follow only evidenced relationship steps, and produce a human-reviewed ImpactAssessment. |
+| [9](#entry-define-c4-impact-assessment-architecture) | 2026-11-04 | Define C4 impact assessment architecture | product | Accept the [architecture](https://github.com/jamiemitchellconsultants/division-ontology/blob/feature/c4-diagrams-from-source-knowledge-graphs/architect/docs/features/c4-diagrams-from-source-knowledge-graphs/03-architecture.md): a local… |
 
 ---
 
@@ -78,9 +82,29 @@ Future authored and linked-concept changes can pass the trusted policy after app
 
 ---
 
+<a id="entry-define-runtime-knowledge-workspace-vision"></a>
+
+## Entry 4 — 2026-11-04 — Define runtime knowledge workspace vision
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+Architects and data product owners need to explore published knowledge alongside business context and relationships that are not captured in repository artefacts.
+
+## Decision
+
+Accept the runtime knowledge workspace vision, including a persistent contribution layer, immediate relationship traversal, externally managed access, and optional repository codification.
+
+## Consequences
+
+The analyst can define behaviours after review and merge. Direct Snowflake ingestion and machine-evaluated business RBAC are outside the first release; source provenance and reviewed ontology assertions remain distinct.
+
+---
+
 <a id="entry-define-runtime-knowledge-workspace-behaviours"></a>
 
-## Entry 4 — 2026-11-04 — Define runtime knowledge workspace behaviours
+## Entry 5 — 2026-11-04 — Define runtime knowledge workspace behaviours
 
 *Kind: product. Status: accepted.*
 
@@ -104,7 +128,7 @@ Generated catalog outputs were built, checked and reviewed locally. They are exc
 
 <a id="entry-narrow-merge-policy-to-ontology-imports"></a>
 
-## Entry 5 — 2026-11-04 — Narrow merge policy to ontology imports
+## Entry 6 — 2026-11-04 — Narrow merge policy to ontology imports
 
 *Kind: product. Status: accepted.*
 
@@ -121,3 +145,63 @@ Require the check's current steward approval for source registration changes and
 Changes to trusted policy and workflow files also pass this check without steward approval. CODEOWNERS still requests reviews, and repository governance continues to call for applicable reviews, but the ruleset does not enforce those approvals. Incomplete pull-request file lists fail closed.
 
 AI-Fingerprint: sha256:89e389e0a19b
+
+---
+
+<a id="entry-define-c4-impact-assessment-vision"></a>
+
+## Entry 7 — 2026-11-04 — Define C4 impact assessment vision
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+Architects need to assess change impact across systems and repositories. The division catalogue records source concepts and commits but does not yet turn architecture facts into C4 views. InternalOntology now publishes a versioned source knowledge graph with evidence and coverage; no participating repository must provide every C4 level. The product owner asked for architects as the first users and for a pilot that permits subjective feedback.
+
+## Decision
+
+Adopt a vision in which architects use source-backed C4 views to make and explain impact assessments. Support system context, container, component and code views when evidence exists, preserve provenance and uncertainty, and accept partial coverage without blocking source admission. Evaluate the first pilot through structured architect and reviewer feedback on perceived accuracy, completeness, suspected misses, false leads and confidence.
+
+## Consequences
+
+The analyst can define the user-visible impact-assessment behaviours and coverage states after this PR merges. The first pilot has no independently adjudicated reference set or zero-miss threshold. Graph authoring remains in source repositories; renderer, interaction design and detailed source contract remain open for later phases.
+
+---
+
+<a id="entry-define-c4-impact-assessment-behaviours"></a>
+
+## Entry 8 — 2026-11-04 — Define C4 impact assessment behaviours
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The accepted vision calls for architects to assess change requests across participating repositories using all four C4 levels where source evidence permits. The upstream source graph distinguishes assertions, evidence, inferences, commits and coverage. The analyst phase needed precise rules for starting from a request, following possible impacts, showing partial views, and avoiding false assurance when facts are missing.
+
+## Decision
+
+Accept the 15 observable behaviours in `02-behaviours.md`. An architect may start with a change request description alone, confirm candidate elements, follow only evidenced relationship steps, and produce a human-reviewed ImpactAssessment. Context diagrams may show an evidenced external system whose repository has not joined, without presenting that repository as a participating source. C4Diagram and ImpactAssessment become division shared terms; existing source identities and equivalence governance remain intact.
+
+## Consequences
+
+The architect phase must choose the graph-to-C4 mapping, rendering and assessment output mechanism while preserving the specified evidence, snapshot and gap behaviours. Missing C4 levels remain visible and do not block source admission. The first pilot uses subjective architect and reviewer feedback without a numeric accuracy gate. The core term additions require division-steward review; generated catalogue changes follow in a separate sync PR.
+
+---
+
+<a id="entry-define-c4-impact-assessment-architecture"></a>
+
+## Entry 9 — 2026-11-04 — Define C4 impact assessment architecture
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The accepted [C4 impact behaviours](https://github.com/jamiemitchellconsultants/division-ontology/pull/41) require evidence-backed paths across participating repositories, four C4 levels where source facts permit, reproducible source revisions, and explicit gaps. The current catalog publishes ontology concepts and source commits but does not hold source graph instances or assessments. The first pilot needs an architecture that can be evaluated before a hosted workspace is chosen.
+
+## Decision
+
+Accept the [architecture](https://github.com/jamiemitchellconsultants/division-ontology/blob/feature/c4-diagrams-from-source-knowledge-graphs/architect/docs/features/c4-diagrams-from-source-knowledge-graphs/03-architecture.md): a local Node.js CLI reads source graphs at the published catalog's pinned commits and creates deterministic JSON and Markdown/Mermaid views plus architect-authored, reviewable assessments. Reviewed C4 mappings determine levels and boundaries; reviewed cross-source bindings connect an evidenced external node to a participating source node without merging source identities. These decisions are recorded in [ADR 0001](https://github.com/jamiemitchellconsultants/division-ontology/blob/feature/c4-diagrams-from-source-knowledge-graphs/architect/docs/adr/0001-local-pinned-c4-pilot.md), [ADR 0002](https://github.com/jamiemitchellconsultants/division-ontology/blob/feature/c4-diagrams-from-source-knowledge-graphs/architect/docs/adr/0002-reviewed-c4-mappings.md), and [ADR 0003](https://github.com/jamiemitchellconsultants/division-ontology/blob/feature/c4-diagrams-from-source-knowledge-graphs/architect/docs/adr/0003-reviewed-cross-source-bindings.md).
+
+## Consequences
+
+The developer plan can use the existing catalog as the source inventory and revision lock while keeping graph facts source-owned and authored mappings separate from generated outputs. Missing graphs, unresolved mappings and absent relationships appear as gaps, not evidence of no impact. JointBooking currently has no source graph in its checkout, so source-backed C4 pilot paths remain unavailable until it publishes one. The local pilot requires read access to the participating source commits; a later workspace can consume the same view model.
