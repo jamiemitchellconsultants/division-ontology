@@ -4,7 +4,7 @@
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
 :_meta a owl:Ontology ;
-    owl:versionInfo "0.2.0" .
+    owl:versionInfo "0.3.0" .
 
 :StaffId a owl:Class ;
     rdfs:subClassOf kit:ValueObject ;
@@ -35,3 +35,17 @@
 :CodificationAssociation a owl:Class ;
     rdfs:label "CodificationAssociation" ;
     rdfs:comment "An explicitly recorded association identifying a published relationship as a codification of a runtime relationship while preserving both records and their provenance. It is not an equivalence assertion between endpoint entities." .
+
+# Scope and source evidence for the following shared C4 and impact concepts:
+# docs/features/c4-diagrams-from-source-knowledge-graphs/01-vision.md,
+# outcomes 1–4; docs/features/c4-diagrams-from-source-knowledge-graphs/
+# 02-behaviours.md, B1–B15 and Terms. These definitions add no equivalence
+# links and change no existing term meaning.
+
+:C4Diagram a owl:Class ;
+    rdfs:label "C4Diagram" ;
+    rdfs:comment "A source-backed architectural view of a selected focus at system-context, container, component or code level, tied to a PublishedKnowledgeSnapshot and showing the evidence and gaps relevant to that view." .
+
+:ImpactAssessment a owl:Class ;
+    rdfs:label "ImpactAssessment" ;
+    rdfs:comment "An architect-authored, reviewable account of the likely effects of a change request across participating sources, identifying assessed elements, reasons, evidence, source revisions and unresolved gaps. It does not approve the request." .
