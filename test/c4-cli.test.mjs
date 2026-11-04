@@ -65,3 +65,19 @@ test('assessment renders a cited inspected-code view',async()=>{
   assert.equal(await runC4Cli(['assessment-render',...common,'--input',input,'--view-input',viewPath],{cwd:f.divisionRoot}),0);
  });
 });
+test('assessment rendering never overwrites its input file',async()=>{
+ await withPilotFixture(async f=>{
+  const common=['--catalog-commit',f.catalogCommit,'--registry-commit',f.registryCommit,...[...f.checkouts].flatMap(([id,path])=>['--checkout',`${id}=${path}`]),'--output',f.outputDir];
+  const desc=join(f.divisionRoot,'desc.txt');writeFileSync(desc,'Change');await runC4Cli(['assessment-init',...common,'--request-id','CR-1','--description-file',desc],{cwd:f.divisionRoot});
+  const a=JSON.parse(readFileSync(join(f.outputDir,'assessment.json'),'utf8'));a.architect='Architect';const input=join(f.outputDir,'assessment.md'),raw=JSON.stringify(a);writeFileSync(input,raw);
+  assert.notEqual(await runC4Cli(['assessment-render',...common,'--input',input],{cwd:f.divisionRoot}),0);assert.equal(readFileSync(input,'utf8'),raw);
+ });
+});
+test('output symlinks cannot modify a source checkout',async()=>{
+ await withPilotFixture(async f=>{
+  const {mkdirSync,symlinkSync}=await import('node:fs');const source=f.checkouts.get('fixture/Alpha'),target=join(source,'README.md'),before=readFileSync(target,'utf8');
+  mkdirSync(f.outputDir);symlinkSync(target,join(f.outputDir,'candidates.json'));
+  const common=['--catalog-commit',f.catalogCommit,'--registry-commit',f.registryCommit,...[...f.checkouts].flatMap(([id,path])=>['--checkout',`${id}=${path}`]),'--output',f.outputDir];
+  assert.notEqual(await runC4Cli(['search',...common,'--query','Alpha'],{cwd:f.divisionRoot}),0);assert.equal(readFileSync(target,'utf8'),before);
+ });
+});

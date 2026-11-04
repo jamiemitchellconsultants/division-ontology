@@ -1,5 +1,5 @@
-import {readFileSync,mkdirSync,writeFileSync} from 'node:fs';
-import {resolve,join,relative,isAbsolute} from 'node:path';
+import {readFileSync,mkdirSync,writeFileSync,existsSync,realpathSync,lstatSync} from 'node:fs';
+import {resolve,join,relative,isAbsolute,dirname,basename} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {loadSnapshot} from './snapshot.mjs';
 import {loadRegistries} from './registry.mjs';
@@ -20,12 +20,13 @@ function parse(argv) {
 function pair(value) {const index=value?.indexOf('=')??-1;if(index<1 || index===value.length-1) throw new Error('expected source ID=value');return [value.slice(0,index),value.slice(index+1)];}
 const sourceKey=x=>{const [sourceId,nodeIri]=pair(x);return {sourceId,nodeIri};};
 const json=x=>JSON.stringify(x,null,2)+'\n';
+function canonicalPath(path) {const abs=resolve(path);return existsSync(abs)?realpathSync(abs):join(canonicalPath(dirname(abs)),basename(abs));}
 export async function runC4Cli(argv,{cwd=process.cwd(),stdout=process.stdout,stderr=process.stderr}={}) {
  try {
   const {command,values:v}=parse(argv),checkouts=new Map();
   for(const c of v.checkout??[]) {const [id,path]=pair(c);if(checkouts.has(id)||!isAbsolute(path)) throw new Error('invalid checkout');checkouts.set(id,path);}
-  const output=resolve(cwd,v.output);
-  for(const root of [resolve(cwd),...checkouts.values()]) {const rel=relative(root,output);if(!rel || (!rel.startsWith('..')&&!isAbsolute(rel))) throw new Error('output must be outside repositories');}
+  const output=canonicalPath(resolve(cwd,v.output));
+  for(const root of [resolve(cwd),...checkouts.values()]) {const rel=relative(canonicalPath(root),output);if(!rel || (!rel.startsWith('..')&&!isAbsolute(rel))) throw new Error('output must be outside repositories');}
   const snapshot=loadSnapshot({divisionRoot:cwd,catalogCommit:v['catalog-commit'],checkouts});
   const registry=loadRegistries({divisionRoot:cwd,registryCommit:v['registry-commit'],snapshot});
   const files=new Map();
@@ -43,6 +44,8 @@ export async function runC4Cli(argv,{cwd=process.cwd(),stdout=process.stdout,std
    if(command==='assessment-render') files.set('assessment.md',renderAssessment(record,context));
    else {const digest=validateAssessment(record,context);files.set('feedback.md',renderFeedback(input,{requestId:record.requestId,digest}));}
   }
+  const inputPaths=[v.input,v['assessment-file'],v['description-file'],v.supplement,...(v['view-input']??[])].filter(Boolean).map(p=>canonicalPath(resolve(cwd,p)));
+  for(const name of files.keys()) {const target=join(output,name);let stat;try {stat=lstatSync(target);} catch(e) {if(e.code!=='ENOENT') throw e;} if(stat?.isSymbolicLink()) throw new Error('output file is a symlink');if(inputPaths.includes(canonicalPath(target))) throw new Error('output would overwrite an input');}
   mkdirSync(output,{recursive:true});for(const [name,content] of files) writeFileSync(join(output,name),content);stdout?.write?.(`Wrote ${files.size} file(s)\n`);return 0;
  } catch(e) {stderr?.write?.(`${e.message}\n`);return 1;}
 }
