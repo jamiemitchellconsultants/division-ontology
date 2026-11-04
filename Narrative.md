@@ -19,6 +19,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [9](#entry-define-c4-impact-assessment-architecture) | 2026-11-04 | Define C4 impact assessment architecture | product | Accept the [architecture](https://github.com/jamiemitchellconsultants/division-ontology/blob/feature/c4-diagrams-from-source-knowledge-graphs/architect/docs/features/c4-diagrams-from-source-knowledge-graphs/03-architecture.md): a local… |
 | [10](#entry-add-feature-lifecycle-workflow) | 2026-11-04 | Add feature lifecycle workflow | product | Add the feature lifecycle CLI, persona skills, and PR gate workflow. |
 | [11](#entry-plan-c4-impact-assessment-pilot) | 2026-11-04 | Plan C4 impact assessment pilot | product | Plan the pilot as ten test-first tasks: pinned catalog and source loading, source graph and coverage parsing, reviewed C4 mappings and cross-source bindings, candidate search, directed impact paths, four-level projection, pinned code… |
+| [12](#entry-build-c4-impact-assessment-pilot) | 2026-11-04 | Build C4 impact assessment pilot | product | Implement the local C4 pilot: pinned snapshot and graph readers, reviewed mapping and binding registries, candidate search, directed paths, four-level projections, inspected-code evidence, deterministic reports, and editable assessment… |
 
 ---
 
@@ -249,3 +250,23 @@ Plan the pilot as ten test-first tasks: pinned catalog and source loading, sourc
 ## Consequences
 
 The build phase can implement the accepted architecture in small reviewable commits after this plan is reviewed and merged. Missing source graphs and stale references remain visible gaps. Real JointBooking C4 paths depend on upstream source graph adoption. This PR changes only authored plans; generated dist/ remains separate.
+
+---
+
+<a id="entry-build-c4-impact-assessment-pilot"></a>
+
+## Entry 12 — 2026-11-04 — Build C4 impact assessment pilot
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+Architects need a reproducible way to investigate change-request impacts across participating repositories while retaining source ownership, evidence and unknown coverage. The accepted C4 architecture and merged developer plan define a local pilot over pinned catalog and source commits.
+
+## Decision
+
+Implement the local C4 pilot: pinned snapshot and graph readers, reviewed mapping and binding registries, candidate search, directed paths, four-level projections, inspected-code evidence, deterministic reports, and editable assessment and feedback records. Empty production registries avoid inventing mappings. Coverage gaps and separate source identities remain visible, and code-view citations are revalidated against the recorded snapshot.
+
+## Consequences
+
+Architects can review evidence and record their own conclusions without an approval command. Source graphs remain optional and source-owned; JointBooking cannot supply graph-backed C4 paths until its source publishes a graph at a catalog-pinned revision. Generated catalog files are unchanged.
