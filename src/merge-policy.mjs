@@ -10,6 +10,7 @@ export function evaluateMergePolicy({ changedPaths, classification, reviews, hea
   const generatedChange = changedPaths.some((path) => generated.has(path));
   const otherChange = changedPaths.some((path) => !generated.has(path));
   if (generatedChange && otherChange) return { allowed: false, reason: 'generated catalog and authored files must use separate pull requests' };
+  if (!generatedChange && !changedPaths.includes('sources.json')) return { allowed: true, reason: 'change does not import or register an ontology' };
   if (generatedChange && classification?.mode === 'automatic') return { allowed: true, reason: 'current generated catalog verified with no linked-concept drift' };
   const stewards = new Set(stewardLogins.map((login) => login.toLowerCase()));
   const stewardReviews = reviews.filter((review) => stewards.has(review.user?.login?.toLowerCase())).sort((a, b) => a.id - b.id);
@@ -50,13 +51,26 @@ async function currentPr() {
   const pr = await api(`/repos/${repo}/pulls/${number}`);
   validatePrTarget(pr, repo);
   if (pr.head.sha !== process.env.PR_HEAD_SHA || pr.base.sha !== process.env.PR_BASE_SHA) throw new Error('PR head or base moved; wait for the next policy run');
-  return { repo, number };
+  return { repo, number, changedFileCount: pr.changed_files };
+}
+
+export function validateFileCount(files, expected) {
+  if (!Number.isSafeInteger(expected) || expected < 0 || files.length !== expected) {
+    throw new Error('pull request file list is incomplete or has an invalid count');
+  }
+}
+
+export function changedPathsFromFiles(files) {
+  return files.flatMap((file) => file.status === 'renamed' && file.previous_filename
+    ? [file.filename, file.previous_filename]
+    : [file.filename]);
 }
 
 export async function inspectPr(path) {
-  const { repo, number } = await currentPr();
+  const { repo, number, changedFileCount } = await currentPr();
   const files = await pages(`/repos/${repo}/pulls/${number}/files`);
-  const changedPaths = files.map((file) => file.filename);
+  validateFileCount(files, changedFileCount);
+  const changedPaths = changedPathsFromFiles(files);
   writeFileSync(path, JSON.stringify({ changedPaths }));
   const generatedOnly = changedPaths.length > 0 && changedPaths.every((file) => generated.has(file));
   appendFileSync(process.env.GITHUB_OUTPUT, `generated_only=${generatedOnly}\n`);

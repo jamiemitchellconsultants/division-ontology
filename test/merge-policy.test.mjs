@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { evaluateMergePolicy, validatePrTarget } from '../src/merge-policy.mjs';
+import { evaluateMergePolicy, validatePrTarget, changedPathsFromFiles, validateFileCount } from '../src/merge-policy.mjs';
 
 const headSha = 'a'.repeat(40);
 const approval = (state = 'APPROVED', commitId = headSha, user = 'jamiemitchellconsultants', id = 1) => ({ state, commit_id: commitId, user: { login: user }, id });
@@ -11,9 +11,17 @@ test('linked drift waits for a current steward approval', () => {
   assert.equal(evaluate(['dist/catalog.json'], 'review').allowed, false);
   assert.equal(evaluate(['dist/catalog.json'], 'review', [approval()]).allowed, true);
 });
-test('other files require current steward approval', () => {
+test('source registrations require current steward approval', () => {
   assert.equal(evaluate(['sources.json'], 'review').allowed, false);
   assert.equal(evaluate(['sources.json'], 'review', [approval()]).allowed, true);
+});
+test('unrelated changes bypass steward approval even when a steward requested changes', () => {
+  for (const path of ['README.md', 'src/merge-policy.mjs', 'core/ontology.ttl', 'links/example.json']) {
+    assert.equal(evaluate([path], 'review', [approval('CHANGES_REQUESTED')]).allowed, true, path);
+  }
+});
+test('a source registration remains protected alongside unrelated changes', () => {
+  assert.equal(evaluate(['README.md', 'sources.json'], 'review').allowed, false);
 });
 test('alternate steward approval satisfies the policy for the current head', () => {
   assert.equal(evaluate(['sources.json'], 'review', [approval('APPROVED', headSha, 'james-mitchell-ba')]).allowed, true);
@@ -34,4 +42,15 @@ test('privileged policy rejects a PR targeting an unprotected branch or another 
   assert.doesNotThrow(() => validatePrTarget(pr, 'example/division-ontology'));
   assert.throws(() => validatePrTarget({ base: { ...pr.base, ref: 'feature' } }, 'example/division-ontology'), /protected main/i);
   assert.throws(() => validatePrTarget({ base: { ...pr.base, repo: { full_name: 'example/other' } } }, 'example/division-ontology'), /repository/i);
+});
+
+test('renaming the source manifest cannot evade source approval', () => {
+  const paths = changedPathsFromFiles([{ filename: 'old-sources.json', previous_filename: 'sources.json', status: 'renamed' }]);
+  assert.equal(evaluate(paths, 'review').allowed, false);
+});
+
+test('a truncated or invalid pull request file list fails closed', () => {
+  assert.throws(() => validateFileCount([{ filename: 'README.md' }], 3001), /file list/i);
+  assert.throws(() => validateFileCount([{ filename: 'README.md' }], undefined), /file list/i);
+  assert.doesNotThrow(() => validateFileCount([{ filename: 'README.md' }], 1));
 });
