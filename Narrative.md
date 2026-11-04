@@ -15,6 +15,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [5](#entry-define-runtime-knowledge-workspace-behaviours) | 2026-11-04 | Define runtime knowledge workspace behaviours | product | Retain contributions when endpoints disappear, mark them unavailable and exclude their relationships from default traversal while allowing explicit inclusion. |
 | [6](#entry-narrow-merge-policy-to-ontology-imports) | 2026-11-04 | Narrow merge policy to ontology imports | product | Require the check's current steward approval for source registration changes and linked-concept drift. Verified routine refreshes pass automatically; other changes pass the check. |
 | [7](#entry-define-c4-impact-assessment-vision) | 2026-11-04 | Define C4 impact assessment vision | product | Adopt a vision in which architects use source-backed C4 views to make and explain impact assessments. |
+| [8](#entry-define-c4-impact-assessment-behaviours) | 2026-11-04 | Define C4 impact assessment behaviours | product | Accept the 15 observable behaviours in `02-behaviours.md`. An architect may start with a change request description alone, confirm candidate elements, follow only evidenced relationship steps, and produce a human-reviewed ImpactAssessment. |
 
 ---
 
@@ -163,3 +164,23 @@ Adopt a vision in which architects use source-backed C4 views to make and explai
 ## Consequences
 
 The analyst can define the user-visible impact-assessment behaviours and coverage states after this PR merges. The first pilot has no independently adjudicated reference set or zero-miss threshold. Graph authoring remains in source repositories; renderer, interaction design and detailed source contract remain open for later phases.
+
+---
+
+<a id="entry-define-c4-impact-assessment-behaviours"></a>
+
+## Entry 8 — 2026-11-04 — Define C4 impact assessment behaviours
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The accepted vision calls for architects to assess change requests across participating repositories using all four C4 levels where source evidence permits. The upstream source graph distinguishes assertions, evidence, inferences, commits and coverage. The analyst phase needed precise rules for starting from a request, following possible impacts, showing partial views, and avoiding false assurance when facts are missing.
+
+## Decision
+
+Accept the 15 observable behaviours in `02-behaviours.md`. An architect may start with a change request description alone, confirm candidate elements, follow only evidenced relationship steps, and produce a human-reviewed ImpactAssessment. Context diagrams may show an evidenced external system whose repository has not joined, without presenting that repository as a participating source. C4Diagram and ImpactAssessment become division shared terms; existing source identities and equivalence governance remain intact.
+
+## Consequences
+
+The architect phase must choose the graph-to-C4 mapping, rendering and assessment output mechanism while preserving the specified evidence, snapshot and gap behaviours. Missing C4 levels remain visible and do not block source admission. The first pilot uses subjective architect and reviewer feedback without a numeric accuracy gate. The core term additions require division-steward review; generated catalogue changes follow in a separate sync PR.
