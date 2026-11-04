@@ -17,6 +17,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [7](#entry-define-c4-impact-assessment-vision) | 2026-11-04 | Define C4 impact assessment vision | product | Adopt a vision in which architects use source-backed C4 views to make and explain impact assessments. |
 | [8](#entry-define-c4-impact-assessment-behaviours) | 2026-11-04 | Define C4 impact assessment behaviours | product | Accept the 15 observable behaviours in `02-behaviours.md`. An architect may start with a change request description alone, confirm candidate elements, follow only evidenced relationship steps, and produce a human-reviewed ImpactAssessment. |
 | [9](#entry-define-c4-impact-assessment-architecture) | 2026-11-04 | Define C4 impact assessment architecture | product | Accept the [architecture](https://github.com/jamiemitchellconsultants/division-ontology/blob/feature/c4-diagrams-from-source-knowledge-graphs/architect/docs/features/c4-diagrams-from-source-knowledge-graphs/03-architecture.md): a local… |
+| [10](#entry-add-feature-lifecycle-workflow) | 2026-11-04 | Add feature lifecycle workflow | product | Add the feature lifecycle CLI, persona skills, and PR gate workflow. |
 
 ---
 
@@ -205,3 +206,25 @@ Accept the [architecture](https://github.com/jamiemitchellconsultants/division-o
 ## Consequences
 
 The developer plan can use the existing catalog as the source inventory and revision lock while keeping graph facts source-owned and authored mappings separate from generated outputs. Missing graphs, unresolved mappings and absent relationships appear as gaps, not evidence of no impact. JointBooking currently has no source graph in its checkout, so source-backed C4 pilot paths remain unavailable until it publishes one. The local pilot requires read access to the participating source commits; a later workspace can consume the same view model.
+
+---
+
+<a id="entry-add-feature-lifecycle-workflow"></a>
+
+## Entry 10 — 2026-11-04 — Add feature lifecycle workflow
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The feature phases are tracked in GitHub, but main lacks the lifecycle CLI required by the installed feature skills.
+
+## Decision
+
+Add the feature lifecycle CLI, persona skills, and PR gate workflow.
+
+## Consequences
+
+Agents can check phase gates locally, and pull requests receive the same gate check in CI.
+
+AI-Fingerprint: sha256:b2a1c1c95f98
