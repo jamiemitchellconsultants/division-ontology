@@ -11,6 +11,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [1](#entry-automate-division-ontology-catalog-sync-with-trusted-merge-policy) | 2026-09-26 | Automate division ontology catalog sync with trusted merge policy | product | Run a 30-minute and manual sync in division-ontology, using scoped GitHub App installation tokens to read sources and update a fixed catalog PR. Verify generated output from trusted default-branch code before an automatic merge. |
 | [2](#entry-docs-accept-one-action-source-onboarding-vision) | 2026-11-02 | docs: accept one-action source onboarding vision | product | The source owner's enrollment action will be granting a preapproved, selected-repository, read-only GitHub App access to their repository. |
 | [3](#entry-policy-add-alternate-steward-code-owner) | 2026-11-02 | policy: add alternate steward code owner | governance | List `@james-mitchell-ba` as a code owner for the existing sensitive paths and recognize current-head approval from either `@jamiemitchellconsultants` or `@james-mitchell-ba` in `merge-policy`. |
+| [4](#entry-define-runtime-knowledge-workspace-vision) | 2026-11-04 | Define runtime knowledge workspace vision | product | Accept the runtime knowledge workspace vision, including a persistent contribution layer, immediate relationship traversal, externally managed access, and optional repository codification. |
 
 ---
 
@@ -73,3 +74,23 @@ List `@james-mitchell-ba` as a code owner for the existing sensitive paths and r
 ## Consequences
 
 Future authored and linked-concept changes can pass the trusted policy after approval by either listed steward account at the current head. CODEOWNERS review requests remain advisory to the required `merge-policy` check.
+
+---
+
+<a id="entry-define-runtime-knowledge-workspace-vision"></a>
+
+## Entry 4 — 2026-11-04 — Define runtime knowledge workspace vision
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+Architects and data product owners need to explore published knowledge alongside business context and relationships that are not captured in repository artefacts.
+
+## Decision
+
+Accept the runtime knowledge workspace vision, including a persistent contribution layer, immediate relationship traversal, externally managed access, and optional repository codification.
+
+## Consequences
+
+The analyst can define behaviours after review and merge. Direct Snowflake ingestion and machine-evaluated business RBAC are outside the first release; source provenance and reviewed ontology assertions remain distinct.
