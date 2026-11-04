@@ -11,6 +11,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [1](#entry-automate-division-ontology-catalog-sync-with-trusted-merge-policy) | 2026-09-26 | Automate division ontology catalog sync with trusted merge policy | product | Run a 30-minute and manual sync in division-ontology, using scoped GitHub App installation tokens to read sources and update a fixed catalog PR. Verify generated output from trusted default-branch code before an automatic merge. |
 | [2](#entry-docs-accept-one-action-source-onboarding-vision) | 2026-11-02 | docs: accept one-action source onboarding vision | product | The source owner's enrollment action will be granting a preapproved, selected-repository, read-only GitHub App access to their repository. |
 | [3](#entry-policy-add-alternate-steward-code-owner) | 2026-11-02 | policy: add alternate steward code owner | governance | List `@james-mitchell-ba` as a code owner for the existing sensitive paths and recognize current-head approval from either `@jamiemitchellconsultants` or `@james-mitchell-ba` in `merge-policy`. |
+| [4](#entry-define-runtime-knowledge-workspace-behaviours) | 2026-11-04 | Define runtime knowledge workspace behaviours | product | Retain contributions when endpoints disappear, mark them unavailable and exclude their relationships from default traversal while allowing explicit inclusion. |
 
 ---
 
@@ -73,3 +74,27 @@ List `@james-mitchell-ba` as a code owner for the existing sensitive paths and r
 ## Consequences
 
 Future authored and linked-concept changes can pass the trusted policy after approval by either listed steward account at the current head. CODEOWNERS review requests remain advisory to the required `merge-policy` check.
+
+---
+
+<a id="entry-define-runtime-knowledge-workspace-behaviours"></a>
+
+## Entry 4 — 2026-11-04 — Define runtime knowledge workspace behaviours
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+Feature #25 combines a published knowledge baseline with persistent human-authored context and relationships. Its accepted vision left snapshot changes, contribution ownership, history, simultaneous edits, optional codification and missing JWT roles to analysis. These need precise observable outcomes before architecture can proceed.
+
+## Decision
+
+Retain contributions when endpoints disappear, mark them unavailable and exclude their relationships from default traversal while allowing explicit inclusion. Any ManageKnowledgeGraph user may edit or remove contributions, with preserved history and explicit review of stale edits. Contributors may choose published relationship types or supply custom meanings. Codification associations are explicit and preserve both provenances. Access requires a valid JWT with a workspace role; no-role tokens receive no implicit reader access.
+
+Add PublishedKnowledgeSnapshot, KnowledgeAnnotation, RuntimeRelationship, KnowledgeContributionChange and CodificationAssociation with definitions sourced from the accepted vision and analyst decisions. Existing term IRIs, StaffId meaning, source registrations and reviewed links are preserved.
+
+## Consequences
+
+Architecture can work from the accepted behaviours once this PR is reviewed and merged. The external InternalOntology/C4 graph contracts and identifiers must be confirmed before implementation planning; pilot product, owner, wider-business reviewer and representative search examples are deferred to acceptance planning. The new shared terms require division-steward approval.
+
+Generated catalog outputs were built, checked and reviewed locally. They are excluded from this authored PR; scheduled sync will propose the generated-only update after merge.
