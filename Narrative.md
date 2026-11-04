@@ -12,6 +12,8 @@ This document records what was asked, what was decided, why, and what followed.
 | [2](#entry-docs-accept-one-action-source-onboarding-vision) | 2026-11-02 | docs: accept one-action source onboarding vision | product | The source owner's enrollment action will be granting a preapproved, selected-repository, read-only GitHub App access to their repository. |
 | [3](#entry-policy-add-alternate-steward-code-owner) | 2026-11-02 | policy: add alternate steward code owner | governance | List `@james-mitchell-ba` as a code owner for the existing sensitive paths and recognize current-head approval from either `@jamiemitchellconsultants` or `@james-mitchell-ba` in `merge-policy`. |
 | [4](#entry-define-runtime-knowledge-workspace-vision) | 2026-11-04 | Define runtime knowledge workspace vision | product | Accept the runtime knowledge workspace vision, including a persistent contribution layer, immediate relationship traversal, externally managed access, and optional repository codification. |
+| [5](#entry-define-runtime-knowledge-workspace-behaviours) | 2026-11-04 | Define runtime knowledge workspace behaviours | product | Retain contributions when endpoints disappear, mark them unavailable and exclude their relationships from default traversal while allowing explicit inclusion. |
+| [6](#entry-narrow-merge-policy-to-ontology-imports) | 2026-11-04 | Narrow merge policy to ontology imports | product | Require the check's current steward approval for source registration changes and linked-concept drift. Verified routine refreshes pass automatically; other changes pass the check. |
 
 ---
 
@@ -94,3 +96,49 @@ Accept the runtime knowledge workspace vision, including a persistent contributi
 ## Consequences
 
 The analyst can define behaviours after review and merge. Direct Snowflake ingestion and machine-evaluated business RBAC are outside the first release; source provenance and reviewed ontology assertions remain distinct.
+
+---
+
+<a id="entry-define-runtime-knowledge-workspace-behaviours"></a>
+
+## Entry 5 — 2026-11-04 — Define runtime knowledge workspace behaviours
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+Feature #25 combines a published knowledge baseline with persistent human-authored context and relationships. Its accepted vision left snapshot changes, contribution ownership, history, simultaneous edits, optional codification and missing JWT roles to analysis. These need precise observable outcomes before architecture can proceed.
+
+## Decision
+
+Retain contributions when endpoints disappear, mark them unavailable and exclude their relationships from default traversal while allowing explicit inclusion. Any ManageKnowledgeGraph user may edit or remove contributions, with preserved history and explicit review of stale edits. Contributors may choose published relationship types or supply custom meanings. Codification associations are explicit and preserve both provenances. Access requires a valid JWT with a workspace role; no-role tokens receive no implicit reader access.
+
+Add PublishedKnowledgeSnapshot, KnowledgeAnnotation, RuntimeRelationship, KnowledgeContributionChange and CodificationAssociation with definitions sourced from the accepted vision and analyst decisions. Existing term IRIs, StaffId meaning, source registrations and reviewed links are preserved.
+
+## Consequences
+
+Architecture can work from the accepted behaviours once this PR is reviewed and merged. The external InternalOntology/C4 graph contracts and identifiers must be confirmed before implementation planning; pilot product, owner, wider-business reviewer and representative search examples are deferred to acceptance planning. The new shared terms require division-steward approval.
+
+Generated catalog outputs were built, checked and reviewed locally. They are excluded from this authored PR; scheduled sync will propose the generated-only update after merge.
+
+---
+
+<a id="entry-narrow-merge-policy-to-ontology-imports"></a>
+
+## Entry 6 — 2026-11-04 — Narrow merge policy to ontology imports
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The existing gate is broader than needed for external ontology imports and blocks unrelated changes. The main branch ruleset has no blanket required approval or required code-owner approval.
+
+## Decision
+
+Require the check's current steward approval for source registration changes and linked-concept drift. Verified routine refreshes pass automatically; other changes pass the check.
+
+## Consequences
+
+Changes to trusted policy and workflow files also pass this check without steward approval. CODEOWNERS still requests reviews, and repository governance continues to call for applicable reviews, but the ruleset does not enforce those approvals. Incomplete pull-request file lists fail closed.
+
+AI-Fingerprint: sha256:89e389e0a19b
