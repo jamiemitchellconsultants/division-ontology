@@ -18,6 +18,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [8](#entry-define-c4-impact-assessment-behaviours) | 2026-11-04 | Define C4 impact assessment behaviours | product | Accept the 15 observable behaviours in `02-behaviours.md`. An architect may start with a change request description alone, confirm candidate elements, follow only evidenced relationship steps, and produce a human-reviewed ImpactAssessment. |
 | [9](#entry-define-c4-impact-assessment-architecture) | 2026-11-04 | Define C4 impact assessment architecture | product | Accept the [architecture](https://github.com/jamiemitchellconsultants/division-ontology/blob/feature/c4-diagrams-from-source-knowledge-graphs/architect/docs/features/c4-diagrams-from-source-knowledge-graphs/03-architecture.md): a local… |
 | [10](#entry-add-feature-lifecycle-workflow) | 2026-11-04 | Add feature lifecycle workflow | product | Add the feature lifecycle CLI, persona skills, and PR gate workflow. |
+| [11](#entry-plan-c4-impact-assessment-pilot) | 2026-11-04 | Plan C4 impact assessment pilot | product | Plan the pilot as ten test-first tasks: pinned catalog and source loading, source graph and coverage parsing, reviewed C4 mappings and cross-source bindings, candidate search, directed impact paths, four-level projection, pinned code… |
 
 ---
 
@@ -228,3 +229,23 @@ Add the feature lifecycle CLI, persona skills, and PR gate workflow.
 Agents can check phase gates locally, and pull requests receive the same gate check in CI.
 
 AI-Fingerprint: sha256:b2a1c1c95f98
+
+---
+
+<a id="entry-plan-c4-impact-assessment-pilot"></a>
+
+## Entry 11 — 2026-11-04 — Plan C4 impact assessment pilot
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The accepted C4 impact assessment vision, B1–B15 behaviours, architecture and ADRs call for a local, pinned-source pilot with evidence-backed views and architect-authored assessments. The developer needs an independently reviewable build sequence before code is written. The current catalog contains JointBooking, whose pinned source checkout has no source graph.
+
+## Decision
+
+Plan the pilot as ten test-first tasks: pinned catalog and source loading, source graph and coverage parsing, reviewed C4 mappings and cross-source bindings, candidate search, directed impact paths, four-level projection, pinned code inspection, deterministic rendering, editable assessments and qualitative feedback, then CLI integration. The detailed plan fixes interfaces, schemas, fixture data, tests and a commit and push for each task. Synthetic two-source fixtures prove cross-source and four-level behaviour without inventing JointBooking facts.
+
+## Consequences
+
+The build phase can implement the accepted architecture in small reviewable commits after this plan is reviewed and merged. Missing source graphs and stale references remain visible gaps. Real JointBooking C4 paths depend on upstream source graph adoption. This PR changes only authored plans; generated dist/ remains separate.
