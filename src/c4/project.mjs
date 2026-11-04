@@ -1,4 +1,5 @@
 import {mappingFor} from './registry.mjs';
+import {verifyCodeSupplement} from './code-evidence.mjs';
 const levels=['context','container','component','code'];
 const same=(a,b)=>a?.sourceId===b?.sourceId && a?.nodeIri===b?.nodeIri;
 const cmp=(a,b)=>a<b?-1:a>b?1:0;
@@ -24,6 +25,11 @@ export function projectView({snapshot,registry,focus,level,supplement=null}) {
   const item={key:{sourceId:m.sourceId,nodeIri:m.nodeIri},label:node.label,role:m.role,insideBoundary:level==='context' ? same(m,focus) : same(m.parent,focus),supported:true,assertionIri:m.supportAssertionIri,evidenceIris:[m.supportEvidenceIri],evidence:[evidence],commit:source.commit};
   view.items.push(item);
   const index=levels.indexOf(level); if(index<3 && registry.mappings.some(x=>same(x.parent,item.key) && x.level===levels[index+1])) view.nextFocus.push({focus:item.key,level:levels[index+1]});
+ }
+ if(supplement) {
+  if(level!=='code') throw new Error('code supplement requires a code view');
+  const inspected=verifyCodeSupplement({snapshot,focus,supplement});
+  view.items.push({key:{sourceId:inspected.sourceId,nodeIri:`inspected:${inspected.blobId}:${inspected.startLine}-${inspected.endLine}`},label:inspected.path,role:'code',insideBoundary:true,supported:true,basis:inspected.basis,path:inspected.path,evidenceIris:[],evidence:[inspected],commit:inspected.commit});
  }
  const included=new Set(view.items.map(x=>id(x.key)));
  for(const [sourceId,source] of snapshot.sources) for(const a of source.graphState?.assertions?.values() ?? []) {

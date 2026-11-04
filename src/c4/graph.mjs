@@ -3,7 +3,7 @@ import {createHash} from 'node:crypto';
 import {listAtCommit,readAtCommit} from './git.mjs';
 const K='https://ontology-kit.dev/schema#', RDF='http://www.w3.org/1999/02/22-rdf-syntax-ns#', RDFS='http://www.w3.org/2000/01/rdf-schema#';
 const n=DataFactory.namedNode;
-function matches(selector,path) {
+export function matches(selector,path) {
   if (typeof selector!=='string' || selector.startsWith('/') || selector.split('/').includes('..')) throw new Error('invalid selector');
   let pattern='^';
   for(let i=0;i<selector.length;i++) { const c=selector[i]; if(c==='*') { if(selector[i+1]==='*') {i++; if(selector[i+1]==='/') {i++; pattern+='(?:.*/)?';} else pattern+='.*';} else pattern+='[^/]*'; } else if(c==='?') pattern+='[^/]'; else pattern+=c.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
