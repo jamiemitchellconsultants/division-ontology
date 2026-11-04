@@ -14,6 +14,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [4](#entry-define-runtime-knowledge-workspace-vision) | 2026-11-04 | Define runtime knowledge workspace vision | product | Accept the runtime knowledge workspace vision, including a persistent contribution layer, immediate relationship traversal, externally managed access, and optional repository codification. |
 | [5](#entry-define-runtime-knowledge-workspace-behaviours) | 2026-11-04 | Define runtime knowledge workspace behaviours | product | Retain contributions when endpoints disappear, mark them unavailable and exclude their relationships from default traversal while allowing explicit inclusion. |
 | [6](#entry-narrow-merge-policy-to-ontology-imports) | 2026-11-04 | Narrow merge policy to ontology imports | product | Require the check's current steward approval for source registration changes and linked-concept drift. Verified routine refreshes pass automatically; other changes pass the check. |
+| [7](#entry-define-c4-impact-assessment-vision) | 2026-11-04 | Define C4 impact assessment vision | product | Adopt a vision in which architects use source-backed C4 views to make and explain impact assessments. |
 
 ---
 
@@ -142,3 +143,23 @@ Require the check's current steward approval for source registration changes and
 Changes to trusted policy and workflow files also pass this check without steward approval. CODEOWNERS still requests reviews, and repository governance continues to call for applicable reviews, but the ruleset does not enforce those approvals. Incomplete pull-request file lists fail closed.
 
 AI-Fingerprint: sha256:89e389e0a19b
+
+---
+
+<a id="entry-define-c4-impact-assessment-vision"></a>
+
+## Entry 7 — 2026-11-04 — Define C4 impact assessment vision
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+Architects need to assess change impact across systems and repositories. The division catalogue records source concepts and commits but does not yet turn architecture facts into C4 views. InternalOntology now publishes a versioned source knowledge graph with evidence and coverage; no participating repository must provide every C4 level. The product owner asked for architects as the first users and for a pilot that permits subjective feedback.
+
+## Decision
+
+Adopt a vision in which architects use source-backed C4 views to make and explain impact assessments. Support system context, container, component and code views when evidence exists, preserve provenance and uncertainty, and accept partial coverage without blocking source admission. Evaluate the first pilot through structured architect and reviewer feedback on perceived accuracy, completeness, suspected misses, false leads and confidence.
+
+## Consequences
+
+The analyst can define the user-visible impact-assessment behaviours and coverage states after this PR merges. The first pilot has no independently adjudicated reference set or zero-miss threshold. Graph authoring remains in source repositories; renderer, interaction design and detailed source contract remain open for later phases.
