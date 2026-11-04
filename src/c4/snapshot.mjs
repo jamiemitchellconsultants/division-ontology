@@ -1,5 +1,6 @@
 import {createHash} from 'node:crypto';
 import {readAtCommit,verifyCheckout} from './git.mjs';
+import {loadSourceGraph} from './graph.mjs';
 export function loadSnapshot({divisionRoot,catalogCommit,checkouts}) {
   const raw=readAtCommit(divisionRoot,catalogCommit,'dist/catalog.json');
   const manifestRaw=readAtCommit(divisionRoot,catalogCommit,'sources.json');
@@ -15,7 +16,7 @@ export function loadSnapshot({divisionRoot,catalogCommit,checkouts}) {
     verifyCheckout(checkout,configEntry.url,source.commit);
     const configRaw=readAtCommit(checkout,source.commit,'ontology.config.json');
     const config=configRaw ? JSON.parse(configRaw) : {};
-    sources.set(source.id,{id:source.id,commit:source.commit,checkout,config,graphState:{status:'unavailable',reason:'Source graph not loaded'}});
+    sources.set(source.id,{id:source.id,commit:source.commit,checkout,config,graphState:loadSourceGraph({checkout,commit:source.commit,config})});
   }
   return {id:{catalogCommit,catalogSha256:createHash('sha256').update(raw).digest('hex'),sources:entries.map(({id,commit})=>({id,commit}))},catalog,sources};
 }

@@ -10,7 +10,7 @@ test('snapshot uses published bytes and pinned source commits', async () => {
     const raw = readAtCommit(f.divisionRoot,f.catalogCommit,'dist/catalog.json');
     assert.equal(s.id.catalogSha256,createHash('sha256').update(raw).digest('hex'));
     assert.deepEqual(s.id.sources,[{id:'fixture/Alpha',commit:f.sourceCommits.alpha},{id:'fixture/Beta',commit:f.sourceCommits.beta}]);
-    assert.equal(s.sources.get('fixture/Alpha').graphState.status,'unavailable');
+    assert.equal(s.sources.get('fixture/Beta').graphState.status,'unavailable');
   });
 });
 test('missing and wrong source checkouts fail closed', async () => {
