@@ -53,3 +53,15 @@ test('code views accept pinned C#, TypeScript, Java and Python source lines',asy
   }
  });
 });
+test('assessment renders a cited inspected-code view',async()=>{
+ await withPilotFixture(async f=>{
+  const common=['--catalog-commit',f.catalogCommit,'--registry-commit',f.registryCommit,...[...f.checkouts].flatMap(([id,path])=>['--checkout',`${id}=${path}`]),'--output',f.outputDir];
+  const supplement=join(f.divisionRoot,'supplement.json');writeFileSync(supplement,JSON.stringify(f.codeSupplement()));
+  assert.equal(await runC4Cli(['view',...common,'--level','code','--focus',`${f.keys.alphaComponent.sourceId}=${f.keys.alphaComponent.nodeIri}`,'--supplement',supplement],{cwd:f.divisionRoot}),0);
+  const viewPath=join(f.outputDir,'view-code.json'),view=JSON.parse(readFileSync(viewPath,'utf8'));
+  const desc=join(f.divisionRoot,'desc.txt');writeFileSync(desc,'Change');assert.equal(await runC4Cli(['assessment-init',...common,'--request-id','CR-1','--description-file',desc],{cwd:f.divisionRoot}),0);
+  const input=join(f.outputDir,'assessment.json'),a=JSON.parse(readFileSync(input,'utf8'));a.architect='Architect';
+  const {viewDigest}=await import('../src/c4/assessment.mjs');a.likelyImpacts=[{key:view.items.find(x=>x.basis==='architect-inspected').key,reason:'Inspected',viewIds:[viewDigest(view)],pathIds:[],evidenceIris:[]}];writeFileSync(input,JSON.stringify(a));
+  assert.equal(await runC4Cli(['assessment-render',...common,'--input',input,'--view-input',viewPath],{cwd:f.divisionRoot}),0);
+ });
+});

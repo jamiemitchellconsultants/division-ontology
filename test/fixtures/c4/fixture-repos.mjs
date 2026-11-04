@@ -62,6 +62,6 @@ export function makeModel() {
   const mappings=[['alphaSystem','context','software-system',null,'one'],['alphaContainer','container','container','alphaSystem','one'],['alphaComponent','component','component','alphaContainer','two'],['alphaCode','code','code','alphaComponent','three'],['externalBeta','context','software-system',null,'four']].map(([name,level,role,parent,support])=>({...keys[name],level,role,...(parent?{parent:keys[parent]}:{}),supportAssertionIri:A+support,supportEvidenceIri:A+'evidence'}));
   const binding={fromSourceId:a,externalNodeIri:A+'external',toSourceId:b,targetNodeIri:B+'system',sourceAssertionIri:A+'four',sourceEvidenceIri:A+'evidence',identityEvidence:{sourceId:a,path:'src/app.ts',startLine:1,endLine:1,blobId:'1'.repeat(40),reason:'reviewed'}};
   const registry={commit:'e'.repeat(40),mappingSha256:'f'.repeat(64),bindingSha256:'0'.repeat(64),mappings,bindings:[binding],gaps:[]};
-  const paths=[{id:'path-1',steps:[{type:'assertion',assertionIri:A+'one',evidenceIris:[A+'evidence']}]}];
+  const paths=[{id:'path-1',steps:[{type:'assertion',subject:keys.alphaSystem,object:keys.alphaContainer,assertionIri:A+'one',evidenceIris:[A+'evidence']},{type:'assertion',subject:keys.alphaContainer,object:keys.alphaComponent,assertionIri:A+'two',evidenceIris:[A+'evidence']}]}];
   return {snapshot,registry,keys,paths,views:[]};
 }

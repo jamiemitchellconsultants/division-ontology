@@ -1,3 +1,4 @@
+import {coverageGaps} from './graph.mjs';
 import {createHash} from 'node:crypto';
 import {mappingFor,bindingFrom} from './registry.mjs';
 const key=x=>JSON.stringify([x.sourceId,x.nodeIri]);
@@ -5,7 +6,7 @@ const cmp=(a,b)=>a<b?-1:a>b?1:0;
 export function readImpactPaths({snapshot,registry,starts,maxDepth=4}) {
  if(!Number.isInteger(maxDepth)||maxDepth<1||maxDepth>6) throw new Error('depth must be from 1 to 6');
  if(!Array.isArray(starts)||!starts.length) throw new Error('at least one start is required');
- const paths=[],gaps=[...(registry.gaps??[])];
+ const paths=[],gaps=[...(registry.gaps??[]),...coverageGaps(snapshot)];
  function walk(current,steps,visited) {
   if(steps.length>=maxDepth) return;
   const source=snapshot.sources.get(current.sourceId), graph=source?.graphState;

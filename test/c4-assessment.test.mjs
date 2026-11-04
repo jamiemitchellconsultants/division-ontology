@@ -19,3 +19,8 @@ test('rendering requires an identified architect',()=>{
  const {snapshot,registry,paths,views}=makeModel(),a=newAssessment({requestId:'CR-1',description:'Change',snapshot,registry});
  assert.throws(()=>renderAssessment(a,{snapshot,registry,paths,views}),/architect/i);
 });
+test('unrelated paths cannot support an impacted element',()=>{
+ const {snapshot,registry,keys,paths,views}=makeModel(),a=newAssessment({requestId:'CR-1',description:'Change',snapshot,registry});
+ a.likelyImpacts=[{key:keys.betaSystem,reason:'unrelated',pathIds:[paths[0].id],evidenceIris:[paths[0].steps[0].evidenceIris[0]]}];
+ assert.throws(()=>validateAssessment(a,{snapshot,registry,paths,views}),/path.*impact|impact.*path/i);
+});

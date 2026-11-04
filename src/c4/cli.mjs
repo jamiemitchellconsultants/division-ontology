@@ -9,11 +9,11 @@ import {projectView} from './project.mjs';
 import {renderView} from './render.mjs';
 import {newAssessment,validateAssessment,renderAssessment} from './assessment.mjs';
 import {renderFeedback} from './feedback.mjs';
-const allowed={search:['query','exact-iri'],paths:['start','max-depth'],view:['focus','level','supplement'], 'assessment-init':['request-id','description-file'],'assessment-render':['input'],'feedback-render':['input','assessment-file']};
+const allowed={search:['query','exact-iri'],paths:['start','max-depth'],view:['focus','level','supplement'], 'assessment-init':['request-id','description-file'],'assessment-render':['input','view-input'],'feedback-render':['input','assessment-file','view-input']};
 const common=['catalog-commit','registry-commit','checkout','output'];
 function parse(argv) {
  const [command,...args]=argv;if(!allowed[command]) throw new Error('unknown command');const values={};
- for(let i=0;i<args.length;i+=2) {const flag=args[i];if(!flag?.startsWith('--') || !args[i+1] || args[i+1].startsWith('--')) throw new Error('invalid argument');const name=flag.slice(2);if(![...common,...allowed[command]].includes(name)) throw new Error(`unknown flag ${flag}`);if(['checkout','start'].includes(name)) (values[name]??=[]).push(args[i+1]);else {if(name in values) throw new Error(`duplicate flag ${flag}`);values[name]=args[i+1];}}
+ for(let i=0;i<args.length;i+=2) {const flag=args[i];if(!flag?.startsWith('--') || !args[i+1] || args[i+1].startsWith('--')) throw new Error('invalid argument');const name=flag.slice(2);if(![...common,...allowed[command]].includes(name)) throw new Error(`unknown flag ${flag}`);if(['checkout','start','view-input'].includes(name)) (values[name]??=[]).push(args[i+1]);else {if(name in values) throw new Error(`duplicate flag ${flag}`);values[name]=args[i+1];}}
  for(const name of ['catalog-commit','registry-commit','output']) if(!values[name]) throw new Error(`missing --${name}`);
  return {command,values};
 }
@@ -38,7 +38,8 @@ export async function runC4Cli(argv,{cwd=process.cwd(),stdout=process.stdout,std
    const input=JSON.parse(readFileSync(resolve(cwd,v.input),'utf8'));
    const record=command==='assessment-render'?input:JSON.parse(readFileSync(resolve(cwd,v['assessment-file']??''),'utf8'));
    const paths=record.confirmedLeads.length ? readImpactPaths({snapshot,registry,starts:record.confirmedLeads}).paths : [];
-   const context={snapshot,registry,paths,views:[]};
+   const views=(v['view-input']??[]).map(path=>JSON.parse(readFileSync(resolve(cwd,path),'utf8')));
+   const context={snapshot,registry,paths,views};
    if(command==='assessment-render') files.set('assessment.md',renderAssessment(record,context));
    else {const digest=validateAssessment(record,context);files.set('feedback.md',renderFeedback(input,{requestId:record.requestId,digest}));}
   }

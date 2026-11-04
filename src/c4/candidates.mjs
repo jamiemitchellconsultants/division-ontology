@@ -1,3 +1,4 @@
+import {coverageGaps} from './graph.mjs';
 import {mappingFor} from './registry.mjs';
 const cmp=(a,b)=>a<b?-1:a>b?1:0;
 export function findCandidates({snapshot,registry,query='',exactIri}) {
@@ -21,8 +22,7 @@ export function findCandidates({snapshot,registry,query='',exactIri}) {
   }
   leads.sort((a,b)=>a._rank-b._rank || cmp(a.key.sourceId,b.key.sourceId) || cmp(a.key.nodeIri,b.key.nodeIri) || cmp(a.kind,b.kind));
   for(const lead of leads) delete lead._rank;
-  const gaps=[...(registry.gaps??[])];
+  const gaps=[...(registry.gaps??[]),...coverageGaps(snapshot)];
   if(!leads.length) gaps.push({code:'unknown-search',reason:'No matching lead; coverage does not prove no impact'});
-  for(const source of snapshot.sources.values()) if(source.graphState?.status!=='available') gaps.push({code:'graph-unavailable',sourceId:source.id,reason:source.graphState?.reason ?? 'Graph unavailable'});
   return {snapshotId:snapshot.id,registryCommit:registry.commit,leads,gaps};
 }

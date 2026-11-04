@@ -38,3 +38,10 @@ test('Terraform-only deployment role rejects a non-Terraform citation', async ()
   assert.throws(()=>loadSourceGraph({...s,commit,config:{sourceGraph:{enabled:true,root:'graph',evidence:{deployment:['**/*.tf']}}}}),/role selector/i);
  });
 });
+test('an enabled optional graph absent at the pinned commit is unavailable',async()=>{
+ await withPilotFixture(async f=>{
+  const s=loadSnapshot(f).sources.get('fixture/Alpha');
+  const g=loadSourceGraph({...s,config:{sourceGraph:{enabled:true,root:'missing-graph',evidence:{}}}});
+  assert.equal(g.status,'unavailable');
+ });
+});

@@ -28,3 +28,7 @@ test('container view includes an evidenced directly connected external system',(
  const v=projectView({snapshot,registry,focus:keys.alphaSystem,level:'container'});
  assert.equal(v.items.find(x=>x.key.nodeIri===keys.externalBeta.nodeIri).insideBoundary,false); assert.equal(v.items.find(x=>x.key.nodeIri===keys.alphaContainer.nodeIri).insideBoundary,true); assert.ok(v.edges.some(x=>x.assertionIri==='link'));
 });
+test('partial source coverage appears alongside populated views',()=>{
+ const {snapshot,registry,keys}=makeModel();snapshot.sources.get('fixture/Alpha').graphState.coverage.push({iri:'gap',selector:'legacy/**',status:'excluded',priority:5,reason:'Not reviewed'});
+ const v=projectView({snapshot,registry,focus:keys.alphaSystem,level:'context'});assert.ok(v.items.length);assert.ok(v.gaps.some(g=>g.reason==='Not reviewed' && g.selector==='legacy/**'));
+});

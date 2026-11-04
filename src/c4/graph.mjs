@@ -18,8 +18,10 @@ export function coverageFor(graph,path) {
 export function loadSourceGraph({checkout,commit,config}) {
   const cfg=config?.sourceGraph;
   if(!cfg?.enabled) return {status:'unavailable',reason:'Source graph not enabled',nodes:new Map(),assertions:new Map(),evidence:new Map(),coverage:[]};
-  const files=listAtCommit(checkout,commit,cfg.root).filter(f=>f.endsWith('.ttl') && !f.endsWith('/graph-schema.ttl'));
-  if(!files.length) throw new Error('enabled source graph has no Turtle files');
+  const entries=listAtCommit(checkout,commit,cfg.root);
+  if(!entries.length) return {status:'unavailable',reason:'Source graph absent at pinned commit',nodes:new Map(),assertions:new Map(),evidence:new Map(),coverage:[]};
+  const files=entries.filter(f=>f.endsWith('.ttl') && !f.endsWith('/graph-schema.ttl'));
+  if(!files.length) throw new Error('present source graph has no Turtle data');
   const store=new Store();
   for(const file of files) {try {store.addQuads(new Parser().parse(readAtCommit(checkout,commit,file)));} catch(e) {throw new Error(`invalid Turtle in ${file}: ${e.message}`);} }
   const objects=(subject,predicate)=>store.getObjects(n(subject),n(predicate),null);
@@ -53,4 +55,13 @@ export function loadSourceGraph({checkout,commit,config}) {
     assertions.set(iri,{iri,subject,object,relationship,basis,evidenceIris});
   }
   return graph;
+}
+export function coverageGaps(snapshot) {
+ const gaps=[];
+ for(const source of snapshot.sources.values()) {
+  const graph=source.graphState;
+  if(graph?.status!=='available') {gaps.push({code:'graph-unavailable',sourceId:source.id,reason:graph?.reason??'Graph unavailable'});continue;}
+  for(const c of graph.coverage ?? []) if(c.status!=='covered') gaps.push({code:'coverage-'+c.status,sourceId:source.id,coverageIri:c.iri,selector:c.selector,reason:c.reason});
+ }
+ return gaps.sort((a,b)=>JSON.stringify(a)<JSON.stringify(b)?-1:JSON.stringify(a)>JSON.stringify(b)?1:0);
 }

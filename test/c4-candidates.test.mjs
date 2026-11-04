@@ -19,3 +19,7 @@ test('equal labels remain separate source-owned leads', () => {
  const {snapshot,registry}=makeModel(), r=findCandidates({snapshot,registry,query:'Beta'});
  assert.ok(r.leads.some(x=>x.key.sourceId==='fixture/Alpha')); assert.ok(r.leads.some(x=>x.key.sourceId==='fixture/Beta'));
 });
+test('search reports partial source coverage with results',()=>{
+ const {snapshot,registry}=makeModel();snapshot.sources.get('fixture/Alpha').graphState.coverage.push({iri:'gap',selector:'legacy/**',status:'excluded',priority:5,reason:'Not reviewed'});
+ const r=findCandidates({snapshot,registry,query:'Alpha'});assert.ok(r.leads.length);assert.ok(r.gaps.some(g=>g.reason==='Not reviewed'));
+});

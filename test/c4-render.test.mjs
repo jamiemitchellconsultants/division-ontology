@@ -20,3 +20,7 @@ test('renders the selected boundary separately from external items',()=>{
  const {snapshot,registry,keys}=makeModel(),v=projectView({snapshot,registry,focus:keys.alphaSystem,level:'context'}),{markdown}=renderView(v);
  assert.match(markdown,/subgraph .*boundary/i); assert.match(markdown,/\n  end\n/);
 });
+test('report exposes its stable view digest for assessment citations',async()=>{
+ const {viewDigest}=await import('../src/c4/assessment.mjs');const {snapshot,registry,keys}=makeModel(),view=projectView({snapshot,registry,focus:keys.alphaSystem,level:'context'});
+ assert.ok(renderView(view).markdown.includes(viewDigest(view)));
+});

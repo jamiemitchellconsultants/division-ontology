@@ -23,3 +23,7 @@ test('stale bindings remain gaps and never become steps', () => {
  const r=readImpactPaths({snapshot,registry:{...registry,bindings:[],gaps:[{code:'stale-binding',reason:'identity changed'}]},starts:[keys.alphaSystem]});
  assert.ok(r.gaps.some(g=>g.code==='stale-binding')); assert.ok(r.paths.every(p=>p.steps.every(s=>s.type!=='binding')));
 });
+test('partial graph coverage remains visible even when paths exist',()=>{
+ const {snapshot,registry,keys}=makeModel();snapshot.sources.get('fixture/Alpha').graphState.coverage.push({iri:'gap',selector:'legacy/**',status:'excluded',priority:5,reason:'Not reviewed'});
+ const r=readImpactPaths({snapshot,registry,starts:[keys.alphaSystem]});assert.ok(r.paths.length);assert.ok(r.gaps.some(g=>g.reason==='Not reviewed' && g.selector==='legacy/**'));
+});

@@ -1,3 +1,4 @@
+import {coverageGaps} from './graph.mjs';
 import {mappingFor} from './registry.mjs';
 import {verifyCodeSupplement} from './code-evidence.mjs';
 const levels=['context','container','component','code'];
@@ -6,7 +7,7 @@ const cmp=(a,b)=>a<b?-1:a>b?1:0;
 const id=x=>JSON.stringify([x.sourceId,x.nodeIri]);
 export function projectView({snapshot,registry,focus,level,supplement=null}) {
  if(!levels.includes(level)) throw new Error('invalid C4 level');
- const gaps=[...(registry.gaps??[])], focusMapping=mappingFor(registry,focus.sourceId,focus.nodeIri);
+ const gaps=[...(registry.gaps??[]),...coverageGaps(snapshot)], focusMapping=mappingFor(registry,focus.sourceId,focus.nodeIri);
  const expected={context:'context',container:'context',component:'container',code:'component'}[level];
  const view={snapshotId:snapshot.id,registryCommit:registry.commit,registryDigests:{mappings:registry.mappingSha256,bindings:registry.bindingSha256},focus,level,boundary:focus,items:[],edges:[],nextFocus:[],gaps};
  if(!focusMapping || focusMapping.level!==expected) {gaps.push({code:'unsupported-focus',...focus,reason:'Focus lacks the required supported mapping'}); return view;}
@@ -37,7 +38,6 @@ export function projectView({snapshot,registry,focus,level,supplement=null}) {
   if(included.has(id(from)) && included.has(id(to))) view.edges.push({from,to,assertionIri:a.iri,relationship:a.relationship,basis:a.basis,evidenceIris:a.evidenceIris,evidence:a.evidenceIris.map(i=>source.graphState.evidence.get(i)),commit:source.commit});
  }
  view.items.sort((a,b)=>cmp(id(a.key),id(b.key))); view.edges.sort((a,b)=>cmp(a.assertionIri,b.assertionIri));
- for(const source of snapshot.sources.values()) if(source.graphState.status!=='available') gaps.push({code:'graph-unavailable',sourceId:source.id,reason:source.graphState.reason});
  if(!view.items.length) gaps.push({code:'empty-level',reason:'No supported items at this level; coverage is unknown'});
  return view;
 }

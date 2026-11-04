@@ -38,7 +38,7 @@ npm run c4 -- paths --catalog-commit <sha> --registry-commit <sha> --checkout ow
 npm run c4 -- view --catalog-commit <sha> --registry-commit <sha> --checkout owner/repo=/absolute/checkout --output /absolute/output --focus owner/repo=https://example.org/node --level context
 ```
 
-View levels are `context`, `container`, `component` and `code`. `assessment-init` takes `--request-id` and `--description-file`; edit the generated JSON to record findings, then use `assessment-render --input FILE`. `feedback-render --input FILE --assessment-file FILE` renders a separate feedback record tied to the validated assessment digest. These commands also require the shared snapshot and checkout flags. `view` accepts an optional `--supplement FILE` for architect-inspected code evidence.
+View levels are `context`, `container`, `component` and `code`. `assessment-init` takes `--request-id` and `--description-file`; edit the generated JSON to record findings, then use `assessment-render --input FILE`. `feedback-render --input FILE --assessment-file FILE` renders a separate feedback record tied to the validated assessment digest. These commands also require the shared snapshot and checkout flags. To cite an inspected-code view in an assessment, include its digest in `viewIds` and supply its saved JSON using repeatable `--view-input FILE` on assessment and feedback rendering. `view` accepts an optional `--supplement FILE` for architect-inspected code evidence.
 
 ## Contribute
 
