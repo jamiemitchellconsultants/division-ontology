@@ -24,3 +24,9 @@ test('report exposes its stable view digest for assessment citations',async()=>{
  const {viewDigest}=await import('../src/c4/assessment.mjs');const {snapshot,registry,keys}=makeModel(),view=projectView({snapshot,registry,focus:keys.alphaSystem,level:'context'});
  assert.ok(renderView(view).markdown.includes(viewDigest(view)));
 });
+test('report includes covered as well as excluded source scopes',()=>{
+ const {snapshot,registry,keys}=makeModel(),graph=snapshot.sources.get('fixture/Alpha').graphState;
+ graph.coverage.push({iri:'covered',selector:'src/**',status:'covered',priority:1},{iri:'excluded',selector:'legacy/**',status:'excluded',priority:2,reason:'Not reviewed'});
+ const report=renderView(projectView({snapshot,registry,focus:keys.alphaSystem,level:'context'})).markdown;
+ assert.match(report,/## Coverage/);assert.match(report,/src\/\*\*/);assert.match(report,/legacy\/\*\*/);
+});

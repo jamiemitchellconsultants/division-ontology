@@ -16,6 +16,8 @@ export function renderView(view) {
  out.push('```','','Legend: dashed relationships are inferred and tentative; architect-inspected code is separately identified.','','## Evidence','','| Item | Assertion / basis | Repository | Commit | Source | Blob |','| --- | --- | --- | --- | --- | --- |');
  for(const item of view.items) for(const e of item.evidence ?? []) out.push(`| <a id="evidence-${digest(item.key)}"></a>${escape(item.label)} | ${escape(item.assertionIri ?? item.basis)} | ${escape(item.key.sourceId)} | ${escape(item.commit)} | [${escape(e.path)}:${e.startLine}-${e.endLine}](${link(item.key.sourceId,item.commit,e)}) | ${escape(e.blobId)} |`);
  for(const edge of view.edges) for(const e of edge.evidence ?? []) if(e) out.push(`| ${escape(edge.relationship)} | ${escape(edge.assertionIri)} / ${escape(edge.basis)} | ${escape(edge.from.sourceId)} | ${escape(edge.commit)} | [${escape(e.path)}:${e.startLine}-${e.endLine}](${link(edge.from.sourceId,edge.commit,e)}) | ${escape(e.blobId)} |`);
+ out.push('','## Coverage','','| Source | Scope | Status | Reason |','| --- | --- | --- | --- |');
+ for(const c of view.coverage??[]) out.push(`| ${escape(c.sourceId)} | ${escape(c.selector)} | ${escape(c.status)} | ${escape(c.reason)} |`);
  out.push('','## Gaps','','| Code | Source | Scope | Reason |','| --- | --- | --- | --- |');
  for(const gap of view.gaps) out.push(`| ${escape(gap.code)} | ${escape(gap.sourceId)} | ${escape(gap.selector)} | ${escape(gap.reason)} |`);
  if(!view.gaps.length) out.push('| None recorded | | | Coverage does not establish architectural completeness. |');

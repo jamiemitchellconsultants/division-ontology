@@ -1,4 +1,4 @@
-import {coverageGaps} from './graph.mjs';
+import {coverageGaps,coverageInventory} from './graph.mjs';
 import {mappingFor} from './registry.mjs';
 import {verifyCodeSupplement} from './code-evidence.mjs';
 const levels=['context','container','component','code'];
@@ -9,7 +9,7 @@ export function projectView({snapshot,registry,focus,level,supplement=null}) {
  if(!levels.includes(level)) throw new Error('invalid C4 level');
  const gaps=[...(registry.gaps??[]),...coverageGaps(snapshot)], focusMapping=mappingFor(registry,focus.sourceId,focus.nodeIri);
  const expected={context:'context',container:'context',component:'container',code:'component'}[level];
- const view={snapshotId:snapshot.id,registryCommit:registry.commit,registryDigests:{mappings:registry.mappingSha256,bindings:registry.bindingSha256},focus,level,boundary:focus,items:[],edges:[],nextFocus:[],gaps};
+ const view={snapshotId:snapshot.id,registryCommit:registry.commit,registryDigests:{mappings:registry.mappingSha256,bindings:registry.bindingSha256},focus,level,boundary:focus,coverage:coverageInventory(snapshot),items:[],edges:[],nextFocus:[],gaps};
  if(!focusMapping || focusMapping.level!==expected) {gaps.push({code:'unsupported-focus',...focus,reason:'Focus lacks the required supported mapping'}); return view;}
  const selected=level==='context' ? registry.mappings.filter(m=>m.level==='context' && (same(m,focus) || (m.sourceId===focus.sourceId && [...snapshot.sources.get(m.sourceId).graphState.assertions.values()].some(a=>(a.subject===focus.nodeIri && a.object===m.nodeIri)||(a.object===focus.nodeIri && a.subject===m.nodeIri))))) : registry.mappings.filter(m=>m.level===level && same(m.parent,focus));
  if(level==='container' || level==='component') {

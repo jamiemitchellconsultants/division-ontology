@@ -1,4 +1,4 @@
-import {coverageGaps} from './graph.mjs';
+import {coverageGaps,coverageInventory} from './graph.mjs';
 import {createHash} from 'node:crypto';
 import {mappingFor,bindingFrom} from './registry.mjs';
 const key=x=>JSON.stringify([x.sourceId,x.nodeIri]);
@@ -30,5 +30,5 @@ export function readImpactPaths({snapshot,registry,starts,maxDepth=4}) {
   walk(start,[],new Set([key(start)]));
  }
  if(!paths.length) gaps.push({code:'unknown-paths',reason:'No paths found; missing relationships do not prove no impact'});
- return {snapshotId:snapshot.id,registryCommit:registry.commit,paths,gaps};
+ return {snapshotId:snapshot.id,registryCommit:registry.commit,coverage:coverageInventory(snapshot),paths,gaps};
 }

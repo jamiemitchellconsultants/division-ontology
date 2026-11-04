@@ -65,3 +65,8 @@ export function coverageGaps(snapshot) {
  }
  return gaps.sort((a,b)=>JSON.stringify(a)<JSON.stringify(b)?-1:JSON.stringify(a)>JSON.stringify(b)?1:0);
 }
+export function coverageInventory(snapshot) {
+ const records=[];
+ for(const source of snapshot.sources.values()) for(const entry of source.graphState?.coverage??[]) records.push({sourceId:source.id,...entry});
+ return records.sort((a,b)=>JSON.stringify(a)<JSON.stringify(b)?-1:JSON.stringify(a)>JSON.stringify(b)?1:0);
+}
