@@ -26,6 +26,20 @@ npm run check -- --checkout jamiemitchellconsultants/JointBooking=/path/to/Joint
 
 `build` writes the three files in `dist/` after all sources and links validate. `check` compares them against the current source commits without writing. A failed build leaves the previous complete catalog in place. Omit `--checkout` to clone the repositories named in `sources.json` with your existing Git credentials; this repository stores no credential. A local checkout must be clean and have an `origin` matching its configured source URL. The ontology is read directly from the recorded commit.
 
+## C4 impact pilot
+
+The local pilot reads a published catalog commit, reviewed mapping and binding commit, and clean checkouts for every catalog source. Its JSON and Markdown reports retain evidence and gaps; they do not decide impact or approve a request. The initial registries are empty and JointBooking cannot supply graph-backed paths until it publishes a graph at a catalog-pinned commit.
+
+Use Node.js 20 or newer. Supply `--catalog-commit`, `--registry-commit`, an absolute `--checkout owner/repo=/path` for every source, and `--output /path/outside/repositories` to each command. For example:
+
+```bash
+npm run c4 -- search --catalog-commit <sha> --registry-commit <sha> --checkout owner/repo=/absolute/checkout --output /absolute/output --query "change description"
+npm run c4 -- paths --catalog-commit <sha> --registry-commit <sha> --checkout owner/repo=/absolute/checkout --output /absolute/output --start owner/repo=https://example.org/node
+npm run c4 -- view --catalog-commit <sha> --registry-commit <sha> --checkout owner/repo=/absolute/checkout --output /absolute/output --focus owner/repo=https://example.org/node --level context
+```
+
+View levels are `context`, `container`, `component` and `code`. `assessment-init` takes `--request-id` and `--description-file`; edit the generated JSON to record findings, then use `assessment-render --input FILE`. `feedback-render --input FILE --assessment-file FILE` renders a separate feedback record tied to the validated assessment digest. These commands also require the shared snapshot and checkout flags. To cite an inspected-code view in an assessment, include its digest in `viewIds` and supply its saved JSON using repeatable `--view-input FILE` on assessment and feedback rendering. `view` accepts an optional `--supplement FILE` for architect-inspected code evidence.
+
 ## Contribute
 
 See [GOVERNANCE.md](GOVERNANCE.md). In brief:
