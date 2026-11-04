@@ -12,6 +12,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [2](#entry-docs-accept-one-action-source-onboarding-vision) | 2026-11-02 | docs: accept one-action source onboarding vision | product | The source owner's enrollment action will be granting a preapproved, selected-repository, read-only GitHub App access to their repository. |
 | [3](#entry-policy-add-alternate-steward-code-owner) | 2026-11-02 | policy: add alternate steward code owner | governance | List `@james-mitchell-ba` as a code owner for the existing sensitive paths and recognize current-head approval from either `@jamiemitchellconsultants` or `@james-mitchell-ba` in `merge-policy`. |
 | [4](#entry-define-runtime-knowledge-workspace-behaviours) | 2026-11-04 | Define runtime knowledge workspace behaviours | product | Retain contributions when endpoints disappear, mark them unavailable and exclude their relationships from default traversal while allowing explicit inclusion. |
+| [5](#entry-narrow-merge-policy-to-ontology-imports) | 2026-11-04 | Narrow merge policy to ontology imports | product | Require the check's current steward approval for source registration changes and linked-concept drift. Verified routine refreshes pass automatically; other changes pass the check. |
 
 ---
 
@@ -98,3 +99,25 @@ Add PublishedKnowledgeSnapshot, KnowledgeAnnotation, RuntimeRelationship, Knowle
 Architecture can work from the accepted behaviours once this PR is reviewed and merged. The external InternalOntology/C4 graph contracts and identifiers must be confirmed before implementation planning; pilot product, owner, wider-business reviewer and representative search examples are deferred to acceptance planning. The new shared terms require division-steward approval.
 
 Generated catalog outputs were built, checked and reviewed locally. They are excluded from this authored PR; scheduled sync will propose the generated-only update after merge.
+
+---
+
+<a id="entry-narrow-merge-policy-to-ontology-imports"></a>
+
+## Entry 5 — 2026-11-04 — Narrow merge policy to ontology imports
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The existing gate is broader than needed for external ontology imports and blocks unrelated changes. The main branch ruleset has no blanket required approval or required code-owner approval.
+
+## Decision
+
+Require the check's current steward approval for source registration changes and linked-concept drift. Verified routine refreshes pass automatically; other changes pass the check.
+
+## Consequences
+
+Changes to trusted policy and workflow files also pass this check without steward approval. CODEOWNERS still requests reviews, and repository governance continues to call for applicable reviews, but the ruleset does not enforce those approvals. Incomplete pull-request file lists fail closed.
+
+AI-Fingerprint: sha256:89e389e0a19b
