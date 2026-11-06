@@ -134,20 +134,22 @@ Keep this Terminal tab for the feedback and cleanup commands. In Finder, open th
 
 Record the walkthrough result, executable result, date and participant for each environment. Include the step-level results and B4 feedback with this record.
 
+On 6 November 2026, James Mitchell reviewed the B1–B15 descriptions, approved all 15 executable checks and reported `PASS — B1–B15` on `M4Mini.local` using Node `v26.7.0` and division revision `83e3c98`. This records the local automated result. The report identifies the same host as the earlier local run, so the second Mac run remains pending. Step-level walkthrough results and participant feedback for B4 remain pending. The automated B4 check used sample feedback.
+
 | Behaviour | Local walkthrough / test | Second Mac walkthrough / test |
 | --- | --- | --- |
-| B1 | Pending / pending | Pending / pending |
-| B2 | Pending / pending | Pending / pending |
-| B3 | Pending / pending | Pending / pending |
-| B4 | Pending / pending | Pending / pending |
-| B5 | Pending / pending | Pending / pending |
-| B6 | Pending / pending | Pending / pending |
-| B7 | Pending / pending | Pending / pending |
-| B8 | Pending / pending | Pending / pending |
-| B9 | Pending / pending | Pending / pending |
-| B10 | Pending / pending | Pending / pending |
-| B11 | Pending / pending | Pending / pending |
-| B12 | Pending / pending | Pending / pending |
-| B13 | Pending / pending | Pending / pending |
-| B14 | Pending / pending | Pending / pending |
-| B15 | Pending / pending | Pending / pending |
+| B1 | Pending / pass (reported) | Pending / pending |
+| B2 | Pending / pass (reported) | Pending / pending |
+| B3 | Pending / pass (reported) | Pending / pending |
+| B4 | Pending / pass (reported) | Pending / pending |
+| B5 | Pending / pass (reported) | Pending / pending |
+| B6 | Pending / pass (reported) | Pending / pending |
+| B7 | Pending / pass (reported) | Pending / pending |
+| B8 | Pending / pass (reported) | Pending / pending |
+| B9 | Pending / pass (reported) | Pending / pending |
+| B10 | Pending / pass (reported) | Pending / pending |
+| B11 | Pending / pass (reported) | Pending / pending |
+| B12 | Pending / pass (reported) | Pending / pending |
+| B13 | Pending / pass (reported) | Pending / pending |
+| B14 | Pending / pass (reported) | Pending / pending |
+| B15 | Pending / pass (reported) | Pending / pending |
