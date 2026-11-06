@@ -143,4 +143,4 @@ On 6 November 2026, James Mitchell reviewed the B1–B15 descriptions, approved 
 
 On 6 November 2026, James Mitchell ran the consolidated command on `M4Mini.local` using Node `v26.7.0` and division revision `da31b91`. The command reported `PASS — repository tests and B1–B15`.
 
-B1–B15 automated comparisons passed on the M4 Mini. Participant feedback for B4 remains pending.
+**Pilot acceptance: passed.** On 6 November 2026, James Mitchell accepted the B1–B15 automated results and confirmed that the pilot scope was sufficient. This is his B4 feedback for this pilot.
