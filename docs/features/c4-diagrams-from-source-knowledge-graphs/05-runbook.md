@@ -8,7 +8,7 @@ The pilot is a local Node.js CLI, not a hosted service. Install Node.js 20 or la
 
 Choose the published division catalog commit and the reviewed mapping and binding commit. The latter contains `c4/mappings.json` and `c4/bindings.json`. Select an absolute output directory outside the division and source checkouts. Repeat `--checkout owner/repo=/absolute/path` for every source. Keep the catalog and registry commits, source paths, Node version and division revision with the pilot record. Production registries initially contain no mappings or bindings; a missing source graph is reported as a gap.
 
-For acceptance, use the M4 Mini and record its machine name, project commit, Node version and generated fixture commits. Run the setup block in [the acceptance walkthrough](05-acceptance.md#start-the-walkthrough). It installs dependencies and builds the synthetic sources locally. Record the test evidence as synthetic acceptance coverage. The pilot waives a repeat on a second machine.
+For acceptance, use the M4 Mini. Run `npm ci && npm run --silent acceptance:c4` from the repository root. The command prints the machine, Node version, revision and any discrepancies. It creates and cleans up the synthetic sources automatically. Record the result as synthetic acceptance coverage. Open the [acceptance walkthrough](05-acceptance.md#start-the-walkthrough) when you need to inspect the reports. The pilot waives a repeat on a second machine.
 
 ## Operate
 

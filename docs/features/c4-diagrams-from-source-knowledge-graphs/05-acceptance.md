@@ -113,13 +113,7 @@ Keep this Terminal tab for the feedback and cleanup commands. In Finder, open th
 ## Review and run the executable checks
 
 1. Finish the local walkthrough. Record each step in the results table. Open [the executable suite](../../../test/acceptance/c4.test.mjs), which names one test per behaviour. Approve the tests that match the passed walkthroughs.
-2. Run the approved tests in the local build. Use this command when you have approved all 15.
-
-   ```bash
-   node --test test/acceptance/c4.test.mjs
-   ```
-
-   To run a subset you approved, filter by behaviour, for example `node --test --test-name-pattern='^B(1|2) ' test/acceptance/c4.test.mjs`.
+2. Run the approved tests in the local build using the [automated rerun](#automated-reruns). To run a subset you approved, filter by behaviour, for example `node --test --test-name-pattern='^B(1|2) ' test/acceptance/c4.test.mjs`.
 3. For any failed step, record the behaviour ID, numbered step and actual output. Use the feature-user pushback process before continuing acceptance.
 4. Save the review results, then run cleanup from the division repository.
 
@@ -127,6 +121,20 @@ Keep this Terminal tab for the feedback and cleanup commands. In Finder, open th
    node test/acceptance/c4-walkthrough.mjs teardown "$review_dir/fixture" &&
    rmdir "$review_dir"
    ```
+
+## Automated reruns
+
+1. In Terminal, open the repository root on the acceptance machine and check out the revision you want to verify. On a clean checkout, install the locked dependencies and run the automation in one command.
+
+   ```bash
+   npm ci && npm run --silent acceptance:c4
+   ```
+
+   If the dependencies are already installed, run `npm run --silent acceptance:c4` by itself.
+2. Read the machine, Node version and division revision. A passing run prints one `PASS` line. On a failure, record the failing test name, assertion and actual output. The command exits with a nonzero status and reports the discrepancies.
+3. Use the numbered walkthrough and review index if you need to inspect a discrepancy or record a participant's walkthrough. For B4, record the architect and reviewer observations separately. The automated check renders sample feedback and verifies its link to the assessment digest.
+
+The command runs the regular repository suite and B1–B15. It creates disposable repositories, builds the baseline and revised catalogs, checks catalog consistency, renders the views, assessment and sample feedback, checks the expected values, and tears down the temporary inputs and outputs. Record the rerun result with the revision and date.
 
 ## Formal results
 
