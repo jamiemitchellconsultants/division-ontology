@@ -142,6 +142,8 @@ Record the walkthrough result, executable result, date and participant for the a
 
 On 6 November 2026, James Mitchell reviewed the B1–B15 descriptions, approved all 15 executable checks and reported `PASS — B1–B15` on `M4Mini.local` using Node `v26.7.0` and division revision `83e3c98`. This records the local automated result. Step-level walkthrough results and participant feedback for B4 remain pending. The automated B4 check used sample feedback.
 
+On 6 November 2026, James Mitchell ran the consolidated command on `M4Mini.local` using Node `v26.7.0` and division revision `da31b91`. The command reported `PASS — repository tests and B1–B15`.
+
 | Behaviour | M4 Mini walkthrough / test |
 | --- | --- |
 | B1 | Pending / pass (reported) |
