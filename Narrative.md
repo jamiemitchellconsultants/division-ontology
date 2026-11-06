@@ -20,6 +20,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [10](#entry-add-feature-lifecycle-workflow) | 2026-11-04 | Add feature lifecycle workflow | product | Add the feature lifecycle CLI, persona skills, and PR gate workflow. |
 | [11](#entry-plan-c4-impact-assessment-pilot) | 2026-11-04 | Plan C4 impact assessment pilot | product | Plan the pilot as ten test-first tasks: pinned catalog and source loading, source graph and coverage parsing, reviewed C4 mappings and cross-source bindings, candidate search, directed impact paths, four-level projection, pinned code… |
 | [12](#entry-build-c4-impact-assessment-pilot) | 2026-11-04 | Build C4 impact assessment pilot | product | Implement the local C4 pilot: pinned snapshot and graph readers, reviewed mapping and binding registries, candidate search, directed paths, four-level projections, inspected-code evidence, deterministic reports, and editable assessment… |
+| [13](#entry-add-c4-pilot-acceptance-fixtures-and-automated-checks) | 2026-11-06 | Add C4 pilot acceptance fixtures and automated checks | product | For this pilot, use the automated B1–B15 comparisons as the acceptance record. Run acceptance on one M4 Mini and waive the duplicate second-machine run. Capture the participant's scope judgment separately as B4 feedback. |
 
 ---
 
@@ -270,3 +271,25 @@ Implement the local C4 pilot: pinned snapshot and graph readers, reviewed mappin
 ## Consequences
 
 Architects can review evidence and record their own conclusions without an approval command. Source graphs remain optional and source-owned; JointBooking cannot supply graph-backed C4 paths until its source publishes a graph at a catalog-pinned revision. Generated catalog files are unchanged.
+
+---
+
+<a id="entry-add-c4-pilot-acceptance-fixtures-and-automated-checks"></a>
+
+## Entry 13 — 2026-11-06 — Add C4 pilot acceptance fixtures and automated checks
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The pilot needed repeatable acceptance evidence for cross-system paths, pinned source evidence, incomplete coverage and assessment reporting. The original checklist called for manual output comparisons and a separate deployed run. The pilot runs as a CLI on a Mac with disposable sources.
+
+## Decision
+
+For this pilot, use the automated B1–B15 comparisons as the acceptance record. Run acceptance on one M4 Mini and waive the duplicate second-machine run. Capture the participant's scope judgment separately as B4 feedback.
+
+## Consequences
+
+Reruns produce one pass result or the discrepancies. The numbered scenarios and reports remain available for investigating failures. The reported evidence covers the synthetic pilot on one acceptance machine. The B4 rendering check uses sample data and the acceptance record separately preserves James's feedback.
+
+AI-Fingerprint: sha256:cfad895d3329
