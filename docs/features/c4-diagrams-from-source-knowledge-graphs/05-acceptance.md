@@ -3,8 +3,7 @@
 The three-repository preview completed with eight automated output checks and no failures. James Mitchell confirmed preview steps 3 and 4. The formal walkthroughs and corresponding tests below are ready for review. Record their results separately.
 
 - Participant, architect and reviewer: James Mitchell.
-- Local environment: the primary Mac.
-- Deployed acceptance environment: a second Mac with a clean checkout of the same division revision. Record each machine name and Node version.
+- Acceptance environment: `M4Mini.local`, running the local CLI from a clean checkout. On 6 November 2026, James Mitchell waived a repeat run on a second machine for this pilot.
 - Change request: **CR-ORDER-01**. Change Order processing to send a new order identifier to Warehouse fulfilment and Accounting.
 - Inputs: synthetic Ecommerce, Warehouse and Accounting repositories, plus the existing synthetic Alpha code fixture for B8. The fixture publishes a baseline and a newer catalog into disposable Git repositories.
 
@@ -121,9 +120,8 @@ Keep this Terminal tab for the feedback and cleanup commands. In Finder, open th
    ```
 
    To run a subset you approved, filter by behaviour, for example `node --test --test-name-pattern='^B(1|2) ' test/acceptance/c4.test.mjs`.
-3. Open a clean checkout of the same division revision on the second Mac. Run the **Start the walkthrough** block there, repeat B1–B15, review and approve the corresponding tests, then run the same test command. Record both runs and qualitative feedback.
-4. For any failed step, record the behaviour ID, numbered step and actual output. Use the feature-user pushback process before continuing acceptance.
-5. Save the review results, then run cleanup on each machine from the division repository.
+3. For any failed step, record the behaviour ID, numbered step and actual output. Use the feature-user pushback process before continuing acceptance.
+4. Save the review results, then run cleanup from the division repository.
 
    ```bash
    node test/acceptance/c4-walkthrough.mjs teardown "$review_dir/fixture" &&
@@ -132,24 +130,24 @@ Keep this Terminal tab for the feedback and cleanup commands. In Finder, open th
 
 ## Formal results
 
-Record the walkthrough result, executable result, date and participant for each environment. Include the step-level results and B4 feedback with this record.
+Record the walkthrough result, executable result, date and participant for the acceptance run. Include the step-level results and B4 feedback with this record.
 
-On 6 November 2026, James Mitchell reviewed the B1–B15 descriptions, approved all 15 executable checks and reported `PASS — B1–B15` on `M4Mini.local` using Node `v26.7.0` and division revision `83e3c98`. This records the local automated result. The report identifies the same host as the earlier local run, so the second Mac run remains pending. Step-level walkthrough results and participant feedback for B4 remain pending. The automated B4 check used sample feedback.
+On 6 November 2026, James Mitchell reviewed the B1–B15 descriptions, approved all 15 executable checks and reported `PASS — B1–B15` on `M4Mini.local` using Node `v26.7.0` and division revision `83e3c98`. This records the local automated result. Step-level walkthrough results and participant feedback for B4 remain pending. The automated B4 check used sample feedback.
 
-| Behaviour | Local walkthrough / test | Second Mac walkthrough / test |
-| --- | --- | --- |
-| B1 | Pending / pass (reported) | Pending / pending |
-| B2 | Pending / pass (reported) | Pending / pending |
-| B3 | Pending / pass (reported) | Pending / pending |
-| B4 | Pending / pass (reported) | Pending / pending |
-| B5 | Pending / pass (reported) | Pending / pending |
-| B6 | Pending / pass (reported) | Pending / pending |
-| B7 | Pending / pass (reported) | Pending / pending |
-| B8 | Pending / pass (reported) | Pending / pending |
-| B9 | Pending / pass (reported) | Pending / pending |
-| B10 | Pending / pass (reported) | Pending / pending |
-| B11 | Pending / pass (reported) | Pending / pending |
-| B12 | Pending / pass (reported) | Pending / pending |
-| B13 | Pending / pass (reported) | Pending / pending |
-| B14 | Pending / pass (reported) | Pending / pending |
-| B15 | Pending / pass (reported) | Pending / pending |
+| Behaviour | M4 Mini walkthrough / test |
+| --- | --- |
+| B1 | Pending / pass (reported) |
+| B2 | Pending / pass (reported) |
+| B3 | Pending / pass (reported) |
+| B4 | Pending / pass (reported) |
+| B5 | Pending / pass (reported) |
+| B6 | Pending / pass (reported) |
+| B7 | Pending / pass (reported) |
+| B8 | Pending / pass (reported) |
+| B9 | Pending / pass (reported) |
+| B10 | Pending / pass (reported) |
+| B11 | Pending / pass (reported) |
+| B12 | Pending / pass (reported) |
+| B13 | Pending / pass (reported) |
+| B14 | Pending / pass (reported) |
+| B15 | Pending / pass (reported) |
