@@ -1,15 +1,15 @@
 # C4 impact pilot acceptance
 
-The three-repository preview completed with eight automated output checks and no failures. James Mitchell confirmed preview steps 3 and 4. The formal walkthroughs and corresponding tests below are ready for review. Record their results separately.
+The three-repository preview passed eight automated output checks. For this pilot, James Mitchell approved B1–B15 and directed that the executable checks perform the comparisons between generated and expected results. Use the automated result as the comparison record. Record participant feedback for B4 separately.
 
 - Participant, architect and reviewer: James Mitchell.
 - Acceptance environment: `M4Mini.local`, running the local CLI from a clean checkout. On 6 November 2026, James Mitchell waived a repeat run on a second machine for this pilot.
 - Change request: **CR-ORDER-01**. Change Order processing to send a new order identifier to Warehouse fulfilment and Accounting.
 - Inputs: synthetic Ecommerce, Warehouse and Accounting repositories, plus the existing synthetic Alpha code fixture for B8. The fixture publishes a baseline and a newer catalog into disposable Git repositories.
 
-## Start the walkthrough
+## Inspect reports on demand
 
-Open Terminal at the root of the division repository on the primary Mac. Run this block once. It generates the reports, opens their folder in Finder, and opens the short review index in your text editor.
+Use this block to investigate a discrepancy or view the sample assessment for B4. Open Terminal at the repository root on the M4 Mini and run the block. It opens the reports in Finder and the short review index in your text editor.
 
 ```bash
 npm ci &&
@@ -20,9 +20,11 @@ open "$review_dir/fixture/reports" &&
 open -t "$review_dir/fixture/reports/README.md"
 ```
 
-Keep this Terminal tab for the feedback and cleanup commands. In Finder, open the report folders listed below. Use the index for a quick check and open the named JSON or Markdown when a step calls out a specific field. Record each numbered step as Pass or Fail, with the observed value for any failure. Keep the environment, project commit, baseline and newer catalog commits with the results. The synthetic GitHub links are identity markers. Use the exported pinned source excerpt for B8.
+Keep this Terminal tab for the feedback and cleanup commands. Use the index to locate the report named in a discrepancy. The synthetic GitHub links are identity markers. Use the exported pinned source excerpt if you need to investigate B8.
 
-## Walkthroughs and expected results
+## Behaviour reference and expected results
+
+These scenarios document the checks and identify the corresponding reports. Open the relevant section when investigating a discrepancy.
 
 ### B1 — Search
 
@@ -51,7 +53,7 @@ Keep this Terminal tab for the feedback and cleanup commands. In Finder, open th
    open -t "$review_dir/fixture/reports/B04-feedback/feedback.md"
    ```
 
-3. Compare the feedback and assessment digests. Expect the same value in both reports. Check that your qualitative observations appear in the feedback report and record them with the walkthrough results.
+3. Save your qualitative observations with the acceptance record. The executable B4 check verifies the assessment digest and the rendering of the feedback fields.
 
 ### B5 — System context
 
@@ -110,17 +112,14 @@ Keep this Terminal tab for the feedback and cleanup commands. In Finder, open th
 1. Open `catalog.json`. Expect Ecommerce with eight concepts, Warehouse with eight and Accounting with nine.
 2. Confirm Ecommerce appears in the context view. Check the code-gap view for `src/**` marked unknown and `empty-level`.
 
-## Review and run the executable checks
+## Clean up optional review files
 
-1. Finish the local walkthrough. Record each step in the results table. Open [the executable suite](../../../test/acceptance/c4.test.mjs), which names one test per behaviour. Approve the tests that match the passed walkthroughs.
-2. Run the approved tests in the local build using the [automated rerun](#automated-reruns). To run a subset you approved, filter by behaviour, for example `node --test --test-name-pattern='^B(1|2) ' test/acceptance/c4.test.mjs`.
-3. For any failed step, record the behaviour ID, numbered step and actual output. Use the feature-user pushback process before continuing acceptance.
-4. Save the review results, then run cleanup from the division repository.
+Save any participant feedback you want to record, then run this block in the Terminal tab where you generated the review files.
 
-   ```bash
-   node test/acceptance/c4-walkthrough.mjs teardown "$review_dir/fixture" &&
-   rmdir "$review_dir"
-   ```
+```bash
+node test/acceptance/c4-walkthrough.mjs teardown "$review_dir/fixture" &&
+rmdir "$review_dir"
+```
 
 ## Automated reruns
 
@@ -132,32 +131,16 @@ Keep this Terminal tab for the feedback and cleanup commands. In Finder, open th
 
    If the dependencies are already installed, run `npm run --silent acceptance:c4` by itself.
 2. Read the machine, Node version and division revision. A passing run prints one `PASS` line. On a failure, record the failing test name, assertion and actual output. The command exits with a nonzero status and reports the discrepancies.
-3. Use the numbered walkthrough and review index if you need to inspect a discrepancy or record a participant's walkthrough. For B4, record the architect and reviewer observations separately. The automated check renders sample feedback and verifies its link to the assessment digest.
+3. If a comparison fails, open the matching behaviour reference and use the review index to investigate. For B4, record your architect and reviewer observations separately. The automated check renders sample feedback and verifies its link to the assessment digest.
 
 The command runs the regular repository suite and B1–B15. It creates disposable repositories, builds the baseline and revised catalogs, checks catalog consistency, renders the views, assessment and sample feedback, checks the expected values, and tears down the temporary inputs and outputs. Record the rerun result with the revision and date.
 
 ## Formal results
 
-Record the walkthrough result, executable result, date and participant for the acceptance run. Include the step-level results and B4 feedback with this record.
+Record the automated result, date, revision and participant for the acceptance run. Record the participant’s qualitative B4 feedback when provided.
 
-On 6 November 2026, James Mitchell reviewed the B1–B15 descriptions, approved all 15 executable checks and reported `PASS — B1–B15` on `M4Mini.local` using Node `v26.7.0` and division revision `83e3c98`. This records the local automated result. Step-level walkthrough results and participant feedback for B4 remain pending. The automated B4 check used sample feedback.
+On 6 November 2026, James Mitchell reviewed the B1–B15 descriptions, approved all 15 executable checks and reported `PASS — B1–B15` on `M4Mini.local` using Node `v26.7.0` and division revision `83e3c98`. The automated B4 check used sample feedback.
 
 On 6 November 2026, James Mitchell ran the consolidated command on `M4Mini.local` using Node `v26.7.0` and division revision `da31b91`. The command reported `PASS — repository tests and B1–B15`.
 
-| Behaviour | M4 Mini walkthrough / test |
-| --- | --- |
-| B1 | Pending / pass (reported) |
-| B2 | Pending / pass (reported) |
-| B3 | Pending / pass (reported) |
-| B4 | Pending / pass (reported) |
-| B5 | Pending / pass (reported) |
-| B6 | Pending / pass (reported) |
-| B7 | Pending / pass (reported) |
-| B8 | Pending / pass (reported) |
-| B9 | Pending / pass (reported) |
-| B10 | Pending / pass (reported) |
-| B11 | Pending / pass (reported) |
-| B12 | Pending / pass (reported) |
-| B13 | Pending / pass (reported) |
-| B14 | Pending / pass (reported) |
-| B15 | Pending / pass (reported) |
+B1–B15 automated comparisons passed on the M4 Mini. Participant feedback for B4 remains pending.
