@@ -43,15 +43,18 @@ public sealed record TraversalRequest(PublishedKey Start, string Direction = "ou
     int MaxDepth = 2, bool IncludeUnavailable = false);
 public sealed record TraversalPath(IReadOnlyList<TraversalStep> Steps);
 public sealed record TraversalStep(PublishedKey? Key, Guid? RuntimeId, PublishedKey From, PublishedKey To,
-    string Label, string Direction, string Origin, Provenance Provenance,
-    bool EndpointUnavailable = false, string? LastKnownSnapshotId = null, JsonElement? Context = null);
+    string Label, string Direction, string Origin, Provenance? Provenance,
+    bool EndpointUnavailable = false, string? LastKnownSnapshotId = null, JsonElement? Context = null,
+    RuntimeContribution? Contribution = null, EndpointContext? FromEndpoint = null, EndpointContext? ToEndpoint = null,
+    IReadOnlyList<RuntimeContribution>? CodifyingContributions = null);
 public sealed record TraversalResult(string SnapshotId, IReadOnlyList<TraversalPath> Paths,
-    IReadOnlyList<CoverageGap> Gaps, bool Truncated);
+    IReadOnlyList<CoverageGap> Gaps, bool Truncated, IReadOnlyList<TraversalEntity> Entities);
 
-public sealed class WorkspaceException(string code, string message, Exception? inner = null)
+public sealed class WorkspaceException(string code, string message, Exception? inner = null, RuntimeContribution? current = null)
     : Exception(message, inner)
 {
     public string Code { get; } = code;
+    public RuntimeContribution? Current { get; } = current;
 }
 
 public interface IBundleObjects

@@ -53,7 +53,7 @@ public sealed class SnapshotTests
         Assert.Equal(s.PublishedEdge, assertion.Key);
         Assert.Equal(s.A, assertion.From);
         Assert.Equal(s.B, assertion.To);
-        Assert.Equal("direct", assertion.Provenance.Basis);
+        Assert.Equal("direct", assertion.Provenance!.Basis);
         Assert.Equal("docs/source.md", Assert.Single(assertion.Provenance.Evidence).Path);
     }
 }

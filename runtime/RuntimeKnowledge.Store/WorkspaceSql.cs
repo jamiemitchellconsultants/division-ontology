@@ -97,8 +97,13 @@ internal static class AgeGraph
             CREATE (a)-[:Relationship {key: $key, scope: $scope}]->(b)
             """, new { key, from, to, scope }, token);
 
+    public static Task RemoveEdgeAsync(NpgsqlTransaction tx, string graph, string key, string scope,
+        CancellationToken token) =>
+        WriteAsync(tx, graph, "MATCH ()-[r:Relationship {key: $key, scope: $scope}]->() DELETE r",
+            new { key, scope }, token);
+
     public static async Task<IReadOnlyList<(string EdgeKey, string NextKey)>> NeighborsAsync(
-        NpgsqlTransaction tx, string graph, string at, string scope, string direction, CancellationToken token)
+        NpgsqlTransaction tx, string graph, string at, string scope, string direction, CancellationToken token, string after = "")
     {
         var pattern = direction switch
         {
@@ -109,10 +114,10 @@ internal static class AgeGraph
         };
         await using var command = await PrepareAsync(tx, graph, $"""
             MATCH {pattern}
-            WHERE r.scope = $scope
+            WHERE r.scope = $scope AND r.key > $after
             RETURN r.key, b.key ORDER BY r.key, b.key LIMIT 101
             """, "edge_key ag_catalog.agtype, next_key ag_catalog.agtype",
-            "edge_key::text, next_key::text", new { at, scope }, token);
+            "edge_key::text, next_key::text", new { at, scope, after }, token);
         await using var rows = await command.ExecuteReaderAsync(token);
         var result = new List<(string, string)>();
         while (await rows.ReadAsync(token))
