@@ -5,4 +5,5 @@
   <Project Path="RuntimeKnowledge.Providers/RuntimeKnowledge.Providers.csproj" />
   <Project Path="RuntimeKnowledge.Worker/RuntimeKnowledge.Worker.csproj" />
   <Project Path="RuntimeKnowledge.Api/RuntimeKnowledge.Api.csproj" />
+  <Project Path="RuntimeKnowledge.Web/RuntimeKnowledge.Web.csproj" />
 </Solution>

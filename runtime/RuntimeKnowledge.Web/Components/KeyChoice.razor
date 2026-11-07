@@ -1,0 +1,21 @@
+<label>
+    @Label
+    <select value="@Value?.StorageKey" @onchange="Selected">
+        <option value="">@EmptyLabel</option>
+        @foreach (var option in Options)
+        {
+            <option @key="option.Key" value="@option.Key.StorageKey">@option.Label — @option.Key.SourceId — @option.Key.Identifier</option>
+        }
+    </select>
+</label>
+
+@code {
+    [Parameter, EditorRequired] public string Label { get; set; } = "";
+    [Parameter] public string EmptyLabel { get; set; } = "Choose a record";
+    [Parameter] public IReadOnlyList<(PublishedKey Key, string Label)> Options { get; set; } = [];
+    [Parameter] public PublishedKey? Value { get; set; }
+    [Parameter] public EventCallback<PublishedKey?> ValueChanged { get; set; }
+
+    private Task Selected(ChangeEventArgs change) =>
+        ValueChanged.InvokeAsync(Options.FirstOrDefault(option => option.Key.StorageKey == change.Value as string).Key);
+}

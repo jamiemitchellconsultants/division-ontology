@@ -1,0 +1,89 @@
+@page "/"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject WorkspaceClient Api
+
+<h1>Explore published knowledge</h1>
+<ApiError Error="loadError" />
+
+@if (page is not null)
+{
+    <p>Active snapshot <code>@(page.SnapshotId)</code></p>
+    <form @onsubmit="Search" @onsubmit:preventDefault>
+        <label>Semantic search <input type="search" required @bind="query" /></label>
+        <button type="submit" disabled="@searching">Search</button>
+    </form>
+    <ApiError Error="searchError" />
+    @if (result is not null)
+    {
+        <section aria-label="Search results">
+            <h2>Search results</h2>
+            <p>Snapshot <code>@result.SnapshotId</code></p>
+            @if (result.IndexPending) { <p role="status">Indexing is pending. Some records may be missing from these results.</p> }
+            @if (!result.IndexPending && result.Hits.Count == 0) { <p>No matches.</p> }
+            <ul>
+                @foreach (var hit in result.Hits)
+                {
+                    <li>
+                        <a href="@WorkspaceLinks.Entity(hit.EntityKey)">@hit.MatchedText</a>
+                        <OriginEvidence Origin="hit.Provenance" />
+                        @if (hit.Annotation is { } annotation) { <ContributionRecord Record="annotation" /> }
+                    </li>
+                }
+            </ul>
+        </section>
+    }
+    <section aria-label="Published inventory">
+        <h2>Published inventory</h2>
+        <ul>
+            @foreach (var entity in page.Entities)
+            {
+                <li @key="entity.Key"><a href="@WorkspaceLinks.Entity(entity.Key)">@entity.Label</a> · @entity.Key.SourceId · <code>@entity.Key.Identifier</code></li>
+            }
+            @foreach (var type in page.RelationshipTypes)
+            {
+                <li @key="type.Key"><a href="@WorkspaceLinks.Entity(type.Key)">@type.Label</a> · Relationship type · @type.Key.SourceId · <code>@type.Key.Identifier</code></li>
+            }
+        </ul>
+        <div class="actions">
+            @if (cursor is not null) { <button type="button" @onclick="() => Load(null)">First page</button> }
+            @if (page.NextCursor is { } next) { <button type="button" @onclick="() => Load(next)">Next page</button> }
+        </div>
+        <CoverageGaps Gaps="page.Gaps" />
+    </section>
+}
+
+@code {
+    private InventoryPage? page;
+    private SearchResult? result;
+    private WorkspaceApiException? loadError, searchError;
+    private string? cursor;
+    private string query = "";
+    private bool searching;
+
+    protected override Task OnInitializedAsync() => Load(null);
+
+    private async Task Load(string? next)
+    {
+        loadError = null;
+        try
+        {
+            page = await Api.Inventory(next);
+            cursor = next;
+        }
+        catch (WorkspaceApiException problem)
+        {
+            loadError = problem;
+        }
+    }
+
+    private async Task Search()
+    {
+        if (searching) return;
+        searching = true;
+        result = null;
+        searchError = null;
+        try { result = await Api.Search(query); }
+        catch (WorkspaceApiException problem) { searchError = problem; }
+        finally { searching = false; }
+    }
+}

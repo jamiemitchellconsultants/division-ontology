@@ -1,0 +1,22 @@
+@if (Origin is { } origin)
+{
+    <div class="origin">
+        <p><strong>@Label</strong> · @origin.Key.SourceId · <code>@origin.Key.Identifier</code></p>
+        <p>Source commit <code>@origin.SourceCommit</code> · Snapshot <code>@origin.SnapshotId</code></p>
+        @if (!string.IsNullOrWhiteSpace(origin.Basis)) { <p>Basis @origin.Basis</p> }
+        @if (origin.Evidence.Count > 0)
+        {
+            <ul aria-label="Source evidence">
+                @foreach (var evidence in origin.Evidence)
+                {
+                    <li><code>@evidence.Path</code> lines @evidence.StartLine–@evidence.EndLine (@evidence.Role) · <code>@evidence.BlobId</code></li>
+                }
+            </ul>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public string Label { get; set; } = "Published origin";
+    [Parameter] public Provenance? Origin { get; set; }
+}

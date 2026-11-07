@@ -1,0 +1,59 @@
+@page "/history"
+@page "/history/{Id:guid}"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject WorkspaceClient Api
+
+<h1>Contribution history</h1>
+@if (Id is { } id) { <p>Contribution <code>@id</code> · <a href="history">All contributions</a></p> }
+<ApiError Error="error" />
+
+@if (page is not null)
+{
+    @if (page.Entries.Count == 0) { <p>No changes recorded.</p> }
+    <ol>
+        @foreach (var change in page.Entries)
+        {
+            <li @key="change.Position">
+                <h2>@change.Type · Revision @change.Revision</h2>
+                <p>Position @change.Position · @change.Actor.Subject (@change.Actor.Issuer) · @change.OccurredAt.ToString("u")</p>
+                <p>Active snapshot <code>@change.SnapshotId</code></p>
+                @if (change.Before is { } before)
+                {
+                    <h3>Before</h3>
+                    <ContributionRecord Record="before" />
+                }
+                <h3>After</h3>
+                <ContributionRecord Record="change.After" />
+                @if (Id is null) { <a href="@($"history/{change.ContributionId:D}")">History for this contribution</a> }
+            </li>
+        }
+    </ol>
+    <div class="actions">
+        @if (cursor is not null) { <button type="button" @onclick="() => Load(null)">First page</button> }
+        @if (page.NextCursor is { } next) { <button type="button" @onclick="() => Load(next)">Next page</button> }
+    </div>
+}
+
+@code {
+    [Parameter] public Guid? Id { get; set; }
+    private HistoryPage? page;
+    private WorkspaceApiException? error;
+    private string? cursor;
+
+    protected override Task OnParametersSetAsync()
+    {
+        page = null;
+        return Load(null);
+    }
+
+    private async Task Load(string? next)
+    {
+        error = null;
+        try
+        {
+            page = await Api.History(Id, next);
+            cursor = next;
+        }
+        catch (WorkspaceApiException problem) { error = problem; }
+    }
+}

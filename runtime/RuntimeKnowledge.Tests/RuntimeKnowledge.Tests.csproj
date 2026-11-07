@@ -19,5 +19,7 @@
     <ProjectReference Include="../RuntimeKnowledge.Contracts/RuntimeKnowledge.Contracts.csproj" />
     <ProjectReference Include="../RuntimeKnowledge.Providers/RuntimeKnowledge.Providers.csproj" />
     <ProjectReference Include="../RuntimeKnowledge.Worker/RuntimeKnowledge.Worker.csproj" />
+    <ProjectReference Include="../RuntimeKnowledge.Web/RuntimeKnowledge.Web.csproj" />
+    <PackageReference Include="bunit" />
   </ItemGroup>
 </Project>

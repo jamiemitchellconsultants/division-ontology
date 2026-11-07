@@ -1,0 +1,101 @@
+@page "/entity/{Key}"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject WorkspaceClient Api
+
+<h1>@(detail?.Entity.Label ?? "Published entity")</h1>
+<ApiError Error="error" />
+
+@if (detail is { } record)
+{
+    <p>Active snapshot <code>@record.SnapshotId</code></p>
+    @if (!record.Available) { <p>Unavailable in the active snapshot. Showing the last published definition.</p> }
+    <p>@record.Entity.Description</p>
+    <OriginEvidence Origin="record.Entity.Provenance" />
+    @if (record.Entity.C4 is { } context)
+    {
+        <details><summary>C4 context</summary><pre>@context</pre></details>
+    }
+    <section aria-label="Annotations">
+        <h2>Annotations</h2>
+        @foreach (var note in record.Annotations)
+        {
+            <article @key="note.Id">
+                <ContributionRecord Record="note" />
+                <a href="@($"history/{note.Id:D}")">Annotation history</a>
+                @if (canManage)
+                {
+                    <details>
+                        <summary>Edit or remove annotation</summary>
+                        <ContributionEditor @key="(note.Id, note.Version, 1)" Target="record.Entity.Key" Current="note" OnSaved="Reload" />
+                        <ContributionEditor @key="(note.Id, note.Version, 2)" Target="record.Entity.Key" Current="note" Mode="remove" OnSaved="Reload" />
+                    </details>
+                }
+            </article>
+        }
+        @if (canManage && record.Available && record.Entity.Key.Kind != "relationshipType")
+        {
+            <ContributionEditor @key="record.Entity.Key" Target="record.Entity.Key" OnSaved="Reload" />
+        }
+    </section>
+    @if (canManage && record.Available && record.Entity.Key.Kind != "relationshipType")
+    {
+        <section aria-label="Relationship creation">
+            <h2>Create a relationship</h2>
+            @if (choices is null)
+            {
+                <button type="button" disabled="@loadingChoices" @onclick="LoadChoices">Load relationship choices</button>
+            }
+            else
+            {
+                <ContributionEditor @key="record.Entity.Key" Mode="relationship" Target="record.Entity.Key"
+                    Entities="choices.Entities" Types="choices.Types" OnSaved="OpenRelationship" />
+            }
+        </section>
+    }
+    <TraversalPanel @key="record.Entity.Key" Start="record.Entity.Key" />
+}
+
+@code {
+    [Parameter] public string Key { get; set; } = "";
+    [Inject] private NavigationManager Navigation { get; set; } = default!;
+    private EntityDetail? detail;
+    private WorkspaceApiException? error;
+    private bool canManage, loadingChoices;
+    private InventoryChoices? choices;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        detail = null;
+        choices = null;
+        canManage = false;
+        await Load();
+    }
+
+    private Task Reload(ContributionResult _) => Load();
+
+    private async Task Load()
+    {
+        error = null;
+        try
+        {
+            if (WorkspaceLinks.Decode(Key) is not { } key)
+                throw new WorkspaceApiException(System.Net.HttpStatusCode.NotFound, detail: "Published entity was not found.");
+            var session = await Api.Session();
+            detail = await Api.Entity(key);
+            canManage = session.CanManage;
+        }
+        catch (WorkspaceApiException problem) { error = problem; }
+    }
+
+    private async Task LoadChoices()
+    {
+        if (loadingChoices) return;
+        error = null;
+        loadingChoices = true;
+        try { choices = await InventoryChoices.Load(Api); }
+        catch (WorkspaceApiException problem) { error = problem; }
+        finally { loadingChoices = false; }
+    }
+
+    private void OpenRelationship(ContributionResult result) => Navigation.NavigateTo($"relationship/runtime/{result.Id:D}");
+}

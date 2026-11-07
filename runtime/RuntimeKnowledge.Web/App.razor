@@ -1,0 +1,19 @@
+@inject NavigationManager Navigation
+
+<CascadingAuthenticationState>
+    <Router AppAssembly="@typeof(App).Assembly">
+        <Found Context="route">
+            <AuthorizeRouteView RouteData="@route" DefaultLayout="@typeof(WorkspaceLayout)">
+                <NotAuthorized><button type="button" @onclick="SignIn">Sign in to the workspace</button></NotAuthorized>
+            </AuthorizeRouteView>
+            <FocusOnNavigate RouteData="@route" Selector="h1" />
+        </Found>
+        <NotFound><LayoutView Layout="@typeof(WorkspaceLayout)"><h1>Page unavailable</h1></LayoutView></NotFound>
+    </Router>
+</CascadingAuthenticationState>
+
+
+@code {
+    private void SignIn() => Navigation.NavigateToLogin("authentication/login",
+        new InteractiveRequestOptions { Interaction = InteractionType.SignIn, ReturnUrl = Navigation.Uri });
+}
