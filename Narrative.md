@@ -22,6 +22,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [12](#entry-build-c4-impact-assessment-pilot) | 2026-11-04 | Build C4 impact assessment pilot | product | Implement the local C4 pilot: pinned snapshot and graph readers, reviewed mapping and binding registries, candidate search, directed paths, four-level projections, inspected-code evidence, deterministic reports, and editable assessment… |
 | [13](#entry-add-c4-pilot-acceptance-fixtures-and-automated-checks) | 2026-11-06 | Add C4 pilot acceptance fixtures and automated checks | product | For this pilot, use the automated B1–B15 comparisons as the acceptance record. Run acceptance on one M4 Mini and waive the duplicate second-machine run. Capture the participant's scope judgment separately as B4 feedback. |
 | [14](#entry-define-runtime-knowledge-workspace-architecture) | 2026-11-07 | Define runtime knowledge workspace architecture | product | - [ADR 0004](https://github.com/jamiemitchellconsultants/division-ontology/blob/b2e8ed75d151865ebaa2e608bc85f0abdb97e82e/docs/adr/0004-import-and-activate-pinned-knowledge-snapshots.md) packages pinned source artefacts and activates a… |
+| [15](#entry-plan-runtime-knowledge-workspace-implementation) | 2026-11-07 | Plan runtime knowledge workspace implementation | product | Use 12 test-first tasks. Prove the PostgreSQL and AGE transaction boundary, deterministic snapshot import, atomic contribution writes and ordered replay before connecting the API, identity providers, semantic search and Blazor UI. |
 
 ---
 
@@ -318,3 +319,23 @@ The workspace combines a baseline published from pinned source repositories with
 ## Consequences
 
 Development planning must prove that journal and AGE writes commit together, that replay preserves provenance and unavailable endpoints, and that search works with the selected model in each environment. AWS verification is simulation only. Backup and disaster recovery are tracked separately in #53.
+
+---
+
+<a id="entry-plan-runtime-knowledge-workspace-implementation"></a>
+
+## Entry 15 — 2026-11-07 — Plan runtime knowledge workspace implementation
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+PR #54 approved a workspace that combines pinned feeder snapshots with a PostgreSQL contribution journal, AGE traversal and pgvector search. The build needs a reviewed sequence that proves those contracts before the UI and three deployment patterns depend on them.
+
+## Decision
+
+Use 12 test-first tasks. Prove the PostgreSQL and AGE transaction boundary, deterministic snapshot import, atomic contribution writes and ordered replay before connecting the API, identity providers, semantic search and Blazor UI. Then assemble Mac Docker Compose, LocalAI deployment artefacts and a Terraform AWS simulation. The detailed plan specifies interfaces, fixtures, failure cases, commands and commit boundaries.
+
+## Consequences
+
+Development can verify the first 13 and last 11 behaviours with engineering fixtures. B14 remains a human acceptance measure with the nominated data product owner and wider-business reviewer. AWS verification remains credential-free simulation. Backup and disaster recovery remain in #53.
