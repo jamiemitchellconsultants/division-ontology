@@ -131,10 +131,13 @@ public sealed class WorkspaceUiTests
         PublishedEntity MakeEntity(PublishedKey key) =>
             new(key, "Same label", null, [], new Provenance(key, "commit", "snapshot", null, []));
         var searches = 0;
-        using var http = new HttpClient(new StubHandler((request, _) => Task.FromResult<object>(
-            request.RequestUri!.AbsolutePath == "/api/inventory"
-                ? new InventoryPage("snapshot", [MakeEntity(from), MakeEntity(to)], [], [], null)
-                : new SearchResult("snapshot", [], ++searches == 1))))
+        using var http = new HttpClient(new StubHandler((request, _) =>
+        {
+            if (request.RequestUri!.AbsolutePath != "/api/inventory")
+                return Task.FromResult<object>(new SearchResult("snapshot", [], ++searches == 1));
+            Assert.Empty(request.RequestUri.Query);
+            return Task.FromResult<object>(new InventoryPage("snapshot", [MakeEntity(from), MakeEntity(to)], [], [], null));
+        }))
         { BaseAddress = new Uri("https://workspace.test") };
         context.Services.AddSingleton(new WorkspaceClient(http));
         var view = context.Render<Explore>();

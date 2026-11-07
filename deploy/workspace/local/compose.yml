@@ -1,0 +1,214 @@
+x-worker: &worker
+  image: runtime-knowledge-workspace-worker:local
+  build:
+    context: ../../../runtime
+    dockerfile: ../deploy/workspace/app/Dockerfile
+    target: worker
+
+x-objects: &objects
+  Workspace__Objects__Endpoint: http://minio:9000
+  Workspace__Objects__Bucket: workspace-bundles
+  Workspace__Objects__AccessKey: workspace-dev-bundles
+  Workspace__Objects__SecretKey: ${WORKSPACE_MINIO_ROOT_PASSWORD:?Set the local MinIO password}
+
+x-embeddings: &embeddings
+  Workspace__Embeddings__Provider: Qwen
+  Workspace__Embeddings__Endpoint: http://model:11434/v1/embeddings
+  Workspace__Embeddings__Model: qwen3-embedding:0.6b
+  Workspace__Embeddings__Dimensions: "1024"
+  Workspace__Embeddings__Revision: ac6da0dfba84a81fdbfbaf330198c33cd77c4cdfc53e8bc50eb581914a15621d
+
+services:
+  db:
+    build: ../database
+    environment:
+      POSTGRES_DB: workspace
+      POSTGRES_USER: workspace_admin
+      POSTGRES_PASSWORD: ${WORKSPACE_DB_ADMIN_PASSWORD:?Set the local database administrator password}
+    volumes:
+      - database:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "workspace_admin", "-d", "workspace"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  migrate:
+    <<: *worker
+    command: ["provision-database"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__Workspace: Host=db;Database=workspace;GSS Encryption Mode=Disable;Username=workspace_admin;Password=${WORKSPACE_DB_ADMIN_PASSWORD}
+      Workspace__Database__ApiPassword: ${WORKSPACE_DB_API_PASSWORD:?Set the local API database password}
+      Workspace__Database__PublisherPassword: ${WORKSPACE_DB_PUBLISHER_PASSWORD:?Set the local publisher database password}
+      Workspace__Database__IndexerPassword: ${WORKSPACE_DB_INDEXER_PASSWORD:?Set the local indexer database password}
+
+  minio:
+    image: runtime-knowledge-workspace-minio:local
+    build: ../minio
+    environment:
+      MINIO_ROOT_USER: workspace-dev-bundles
+      MINIO_ROOT_PASSWORD: ${WORKSPACE_MINIO_ROOT_PASSWORD}
+    volumes:
+      - objects:/data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:9000/minio/health/ready"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  model:
+    image: ollama/ollama:0.24.0@sha256:a6149234667efc71d37766d61c1a16f24c33e4cd7a0bf4125c44a7e47e2419c4
+    environment:
+      OLLAMA_NO_CLOUD: "1"
+    volumes:
+      - embeddings:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  model-init:
+    image: ollama/ollama:0.24.0@sha256:a6149234667efc71d37766d61c1a16f24c33e4cd7a0bf4125c44a7e47e2419c4
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        installed="$$(ollama list | awk '$$1 == "qwen3-embedding:0.6b" { print $$2 }')"
+        if [ "$$installed" != ac6da0dfba84 ]; then
+          ollama pull qwen3-embedding:0.6b
+        fi
+        ollama list | awk '$$1 == "qwen3-embedding:0.6b" && $$2 == "ac6da0dfba84" { found=1 } END { exit !found }'
+    environment:
+      OLLAMA_HOST: http://model:11434
+    depends_on:
+      model:
+        condition: service_healthy
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.6.0@sha256:b0e5dbced1775de4d629f103c0a9cfc057decc62ce8d3cb1c54f8849a6c6eb62
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_HOSTNAME: http://workspace.localhost:${WORKSPACE_PORT:-8087}
+      KC_PROXY_HEADERS: xforwarded
+      KC_HEALTH_ENABLED: "true"
+      WORKSPACE_ORIGIN: http://workspace.localhost:${WORKSPACE_PORT:-8087}
+      WORKSPACE_DEV_MANAGER_PASSWORD: ${WORKSPACE_DEV_MANAGER_PASSWORD:?Set a development manager password}
+      WORKSPACE_DEV_READER_PASSWORD: ${WORKSPACE_DEV_READER_PASSWORD:?Set a development reader password}
+    configs:
+      - source: realm
+        target: /opt/keycloak/data/import/workspace-realm.json
+    healthcheck:
+      test:
+        - CMD
+        - bash
+        - -ec
+        - "exec 3<>/dev/tcp/127.0.0.1/9000; printf 'GET /health/ready HTTP/1.0\r\n\r\n' >&3; grep -q '200 OK' <&3"
+      interval: 3s
+      timeout: 5s
+      retries: 35
+
+  api:
+    build:
+      context: ../../../runtime
+      dockerfile: ../deploy/workspace/app/Dockerfile
+      target: api
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      model-init:
+        condition: service_completed_successfully
+    environment:
+      <<: *embeddings
+      ConnectionStrings__Workspace: Host=db;Database=workspace;GSS Encryption Mode=Disable;Username=workspace_api_user;Password=${WORKSPACE_DB_API_PASSWORD};Maximum Pool Size=8
+      Workspace__Identity__Provider: Keycloak
+      Workspace__Identity__Issuer: http://workspace.localhost:${WORKSPACE_PORT:-8087}/realms/workspace
+      Workspace__Identity__Audience: workspace-api
+      Workspace__Identity__ClientId: workspace-api
+      Workspace__Identity__AllowLocalHttp: "true"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/health"]
+      interval: 3s
+      timeout: 4s
+      retries: 30
+
+  indexer:
+    <<: *worker
+    command: ["index-loop"]
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      model-init:
+        condition: service_completed_successfully
+    environment:
+      <<: *embeddings
+      ConnectionStrings__Workspace: Host=db;Database=workspace;GSS Encryption Mode=Disable;Username=workspace_indexer_user;Password=${WORKSPACE_DB_INDEXER_PASSWORD};Maximum Pool Size=2
+
+    healthcheck:
+      test: ["CMD", "dotnet", "RuntimeKnowledge.Worker.dll", "index-ready"]
+      interval: 4s
+      timeout: 4s
+      retries: 20
+
+  publisher:
+    <<: *worker
+    profiles: ["operator"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      minio:
+        condition: service_healthy
+    environment:
+      <<: *objects
+      ConnectionStrings__Workspace: Host=db;Database=workspace;GSS Encryption Mode=Disable;Username=workspace_publisher_user;Password=${WORKSPACE_DB_PUBLISHER_PASSWORD};Maximum Pool Size=2
+
+  replay:
+    <<: *worker
+    profiles: ["operator"]
+    environment:
+      <<: *objects
+      ConnectionStrings__Workspace: Host=db;Database=workspace;GSS Encryption Mode=Disable;Username=workspace_admin;Password=${WORKSPACE_DB_ADMIN_PASSWORD};Maximum Pool Size=2
+
+  web:
+    build:
+      context: ../../../runtime
+      dockerfile: ../deploy/workspace/web/Dockerfile
+    depends_on:
+      keycloak:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    environment:
+      WORKSPACE_PORT: ${WORKSPACE_PORT:-8087}
+    configs:
+      - source: web-settings
+        target: /srv/appsettings.json
+      - source: web-routing
+        target: /etc/caddy/Caddyfile
+    ports:
+      - 127.0.0.1:${WORKSPACE_PORT:-8087}:${WORKSPACE_PORT:-8087}
+    networks:
+      default:
+        aliases: [workspace.localhost]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:$$WORKSPACE_PORT/realms/workspace/.well-known/openid-configuration"]
+      interval: 3s
+      timeout: 5s
+      retries: 30
+
+configs:
+  realm:
+    file: ./realm.json
+  web-routing:
+    file: ./Caddyfile
+  web-settings:
+    content: |
+      { "Identity": { "Authority": "http://workspace.localhost:${WORKSPACE_PORT:-8087}/realms/workspace", "ClientId": "workspace-spa" } }
+
+volumes:
+  database:
+  objects:
+  embeddings:

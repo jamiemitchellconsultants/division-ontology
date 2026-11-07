@@ -10,14 +10,19 @@ public sealed class WorkspaceClient(HttpClient http) : IDisposable
 {
     public Task<WorkspaceSession> Session() => Get<WorkspaceSession>("api/session");
     public Task<InventoryPage> Inventory(string? cursor = null) =>
-        Get<InventoryPage>($"api/inventory?cursor={Uri.EscapeDataString(cursor ?? "")}");
+        Get<InventoryPage>(cursor is null ? "api/inventory" : $"api/inventory?cursor={Uri.EscapeDataString(cursor)}");
     public Task<EntityDetail> Entity(PublishedKey key) => Post<EntityDetail>("api/entities/detail", new EntityDetailRequest(key));
     public Task<RelationshipDetail> Relationship(RelationshipDetailRequest request) =>
         Post<RelationshipDetail>("api/relationships/detail", request);
     public Task<TraversalResult> Traverse(TraversalRequest request) => Post<TraversalResult>("api/traverse", request);
     public Task<SearchResult> Search(string query) => Post<SearchResult>("api/search", new SearchRequest(query));
-    public Task<HistoryPage> History(Guid? id, string? cursor = null) =>
-        Get<HistoryPage>($"api/history?contributionId={id:D}&cursor={Uri.EscapeDataString(cursor ?? "")}");
+    public Task<HistoryPage> History(Guid? id, string? cursor = null)
+    {
+        var filters = new List<string>();
+        if (id is not null) filters.Add($"contributionId={id:D}");
+        if (cursor is not null) filters.Add($"cursor={Uri.EscapeDataString(cursor)}");
+        return Get<HistoryPage>(filters.Count == 0 ? "api/history" : $"api/history?{string.Join('&', filters)}");
+    }
     public Task<ContributionResult> Annotate(CreateAnnotation request) =>
         Post<ContributionResult>("api/contributions/annotations", request);
     public Task<ContributionResult> Connect(CreateRelationship request) =>

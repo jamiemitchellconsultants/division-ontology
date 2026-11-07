@@ -1,0 +1,23 @@
+{
+    admin off
+}
+
+:{$WORKSPACE_PORT} {
+    handle /api/* {
+        reverse_proxy api:8080
+    }
+    handle /realms/* {
+        reverse_proxy keycloak:8080
+    }
+    handle /resources/* {
+        reverse_proxy keycloak:8080
+    }
+    handle {
+        root * /srv
+        header /appsettings.json Cache-Control no-store
+        try_files {path} /index.html
+        file_server {
+            precompressed br gzip
+        }
+    }
+}
