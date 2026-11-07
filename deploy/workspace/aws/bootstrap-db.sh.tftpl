@@ -37,7 +37,7 @@ password() {
 }
 admin="$(password '${admin_secret}' workspace_admin)"
 printf '%s\n' "$admin" > "$runtime/password"
-printf 'POSTGRES_PASSWORD_FILE=/run/workspace-password\nPOSTGRES_USER=workspace_admin\nPOSTGRES_DB=workspace\n' > "$runtime/postgres.env"
+printf 'POSTGRES_PASSWORD_FILE=/run/workspace-password\nPOSTGRES_USER=workspace_admin\nPOSTGRES_DB=workspace\nPGDATA=/var/lib/postgresql/data/workspace\n' > "$runtime/postgres.env"
 {
     printf 'ConnectionStrings__Workspace=Host=127.0.0.1;Database=workspace;GSS Encryption Mode=Disable;Username=workspace_admin;Password=%s\n' "$admin"
     printf 'Workspace__Database__ApiPassword=%s\n' "$(password '${api_secret}' workspace_api_user)"

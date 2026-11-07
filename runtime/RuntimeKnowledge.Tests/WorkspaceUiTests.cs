@@ -136,7 +136,10 @@ public sealed class WorkspaceUiTests
             if (request.RequestUri!.AbsolutePath != "/api/inventory")
                 return Task.FromResult<object>(new SearchResult("snapshot", [], ++searches == 1));
             Assert.Empty(request.RequestUri.Query);
-            return Task.FromResult<object>(new InventoryPage("snapshot", [MakeEntity(from), MakeEntity(to)], [], [], null));
+            var edge = new PublishedKey("source-a", "assertion", "https://example.test/edge");
+            var relation = new PublishedEdge(edge, from, to, "Published edge", null,
+                new Provenance(edge, "edge-commit", "snapshot", null, []));
+            return Task.FromResult<object>(new InventoryPage("snapshot", [MakeEntity(from), MakeEntity(to)], [], [], null, [relation]));
         }))
         { BaseAddress = new Uri("https://workspace.test") };
         context.Services.AddSingleton(new WorkspaceClient(http));
@@ -148,6 +151,8 @@ public sealed class WorkspaceUiTests
             Assert.NotEqual(links[0].GetAttribute("href"), links[1].GetAttribute("href"));
             Assert.Contains("source-a", view.Markup);
             Assert.Contains("source-b", view.Markup);
+            Assert.StartsWith("relationship/published/", view.FindAll("a").Single(link => link.TextContent == "Published edge").GetAttribute("href"));
+            Assert.Contains("edge-commit", view.Markup);
         });
         view.Find("input[type=search]").Change("definition");
         view.Find("form").Submit();

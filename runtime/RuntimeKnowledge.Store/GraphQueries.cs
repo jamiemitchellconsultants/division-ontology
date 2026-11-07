@@ -21,34 +21,44 @@ public sealed class GraphQueries(Db db)
         var after = DecodeCursor(request, snapshot);
         var entities = new List<PublishedEntity>();
         var types = new List<RelationshipType>();
+        var relationships = new List<PublishedEdge>();
         string? last = null;
         var more = false;
         await using (var command = Command(tx, """
             SELECT record_key, kind, body::text FROM workspace_projection.published_records
              WHERE generation = $1 AND snapshot_id = $2 AND record_key > $3
-               AND kind IN ('concept', 'node', 'relationshipType')
+               AND kind IN ('concept', 'node', 'relationshipType', 'assertion', 'reviewedLink', 'denotation', 'c4Binding')
              ORDER BY record_key LIMIT $4
             """, state.Generation, snapshot, after, request.Limit + 1))
         await using (var rows = await command.ExecuteReaderAsync(cancellationToken))
         {
             while (await rows.ReadAsync(cancellationToken))
             {
-                if (entities.Count + types.Count == request.Limit)
+                if (entities.Count + types.Count + relationships.Count == request.Limit)
                 {
                     more = true;
                     break;
                 }
                 last = rows.GetString(0);
-                if (rows.GetString(1) == "relationshipType")
-                    types.Add(ReadJson<RelationshipType>(rows.GetString(2)));
-                else
-                    entities.Add(ReadJson<PublishedEntity>(rows.GetString(2)));
+                var body = rows.GetString(2);
+                switch (rows.GetString(1))
+                {
+                    case "concept" or "node":
+                        entities.Add(ReadJson<PublishedEntity>(body));
+                        break;
+                    case "relationshipType":
+                        types.Add(ReadJson<RelationshipType>(body));
+                        break;
+                    default:
+                        relationships.Add(ReadJson<PublishedEdge>(body));
+                        break;
+                }
             }
         }
 
         var cursor = more ? Convert.ToBase64String(JsonSerializer.SerializeToUtf8Bytes(
             new InventoryCursor(snapshot, request.Limit, last!), WorkspaceJson.Options)) : null;
-        return new InventoryPage(snapshot, entities, types, await GapsAsync(tx, state, cancellationToken), cursor);
+        return new InventoryPage(snapshot, entities, types, await GapsAsync(tx, state, cancellationToken), cursor, relationships);
     }
 
     public async Task<TraversalResult> TraverseAsync(TraversalRequest request, CancellationToken cancellationToken)

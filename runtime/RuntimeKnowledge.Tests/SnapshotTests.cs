@@ -44,6 +44,34 @@ public sealed class SnapshotTests
     }
 
     [Fact]
+    public async Task InventoryPagesFindRelationshipsBeyondTheTraversalLimit()
+    {
+        await using var s = await Scenario.OpenAsync();
+        var snapshot = s.Bundles.AddSnapshot("initial", publishedEdgeCount: 101);
+        await s.Store.StageAsync(snapshot, CancellationToken.None);
+        await s.Store.ActivateAsync(snapshot, CancellationToken.None);
+        var edges = new List<PublishedEdge>();
+        string? cursor = null;
+        do
+        {
+            var page = await s.InventoryAsync(new PageRequest(cursor, 32));
+            edges.AddRange(page.Relationships);
+            cursor = page.NextCursor;
+        } while (cursor is not null);
+
+        Assert.Equal(101, edges.Select(edge => edge.Key).Distinct().Count());
+        Assert.All(edges, edge =>
+        {
+            Assert.Equal(s.A.SourceId, edge.Key.SourceId);
+            Assert.Equal(snapshot, edge.Provenance.SnapshotId);
+            Assert.Equal(new string('a', 40), edge.Provenance.SourceCommit);
+        });
+        var last = edges[^1];
+        var detail = await s.Graph.RelationshipDetailAsync(new RelationshipDetailRequest(last.Key), CancellationToken.None);
+        Assert.Equal(last.Key, detail.Relationship.Key);
+    }
+
+    [Fact]
     public async Task TraversalUsesDirectionAndPublishedAssertionIdentity()
     {
         await using var s = await Scenario.OpenAsync();

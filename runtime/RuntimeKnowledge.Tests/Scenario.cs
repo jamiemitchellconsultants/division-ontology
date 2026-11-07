@@ -75,7 +75,7 @@ internal sealed class MemoryBundles : IBundleObjects
 {
     private readonly Dictionary<string, byte[]> _objects = new(StringComparer.Ordinal);
 
-    public string AddSnapshot(string variant, bool corrupt = false)
+    public string AddSnapshot(string variant, bool corrupt = false, int publishedEdgeCount = 1)
     {
         var marker = variant switch { "initial" => '1', "changed" => '2', "missing" => '3', "returned" => '4', _ => '5' };
         var absent = variant == "missing";
@@ -94,9 +94,13 @@ internal sealed class MemoryBundles : IBundleObjects
             Prov(Scenario.KeyB, bCommit)));
         var types = new RelationshipType[] { new(Scenario.KeyType, "uses", null, null, null,
             Prov(Scenario.KeyType, aCommit)) };
-        var edges = absent ? [] : new PublishedEdge[] { new(Scenario.KeyEdge, Scenario.KeyA, Scenario.KeyB, "uses",
-            Scenario.KeyType, Prov(Scenario.KeyEdge, aCommit, "direct",
-                new Evidence("docs/source.md", 1, 2, new string('e', 40), "implementation"))) };
+        var edges = absent ? [] : Enumerable.Range(0, publishedEdgeCount).Select(index =>
+        {
+            var key = index == 0 ? Scenario.KeyEdge : Scenario.KeyEdge with { Identifier = $"{Scenario.KeyEdge.Identifier}-{index}" };
+            return new PublishedEdge(key, Scenario.KeyA, Scenario.KeyB, "uses",
+                Scenario.KeyType, Prov(key, aCommit, "direct",
+                    new Evidence("docs/source.md", 1, 2, new string('e', 40), "implementation")));
+        }).ToArray();
         var gaps = absent ? new[] { new CoverageGap("graph-unavailable", "fixture/B", null, "Fixture graph unavailable.") } : [];
         var files = new[]
         {

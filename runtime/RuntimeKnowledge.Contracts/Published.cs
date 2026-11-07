@@ -38,7 +38,8 @@ public sealed record VerifiedBundle(string SnapshotId, BundleManifest Manifest, 
 public sealed record PageRequest(string? Cursor = null, int Limit = 50);
 public sealed record SnapshotCandidate(string SnapshotId, string State);
 public sealed record InventoryPage(string SnapshotId, IReadOnlyList<PublishedEntity> Entities,
-    IReadOnlyList<RelationshipType> RelationshipTypes, IReadOnlyList<CoverageGap> Gaps, string? NextCursor);
+    IReadOnlyList<RelationshipType> RelationshipTypes, IReadOnlyList<CoverageGap> Gaps, string? NextCursor,
+    IReadOnlyList<PublishedEdge> Relationships);
 public sealed record TraversalRequest(PublishedKey Start, string Direction = "outgoing",
     int MaxDepth = 2, bool IncludeUnavailable = false);
 public sealed record TraversalPath(IReadOnlyList<TraversalStep> Steps);

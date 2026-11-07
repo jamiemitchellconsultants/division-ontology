@@ -43,6 +43,13 @@
             {
                 <li @key="type.Key"><a href="@WorkspaceLinks.Entity(type.Key)">@type.Label</a> · Relationship type · @type.Key.SourceId · <code>@type.Key.Identifier</code></li>
             }
+            @foreach (var relationship in page.Relationships)
+            {
+                <li @key="relationship.Key">
+                    <a href="@WorkspaceLinks.Relationship(relationship.Key)">@relationship.Label</a> · Published relationship ·
+                    @relationship.Key.SourceId · <code>@relationship.Key.Identifier</code> · Commit <code>@relationship.Provenance.SourceCommit</code>
+                </li>
+            }
         </ul>
         <div class="actions">
             @if (cursor is not null) { <button type="button" @onclick="() => Load(null)">First page</button> }

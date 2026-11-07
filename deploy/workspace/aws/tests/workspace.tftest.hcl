@@ -36,6 +36,19 @@ run "private_database_and_serverless_api" {
     error_message = "Workspace PostgreSQL needs encrypted durable storage on a private host."
   }
   assert {
+    condition = strcontains(templatefile("${path.module}/bootstrap-db.sh.tftpl", {
+      region           = var.aws_region
+      volume_id        = "vol-0123456789abcdef0"
+      database_image   = var.database_image
+      worker_image     = var.worker_image
+      admin_secret     = var.database_secret_arn
+      api_secret       = var.api_secret_arn
+      publisher_secret = var.publisher_secret_arn
+      indexer_secret   = var.indexer_secret_arn
+    }), "PGDATA=/var/lib/postgresql/data/workspace")
+    error_message = "PostgreSQL must initialize in a child of the EBS filesystem root."
+  }
+  assert {
     condition     = aws_lambda_function.workload["api"].reserved_concurrent_executions > 0 && local.connections <= var.database_connection_budget
     error_message = "Each function needs bounded concurrency and the total must fit the connection budget."
   }

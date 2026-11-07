@@ -8,7 +8,9 @@ public static class WorkspaceLinks
     public static string Entity(PublishedKey key) => $"entity/{Encode(key)}";
     public static string Relationship(TraversalStep step) => step.RuntimeId is { } id
         ? $"relationship/runtime/{id:D}"
-        : $"relationship/published/{Encode(step.Key!)}";
+        : Relationship(step.Key!);
+
+    public static string Relationship(PublishedKey key) => $"relationship/published/{Encode(key)}";
 
     public static string Encode(PublishedKey key) => Convert.ToBase64String(JsonSerializer.SerializeToUtf8Bytes(key, WorkspaceJson.Options))
         .TrimEnd('=').Replace('+', '-').Replace('/', '_');
