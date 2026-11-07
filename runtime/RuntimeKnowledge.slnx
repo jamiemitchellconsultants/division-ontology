@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="RuntimeKnowledge.Store/RuntimeKnowledge.Store.csproj" />
+  <Project Path="RuntimeKnowledge.Tests/RuntimeKnowledge.Tests.csproj" />
+</Solution>
