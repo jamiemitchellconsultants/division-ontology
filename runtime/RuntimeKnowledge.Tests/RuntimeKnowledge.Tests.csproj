@@ -13,4 +13,9 @@
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio" PrivateAssets="all" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../RuntimeKnowledge.Contracts/RuntimeKnowledge.Contracts.csproj" />
+    <ProjectReference Include="../RuntimeKnowledge.Providers/RuntimeKnowledge.Providers.csproj" />
+    <ProjectReference Include="../RuntimeKnowledge.Worker/RuntimeKnowledge.Worker.csproj" />
+  </ItemGroup>
 </Project>

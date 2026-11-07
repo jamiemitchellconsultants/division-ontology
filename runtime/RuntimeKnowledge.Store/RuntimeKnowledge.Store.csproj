@@ -9,4 +9,7 @@
     <PackageReference Include="Npgsql" />
     <EmbeddedResource Include="Sql/*.sql" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../RuntimeKnowledge.Contracts/RuntimeKnowledge.Contracts.csproj" />
+  </ItemGroup>
 </Project>
