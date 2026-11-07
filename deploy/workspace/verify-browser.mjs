@@ -4,9 +4,17 @@ import { join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { chromium } from 'playwright';
 
-const origin = `http://workspace.localhost:${process.env.WORKSPACE_PORT ?? '8087'}`;
+const target = process.argv[2];
+const homeLab = target === 'home-lab';
+const origin = homeLab ? process.env.WORKSPACE_VERIFY_ORIGIN
+  : `http://workspace.localhost:${process.env.WORKSPACE_PORT ?? '8087'}`;
+const modelRevision = homeLab ? process.env.WORKSPACE_VERIFY_MODEL_REVISION
+  : 'ac6da0dfba84a81fdbfbaf330198c33cd77c4cdfc53e8bc50eb581914a15621d';
+const appVersion = process.env.WORKSPACE_VERIFY_APP_VERSION ?? (homeLab ? null : 'working-tree');
 const scenario = process.env.WORKSPACE_SCENARIO_DIR;
-const persistence = process.argv[2] === '--check-persistence';
+const persistence = process.argv[3] === '--check-persistence';
+assert.ok(origin && (!homeLab || new URL(origin).protocol === 'https:'), 'Set the HTTPS home-lab fixture origin.');
+assert.ok(modelRevision && appVersion, 'Record the fixture embedding model revision and application version.');
 assert.ok(scenario, 'Set WORKSPACE_SCENARIO_DIR to a dedicated fixture directory.');
 const snapshot = (await readFile(join(scenario, 'snapshot'), 'utf8')).trim();
 const stateFile = join(scenario, 'scenario.json');
@@ -16,7 +24,7 @@ const entityPath = key => `/entity/${Buffer.from(JSON.stringify(key)).toString('
 const note = 'Finance approvers reconcile synthetic storefront orders before dispatch.';
 const browser = await chromium.launch({
   executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE,
-  args: ['--host-resolver-rules=MAP workspace.localhost 127.0.0.1']
+  args: homeLab ? [] : ['--host-resolver-rules=MAP workspace.localhost 127.0.0.1']
 });
 
 async function login(role) {
@@ -27,12 +35,14 @@ async function login(role) {
     if (response.status() >= 400) failed.push(`${response.status()} ${new URL(response.url()).pathname}`);
   });
   page.on('requestfailed', request => failed.push(`${request.failure().errorText} ${new URL(request.url()).pathname}`));
-  const password = process.env[`WORKSPACE_DEV_${role.toUpperCase()}_PASSWORD`];
-  assert.ok(password, `Set the ${role} fixture password in the environment.`);
+  const account = role.toUpperCase();
+  const username = homeLab ? process.env[`WORKSPACE_VERIFY_${account}_USERNAME`] : `workspace-${role}`;
+  const password = process.env[`WORKSPACE_${homeLab ? 'VERIFY' : 'DEV'}_${account}_PASSWORD`];
+  assert.ok(username && password, `Provide the controlled ${role} fixture credentials in the environment.`);
   await page.goto(origin);
   await page.getByRole('button', { name: 'Sign in to the workspace' }).click();
   try {
-    await page.locator('#username').fill(`workspace-${role}`);
+    await page.locator('#username').fill(username);
     await page.locator('#password').fill(password);
     await page.locator('#kc-login').click();
   } catch {
@@ -70,11 +80,12 @@ async function login(role) {
 }
 
 async function waitForIndexed(client, id) {
-  const started = Date.now();
+  const started = performance.now();
   for (let attempt = 0; attempt < 90; attempt++) {
+    const queriedAt = performance.now();
     const result = await client.request('/api/search', { query: note });
     if (result.hits.some(hit => hit.annotationId === id)) {
-      console.log(`Qwen fixture annotation retrieved in ${Date.now() - started} ms after save.`);
+      console.log(`Qwen ${modelRevision}: fixture annotation retrieved in ${Math.round(performance.now() - started)} ms, including an exact query of ${Math.round(performance.now() - queriedAt)} ms.`);
       return;
     }
     await delay(1000);
@@ -121,7 +132,8 @@ try {
   const history = await reader.request(`/api/history?contributionId=${state.relationshipId}`);
   assert.equal(history.entries.length, 1);
   assert.equal(history.entries[0].type, 'relationshipCreated');
-  console.log(`Mac ${persistence ? 'restart persistence' : 'browser and API'} smoke passed for snapshot ${snapshot}.`);
+  if (persistence) await waitForIndexed(reader, state.annotationId);
+  console.log(`${target} ${persistence ? 'persistence' : 'browser and API'} smoke passed for application ${appVersion}, snapshot ${snapshot}.`);
 } finally {
   await browser.close();
 }

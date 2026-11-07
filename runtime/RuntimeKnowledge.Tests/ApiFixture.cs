@@ -29,7 +29,7 @@ internal sealed class ApiFixture : IAsyncDisposable
     private readonly RsaSecurityKey _signingKey;
     private readonly string _provider;
 
-    private ApiFixture(Scenario scenario, string provider)
+    internal ApiFixture(Scenario scenario, string provider, IEmbeddingProvider? embeddings = null)
     {
         _scenario = scenario;
         _provider = provider;
@@ -49,8 +49,11 @@ internal sealed class ApiFixture : IAsyncDisposable
                     ["Workspace:Identity:ClientId"] = ClientId
                 }));
             builder.ConfigureTestServices(services =>
+            {
+                if (embeddings is not null) services.AddSingleton(embeddings);
                 services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
-                    options.ConfigurationManager = new StaticConfigurationManager<OpenIdConnectConfiguration>(metadata)));
+                    options.ConfigurationManager = new StaticConfigurationManager<OpenIdConnectConfiguration>(metadata));
+            });
         });
     }
 

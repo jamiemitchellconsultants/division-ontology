@@ -3,6 +3,10 @@ set -euo pipefail
 root="$(cd "$(dirname "$0")/../../.." && pwd)"
 scenario="$(mktemp -d)"
 export WORKSPACE_SCENARIO_DIR="$scenario"
+export WORKSPACE_VERIFY_APP_VERSION="$(git -C "$root" rev-parse --short HEAD)"
+if [[ -n "$(git -C "$root" status --porcelain)" ]]; then
+    WORKSPACE_VERIFY_APP_VERSION+="+working-tree"
+fi
 export COMPOSE_PROJECT_NAME="workspace-smoke-$(openssl rand -hex 5)"
 export WORKSPACE_PORT="${WORKSPACE_PORT:-18087}"
 export WORKSPACE_DB_ADMIN_PASSWORD="$(openssl rand -hex 24)"
@@ -36,3 +40,18 @@ trap cleanup EXIT
 "${compose[@]}" restart api db
 "${compose[@]}" up -d --wait
 "$root/deploy/workspace/verify.sh" mac --check-persistence
+
+replay=("${compose[@]}" run --rm --no-deps -T replay)
+"${replay[@]}" writes pause
+live="$("${replay[@]}" describe-current)"
+position="$(jq -er '.throughPosition' <<< "$live")"
+rebuilt="$("${replay[@]}" replay --through "$position")"
+jq -en --argjson live "$live" --argjson rebuilt "$rebuilt" '
+  $live.generation != $rebuilt.generation and
+  $live.snapshotId == $rebuilt.snapshotId and
+  $live.stateDigest == $rebuilt.stateDigest
+' >/dev/null
+"${replay[@]}" activate-replay --generation "$(jq -er '.generation' <<< "$rebuilt")" --expect-position "$position"
+"${replay[@]}" writes resume
+"$root/deploy/workspace/verify.sh" mac --check-persistence
+printf 'Mac replay digest matched at journal position %s.\n' "$position"
