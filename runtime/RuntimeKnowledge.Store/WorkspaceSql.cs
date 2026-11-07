@@ -125,6 +125,22 @@ internal static class AgeGraph
         return result;
     }
 
+    public static async Task<IReadOnlyList<string>> ReadActiveEdgesAsync(NpgsqlTransaction tx, string graph,
+        string scope, CancellationToken token)
+    {
+        await using var command = await PrepareAsync(tx, graph, """
+            MATCH (a:Entity)-[r:Relationship]->(b:Entity)
+            WHERE r.scope = $scope OR r.scope = 'runtime'
+            RETURN r.scope, r.key, a.key, b.key ORDER BY r.scope, r.key, a.key, b.key
+            """, "scope ag_catalog.agtype, edge_key ag_catalog.agtype, from_key ag_catalog.agtype, to_key ag_catalog.agtype",
+            "scope::text, edge_key::text, from_key::text, to_key::text", new { scope }, token);
+        await using var rows = await command.ExecuteReaderAsync(token);
+        var results = new List<string>();
+        while (await rows.ReadAsync(token))
+            results.Add(WorkspaceSql.Json(new[] { rows.GetString(0), rows.GetString(1), rows.GetString(2), rows.GetString(3) }));
+        return results;
+    }
+
     private static async Task WriteAsync(NpgsqlTransaction tx, string graph, string cypher, object args,
         CancellationToken token)
     {

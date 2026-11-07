@@ -123,6 +123,8 @@ internal sealed class MemoryBundles : IBundleObjects
         return new BundleFile(role, "division-core", path, digest, bytes.Length);
     }
 
+    public void RemoveManifest(string id) => _objects.Remove($"manifests/{id}.json");
+
     public Task<Stream> OpenAsync(string objectKey, CancellationToken cancellationToken) =>
         Task.FromResult<Stream>(_objects.TryGetValue(objectKey, out var value)
             ? new MemoryStream(value, writable: false) : throw new FileNotFoundException("Fixture object missing.", objectKey));
