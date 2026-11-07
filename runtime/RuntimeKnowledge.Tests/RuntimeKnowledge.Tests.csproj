@@ -12,6 +12,8 @@
     <PackageReference Include="Npgsql" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio" PrivateAssets="all" />
+    <ProjectReference Include="../RuntimeKnowledge.Api/RuntimeKnowledge.Api.csproj" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../RuntimeKnowledge.Contracts/RuntimeKnowledge.Contracts.csproj" />

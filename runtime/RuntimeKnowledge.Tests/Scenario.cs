@@ -25,6 +25,7 @@ internal sealed class Scenario : IAsyncDisposable
     public PublishedKey PublishedEdge => KeyEdge;
     public Actor Actor { get; } = new("https://issuer.test", "contributor");
     public MemoryBundles Bundles { get; } = new();
+    public string ConnectionString => _fixture.ConnectionString;
     public Db Db { get; }
     public SnapshotStore Store { get; }
     public GraphQueries Graph { get; }

@@ -156,6 +156,60 @@ public sealed class GraphQueries(Db db)
         }
     }
 
+    public async Task<EntityDetail> EntityDetailAsync(PublishedKey key, CancellationToken token)
+    {
+        if (key?.Kind is not ("concept" or "node" or "relationshipType"))
+            throw new WorkspaceException("entityNotFound", "Select a published entity or relationship type.");
+        await using var connection = await db.OpenAsync(token);
+        await using var tx = await connection.BeginTransactionAsync(IsolationLevel.RepeatableRead, token);
+        var state = await ReadStateAsync(tx, token);
+        var snapshot = state.RequireSnapshot();
+        var entity = await ContributionStore.ResolveEndpointAsync(tx, state, key, token) ??
+            throw new WorkspaceException("entityNotFound", "Published entity was not found.");
+        return new EntityDetail(snapshot, entity, entity.Provenance.SnapshotId == snapshot,
+            await ContributionStore.AnnotationsAsync(tx, state, key, token));
+    }
+
+    public async Task<RelationshipDetail> RelationshipDetailAsync(RelationshipDetailRequest request,
+        CancellationToken token)
+    {
+        if ((request.Key is null) == (request.RuntimeId is null))
+            throw new WorkspaceException("invalidRelationship", "Choose one published or runtime relationship.");
+        await using var connection = await db.OpenAsync(token);
+        await using var tx = await connection.BeginTransactionAsync(IsolationLevel.RepeatableRead, token);
+        var state = await ReadStateAsync(tx, token);
+        var snapshot = state.RequireSnapshot();
+        if (request.RuntimeId is Guid runtimeId)
+        {
+            var current = await ContributionStore.FindAsync(tx, state, runtimeId, token);
+            if (current is not { Removed: false, Relationship: { } relationship })
+                throw new WorkspaceException("relationshipNotFound", "Runtime relationship was not found.");
+            var from = await EndpointAsync(relationship.From);
+            var to = await EndpointAsync(relationship.To);
+            return new RelationshipDetail(snapshot, new TraversalStep(null, runtimeId, relationship.From,
+                relationship.To, relationship.Label, "outgoing", "runtime", null, !from.Available || !to.Available,
+                !from.Available ? from.Provenance.SnapshotId : !to.Available ? to.Provenance.SnapshotId : null,
+                Contribution: current, FromEndpoint: from, ToEndpoint: to));
+        }
+
+        var key = request.Key!;
+        var raw = key.Kind is "assertion" or "reviewedLink" or "denotation" or "c4Binding"
+            ? await ReadPublishedAsync(tx, state, key.StorageKey, token) : null;
+        if (raw is null) throw new WorkspaceException("relationshipNotFound", "Published relationship was not found.");
+        var edge = ReadJson<PublishedEdge>(raw);
+        var codifying = await ContributionStore.CodifyingAsync(tx, state, key, token);
+        return new RelationshipDetail(snapshot, new TraversalStep(edge.Key, null, edge.From, edge.To,
+            edge.Label, "outgoing", "published", edge.Provenance, Context: edge.Context,
+            CodifyingContributions: codifying));
+
+        async Task<EndpointContext> EndpointAsync(PublishedKey endpoint)
+        {
+            var entity = await ContributionStore.ResolveEndpointAsync(tx, state, endpoint, token) ??
+                throw new InvalidOperationException("Missing recorded runtime endpoint.");
+            return new EndpointContext(endpoint, entity.Label, entity.Provenance, entity.Provenance.SnapshotId == snapshot);
+        }
+    }
+
     internal static async Task<string?> ReadPublishedAsync(NpgsqlTransaction tx, ProjectionState state,
         string key, CancellationToken token) => (string?)await ScalarAsync(tx, """
             SELECT body::text FROM workspace_projection.published_records
