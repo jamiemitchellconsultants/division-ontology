@@ -1,0 +1,44 @@
+{
+  "realm": "workspace",
+  "enabled": true,
+  "sslRequired": "all",
+  "roles": {
+    "client": {
+      "${WORKSPACE_KEYCLOAK_API_CLIENT}": [
+        { "name": "ReadKnowledgeGraph" },
+        { "name": "ManageKnowledgeGraph" }
+      ]
+    }
+  },
+  "clients": [
+    {
+      "clientId": "${WORKSPACE_KEYCLOAK_API_CLIENT}",
+      "bearerOnly": true,
+      "protocol": "openid-connect"
+    },
+    {
+      "clientId": "${WORKSPACE_SPA_CLIENT}",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "protocol": "openid-connect",
+      "redirectUris": ["https://${WORKSPACE_PUBLIC_HOST}/authentication/login-callback"],
+      "webOrigins": ["https://${WORKSPACE_PUBLIC_HOST}"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "https://${WORKSPACE_PUBLIC_HOST}/authentication/logout-callback"
+      },
+      "protocolMappers": [
+        {
+          "name": "workspace API audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "${WORKSPACE_API_AUDIENCE}",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ]
+}

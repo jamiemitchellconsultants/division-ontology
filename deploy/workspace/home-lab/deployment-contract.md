@@ -1,0 +1,17 @@
+# Runtime knowledge workspace on the home lab
+
+Division Ontology supplies the versioned API, worker, web, PostgreSQL and MinIO images and the Compose, Caddy and Keycloak templates in this release. LocalAI resolves the reviewed commit or release, chooses the deployment settings, creates the persistent volumes, manages the shared Caddy and Keycloak services and applies upgrades. This follows the [JointBooking installation boundary](https://github.com/jamiemitchellconsultants/LocalAI/blob/main/docs/deploy-jointbooking.md).
+
+## Release inputs
+
+- Set `WORKSPACE_API_IMAGE`, `WORKSPACE_WORKER_IMAGE`, `WORKSPACE_WEB_IMAGE`, `WORKSPACE_DB_IMAGE` and `WORKSPACE_MINIO_IMAGE` from one reviewed revision. The image workflow publishes each as `ghcr.io/<owner>/division-ontology-workspace-<component>:sha-<commit>`. Pin the resolved digests when installing. The Compose file consumes these images.
+- Supply the HTTPS workspace host, the shared ingress network, the exact HTTPS Keycloak realm issuer, the public SPA client ID, the API audience and the Keycloak API client ID that owns the workspace roles. Render the realm template's four public placeholders, validate it and import into the shared Keycloak. Assign `ReadKnowledgeGraph` or `ManageKnowledgeGraph` to the intended users there. Set the Caddy fragment's host placeholder to the same HTTPS workspace hostname, then validate the shared configuration before reloading it.
+- Provision a private MinIO bucket and a publisher service account that can read and put the `blobs/` and `manifests/` keys. Set the endpoint, bucket and publisher credentials. Root credentials are used by the private MinIO service for bootstrap. Keep every credential in LocalAI's secret store and inject it at deployment.
+- Supply separate PostgreSQL connection strings for bootstrap, API, publisher and indexer, and the corresponding passwords for initial role provisioning. The Compose migration job applies migrations and provisions `workspace_api_user`, `workspace_publisher_user` and `workspace_indexer_user` before those services start. Keep these passwords stable during ordinary redeploys and coordinate any rotation across the affected services. PostgreSQL and MinIO attach only to the backend network.
+- Set `WORKSPACE_EMBEDDING_ENDPOINT` to the private OpenAI-compatible `/v1/embeddings` endpoint, `WORKSPACE_EMBEDDING_MODEL` to the served Qwen3 Embedding 8B Q4 model name and `WORKSPACE_EMBEDDING_REVISION` to the immutable GGUF digest or equivalent version identifier. The endpoint must return 4,096 dimensions. Keep the provider reachable from the API and indexer and record the model and revision in deployment evidence.
+
+## Storage and rollout
+
+Create and supply the two external named volumes for PostgreSQL and MinIO. Retain the same volumes and volume names across releases. The PostgreSQL volume contains the contribution journal. MinIO retains the content-addressed bundles referenced by the journal. Import reviewed bundles through the publisher's `upload`, `stage` and `activate` commands after bootstrap. Wait for baseline indexing before activating. Use a separate fixture workspace for replay and restart validation.
+
+Run `verify-config.sh` with Docker Compose and jq for the local contract check. The live smoke uses the deployed host, controlled reader and manager identities, and a dedicated synthetic snapshot. Record the image revision, snapshot, model digest, indexing lag, exact search latency and results after restart.
