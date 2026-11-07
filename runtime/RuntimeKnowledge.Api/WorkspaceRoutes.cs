@@ -6,7 +6,7 @@ namespace RuntimeKnowledge.Api;
 
 internal static class WorkspaceRoutes
 {
-    public static void MapWorkspaceRoutes(this WebApplication app)
+    public static void MapWorkspaceRoutes(this IEndpointRouteBuilder app)
     {
         var api = app.MapGroup("/api").RequireAuthorization(Identity.ReadPolicy);
         api.MapGet("/session", (ClaimsPrincipal user) => Identity.GetSession(user));

@@ -6,6 +6,7 @@
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Amazon.Lambda.AspNetCoreServer" />
     <ProjectReference Include="../RuntimeKnowledge.Contracts/RuntimeKnowledge.Contracts.csproj" />
     <ProjectReference Include="../RuntimeKnowledge.Store/RuntimeKnowledge.Store.csproj" />
     <ProjectReference Include="../RuntimeKnowledge.Providers/RuntimeKnowledge.Providers.csproj" />

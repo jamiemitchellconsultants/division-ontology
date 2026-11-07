@@ -69,6 +69,27 @@
         "resolved": "3.1.4",
         "contentHash": "5mj99LvCqrq3CNi06xYdyIAXOEh+5b33F2nErCzI5zWiDdLHXiPXEWFSUAF8zlIv0ZWqjZNCwHTQeAPYbF3pCg=="
       },
+      "Amazon.Lambda.APIGatewayEvents": {
+        "type": "Transitive",
+        "resolved": "3.0.1",
+        "contentHash": "+gTGEtrcoCBRtCgcqEl3AlFrYrQY4pFreL22KkmpvXaNX1Lwlrbgk/crEcfuD3Q0wO2AspsJ3xMMj7pJxDYTKA=="
+      },
+      "Amazon.Lambda.ApplicationLoadBalancerEvents": {
+        "type": "Transitive",
+        "resolved": "3.0.0",
+        "contentHash": "lUiZhNxherASNgbZysdFEj37VlyO7BH2z4iOwFpRtfLGq/v/dkVqt3rBAVvrxfPBRGi6SbSb/bHTV4bhPo5tSg=="
+      },
+      "Amazon.Lambda.Logging.AspNetCore": {
+        "type": "Transitive",
+        "resolved": "5.0.0",
+        "contentHash": "vfqHBHPvsIvaAGeBnFSRSCThHoqXWqy7S/R6/Aldn4/FmHEp872D0WcJgFac/D0h0GnbHqyfFkjmBEpi85vOog==",
+        "dependencies": {
+          "Amazon.Lambda.Core": "3.0.0",
+          "Microsoft.Extensions.Configuration.Abstractions": "2.1.0",
+          "Microsoft.Extensions.Logging": "2.1.0",
+          "Microsoft.Extensions.Logging.Abstractions": "2.1.0"
+        }
+      },
       "AngleSharp": {
         "type": "Transitive",
         "resolved": "1.8.5",
@@ -626,6 +647,7 @@
       "runtimeknowledge.api": {
         "type": "Project",
         "dependencies": {
+          "Amazon.Lambda.AspNetCoreServer": "[10.2.1, )",
           "Microsoft.AspNetCore.Authentication.JwtBearer": "[10.0.12, )",
           "RuntimeKnowledge.Contracts": "[1.0.0, )",
           "RuntimeKnowledge.Providers": "[1.0.0, )",
@@ -640,6 +662,8 @@
         "dependencies": {
           "AWSSDK.BedrockRuntime": "[4.0.101.17, )",
           "AWSSDK.S3": "[4.0.103.4, )",
+          "AWSSDK.SecretsManager": "[4.0.100.14, )",
+          "Npgsql": "[10.0.3, )",
           "RuntimeKnowledge.Contracts": "[1.0.0, )"
         }
       },
@@ -661,9 +685,39 @@
       "runtimeknowledge.worker": {
         "type": "Project",
         "dependencies": {
+          "Amazon.Lambda.Core": "[3.3.0, )",
+          "Amazon.Lambda.Serialization.SystemTextJson": "[3.0.1, )",
           "RuntimeKnowledge.Contracts": "[1.0.0, )",
           "RuntimeKnowledge.Providers": "[1.0.0, )",
           "RuntimeKnowledge.Store": "[1.0.0, )"
+        }
+      },
+      "Amazon.Lambda.AspNetCoreServer": {
+        "type": "CentralTransitive",
+        "requested": "[10.2.1, )",
+        "resolved": "10.2.1",
+        "contentHash": "yql4ujM7Q2v6GfrBFbMB1SMaDu3wSHsfS/WfNr1OzUfVKseUKO+swo6Y/v1x/gQpJDKAzrP/pmwC/NuI9oPYjg==",
+        "dependencies": {
+          "Amazon.Lambda.APIGatewayEvents": "3.0.1",
+          "Amazon.Lambda.ApplicationLoadBalancerEvents": "3.0.0",
+          "Amazon.Lambda.Core": "3.3.0",
+          "Amazon.Lambda.Logging.AspNetCore": "5.0.0",
+          "Amazon.Lambda.Serialization.SystemTextJson": "3.0.1"
+        }
+      },
+      "Amazon.Lambda.Core": {
+        "type": "CentralTransitive",
+        "requested": "[3.3.0, )",
+        "resolved": "3.3.0",
+        "contentHash": "CZKlX8ZDMi6aKPo5lPAjmsJFDXNJHX00aiiYeRQOEszP8cjx6qklBvTPj4qpr4dlp3YYQjmB87CqAiWV7vk2fA=="
+      },
+      "Amazon.Lambda.Serialization.SystemTextJson": {
+        "type": "CentralTransitive",
+        "requested": "[3.0.1, )",
+        "resolved": "3.0.1",
+        "contentHash": "QsHygaMyxQdgh5NPs5GGyBjK6mqQr5nv8rpqlrWC5+e1k7sVx+2xwDHv493S5IMw461S/PyHfjkUDjIQU5ArSA==",
+        "dependencies": {
+          "Amazon.Lambda.Core": "3.3.0"
         }
       },
       "AWSSDK.BedrockRuntime": {
@@ -680,6 +734,15 @@
         "requested": "[4.0.103.4, )",
         "resolved": "4.0.103.4",
         "contentHash": "qi8NkWG7s6GkNePTWSxP51O6AaTEWquin4X4L82plMte8bTFL2A1/osRfr6DBmvmSOc8y0orx25jJXg9gcbMIQ==",
+        "dependencies": {
+          "AWSSDK.Core": "[4.0.102.6, 5.0.0)"
+        }
+      },
+      "AWSSDK.SecretsManager": {
+        "type": "CentralTransitive",
+        "requested": "[4.0.100.14, )",
+        "resolved": "4.0.100.14",
+        "contentHash": "TjKOvrGaCLwntfWCYRwmORpNFH5ey46rCLRY/gU1Myt+f/kvzANMod7nLNrhSZm7ITrANLu0QyirOgWGPoJS7w==",
         "dependencies": {
           "AWSSDK.Core": "[4.0.102.6, 5.0.0)"
         }

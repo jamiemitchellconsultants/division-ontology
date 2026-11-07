@@ -6,6 +6,8 @@
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="AWSSDK.SecretsManager" />
+    <PackageReference Include="Npgsql" />
     <ProjectReference Include="../RuntimeKnowledge.Contracts/RuntimeKnowledge.Contracts.csproj" />
     <PackageReference Include="AWSSDK.BedrockRuntime" />
     <PackageReference Include="AWSSDK.S3" />

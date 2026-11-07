@@ -12,41 +12,54 @@ public partial class ApiProgram
     public static WebApplication Build(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
-        builder.Services.AddWorkspaceIdentity();
-        builder.Services.AddProblemDetails();
-        builder.Services.AddSingleton<NpgsqlDataSource>(services =>
+        ConfigureServices(builder.Services);
+        var app = builder.Build();
+        Configure(app);
+        return app;
+    }
+
+    internal static void ConfigureServices(IServiceCollection services)
+    {
+        services.AddWorkspaceIdentity();
+        services.AddProblemDetails();
+        services.AddSingleton<NpgsqlDataSource>(provider =>
         {
-            var configuration = services.GetRequiredService<IConfiguration>();
-            var database = configuration.GetConnectionString("Workspace");
-            if (string.IsNullOrWhiteSpace(database))
-                throw new InvalidOperationException("Configure the workspace database connection.");
+            var configuration = provider.GetRequiredService<IConfiguration>();
+            var database = DatabaseSecrets.ResolveAsync(configuration.GetConnectionString("Workspace"),
+                configuration["Workspace:Database:SecretArn"], configuration["Workspace:Database:Host"],
+                configuration["Workspace:Database:MaximumPoolSize"], CancellationToken.None).GetAwaiter().GetResult();
             return NpgsqlDataSource.Create(database);
         });
-        builder.Services.AddSingleton<Db>();
-        builder.Services.AddSingleton<GraphQueries>();
-        builder.Services.AddSingleton<ContributionStore>();
-        builder.Services.AddSingleton<IEmbeddingProvider>(services =>
+        services.AddSingleton<Db>();
+        services.AddSingleton<GraphQueries>();
+        services.AddSingleton<ContributionStore>();
+        services.AddSingleton<IEmbeddingProvider>(provider =>
         {
-            var config = services.GetRequiredService<IConfiguration>().GetSection("Workspace:Embeddings");
+            var config = provider.GetRequiredService<IConfiguration>().GetSection("Workspace:Embeddings");
             return EmbeddingAdapters.Create(config["Provider"], config["Endpoint"], config["Region"]);
         });
-        builder.Services.AddSingleton<SearchStore>(services =>
+        services.AddSingleton<SearchStore>(provider =>
         {
-            var settings = services.GetRequiredService<IConfiguration>();
-            return new SearchStore(services.GetRequiredService<Db>(), services.GetRequiredService<IEmbeddingProvider>(),
+            var settings = provider.GetRequiredService<IConfiguration>();
+            return new SearchStore(provider.GetRequiredService<Db>(), provider.GetRequiredService<IEmbeddingProvider>(),
                 settings.GetValue("Workspace:Embeddings:MinimumSimilarity", 0.35));
         });
+    }
 
-        var app = builder.Build();
+    internal static void Configure(IApplicationBuilder app)
+    {
         app.UseExceptionHandler(exceptionApp => exceptionApp.Run(ProblemResponses.WriteAsync));
+        app.UseRouting();
         app.UseAuthentication();
         app.UseAuthorization();
-        app.MapGet("/health", async (Db db, CancellationToken token) =>
+        app.UseEndpoints(endpoints =>
         {
-            await using var connection = await db.OpenAsync(token);
-            return Results.Ok(new { status = "ready" });
-        }).AllowAnonymous();
-        app.MapWorkspaceRoutes();
-        return app;
+            endpoints.MapGet("/health", async (Db db, CancellationToken token) =>
+            {
+                await using var connection = await db.OpenAsync(token);
+                return Results.Ok(new { status = "ready" });
+            }).AllowAnonymous();
+            endpoints.MapWorkspaceRoutes();
+        });
     }
 }

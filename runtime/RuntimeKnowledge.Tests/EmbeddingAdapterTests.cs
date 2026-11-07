@@ -45,7 +45,7 @@ public sealed class EmbeddingAdapterTests
         Assert.True(bedrock.Body.GetProperty("normalize").GetBoolean());
     }
 
-    private sealed class CaptureBedrock() : AmazonBedrockRuntimeClient(new AnonymousAWSCredentials(), RegionEndpoint.EUWest2)
+    internal sealed class CaptureBedrock() : AmazonBedrockRuntimeClient(new AnonymousAWSCredentials(), RegionEndpoint.EUWest2)
     {
         public JsonElement Body { get; private set; }
         public string? ModelId { get; private set; }

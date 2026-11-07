@@ -181,7 +181,7 @@ internal static class Program
         await tx.CommitAsync(token);
     }
 
-    private static AmazonS3Client CreateObjectClient(IConfiguration settings)
+    internal static AmazonS3Client CreateObjectClient(IConfiguration settings)
     {
         var region = settings["Region"] ?? "us-east-1";
         if (settings["Endpoint"] is not { Length: > 0 } endpoint)
