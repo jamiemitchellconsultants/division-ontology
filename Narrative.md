@@ -21,6 +21,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [11](#entry-plan-c4-impact-assessment-pilot) | 2026-11-04 | Plan C4 impact assessment pilot | product | Plan the pilot as ten test-first tasks: pinned catalog and source loading, source graph and coverage parsing, reviewed C4 mappings and cross-source bindings, candidate search, directed impact paths, four-level projection, pinned code… |
 | [12](#entry-build-c4-impact-assessment-pilot) | 2026-11-04 | Build C4 impact assessment pilot | product | Implement the local C4 pilot: pinned snapshot and graph readers, reviewed mapping and binding registries, candidate search, directed paths, four-level projections, inspected-code evidence, deterministic reports, and editable assessment… |
 | [13](#entry-add-c4-pilot-acceptance-fixtures-and-automated-checks) | 2026-11-06 | Add C4 pilot acceptance fixtures and automated checks | product | For this pilot, use the automated B1–B15 comparisons as the acceptance record. Run acceptance on one M4 Mini and waive the duplicate second-machine run. Capture the participant's scope judgment separately as B4 feedback. |
+| [14](#entry-define-runtime-knowledge-workspace-architecture) | 2026-11-07 | Define runtime knowledge workspace architecture | product | - [ADR 0004](https://github.com/jamiemitchellconsultants/division-ontology/blob/b2e8ed75d151865ebaa2e608bc85f0abdb97e82e/docs/adr/0004-import-and-activate-pinned-knowledge-snapshots.md) packages pinned source artefacts and activates a… |
 
 ---
 
@@ -293,3 +294,27 @@ For this pilot, use the automated B1–B15 comparisons as the acceptance record.
 Reruns produce one pass result or the discrepancies. The numbered scenarios and reports remain available for investigating failures. The reported evidence covers the synthetic pilot on one acceptance machine. The B4 rendering check uses sample data and the acceptance record separately preserves James's feedback.
 
 AI-Fingerprint: sha256:cfad895d3329
+
+---
+
+<a id="entry-define-runtime-knowledge-workspace-architecture"></a>
+
+## Entry 14 — 2026-11-07 — Define runtime knowledge workspace architecture
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The workspace combines a baseline published from pinned source repositories with persistent runtime contributions. It needs reproducible graph imports, immediate traversal after a contribution is saved, and the same application contract on Mac, the home lab and AWS.
+
+## Decision
+
+- [ADR 0004](https://github.com/jamiemitchellconsultants/division-ontology/blob/b2e8ed75d151865ebaa2e608bc85f0abdb97e82e/docs/adr/0004-import-and-activate-pinned-knowledge-snapshots.md) packages pinned source artefacts and activates a validated baseline atomically.
+- [ADR 0005](https://github.com/jamiemitchellconsultants/division-ontology/blob/b2e8ed75d151865ebaa2e608bc85f0abdb97e82e/docs/adr/0005-keep-graph-history-and-vectors-in-postgresql.md) keeps graph traversal, journal writes and vector search in PostgreSQL with Apache AGE and pgvector.
+- [ADR 0006](https://github.com/jamiemitchellconsultants/division-ontology/blob/b2e8ed75d151865ebaa2e608bc85f0abdb97e82e/docs/adr/0006-configure-identity-and-embeddings-by-environment.md) selects Keycloak or Entra ID and Qwen3 or Bedrock Titan by environment.
+- [ADR 0007](https://github.com/jamiemitchellconsultants/division-ontology/blob/b2e8ed75d151865ebaa2e608bc85f0abdb97e82e/docs/adr/0007-deploy-workspace-on-mac-home-lab-and-aws.md) defines full Docker Compose on Mac, LocalAI-operated home-lab deployment and Terraform on AWS with a Docker PostgreSQL instance.
+- [ADR 0008](https://github.com/jamiemitchellconsultants/division-ontology/blob/b2e8ed75d151865ebaa2e608bc85f0abdb97e82e/docs/adr/0008-rebuild-workspace-from-snapshots-and-events.md) makes the contribution journal authoritative and rebuilds projections by replaying events and snapshot activations.
+
+## Consequences
+
+Development planning must prove that journal and AGE writes commit together, that replay preserves provenance and unavailable endpoints, and that search works with the selected model in each environment. AWS verification is simulation only. Backup and disaster recovery are tracked separately in #53.
