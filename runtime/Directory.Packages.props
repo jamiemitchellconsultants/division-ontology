@@ -3,6 +3,7 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
   <ItemGroup>
+    <PackageVersion Include="AWSSDK.BedrockRuntime" Version="4.0.101.17" />
     <PackageVersion Include="AWSSDK.S3" Version="4.0.103.4" />
     <PackageVersion Include="Npgsql" Version="10.0.3" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />

@@ -1,4 +1,6 @@
 using Npgsql;
+using RuntimeKnowledge.Contracts;
+using RuntimeKnowledge.Providers;
 using RuntimeKnowledge.Store;
 
 namespace RuntimeKnowledge.Api;
@@ -23,6 +25,17 @@ public partial class ApiProgram
         builder.Services.AddSingleton<Db>();
         builder.Services.AddSingleton<GraphQueries>();
         builder.Services.AddSingleton<ContributionStore>();
+        builder.Services.AddSingleton<IEmbeddingProvider>(services =>
+        {
+            var config = services.GetRequiredService<IConfiguration>().GetSection("Workspace:Embeddings");
+            return EmbeddingAdapters.Create(config["Provider"], config["Endpoint"], config["Region"]);
+        });
+        builder.Services.AddSingleton<SearchStore>(services =>
+        {
+            var settings = services.GetRequiredService<IConfiguration>();
+            return new SearchStore(services.GetRequiredService<Db>(), services.GetRequiredService<IEmbeddingProvider>(),
+                settings.GetValue("Workspace:Embeddings:MinimumSimilarity", 0.35));
+        });
 
         var app = builder.Build();
         app.UseExceptionHandler(exceptionApp => exceptionApp.Run(ProblemResponses.WriteAsync));

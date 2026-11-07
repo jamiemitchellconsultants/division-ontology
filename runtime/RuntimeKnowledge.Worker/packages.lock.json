@@ -4,8 +4,8 @@
     "net10.0": {
       "AWSSDK.Core": {
         "type": "Transitive",
-        "resolved": "4.0.102.6",
-        "contentHash": "YwUi9qpz/OHqwEgsf8I5jj1aC/xkkjmF91R8Yx6yD66dhOiORgQJynYQk0fzI4xdhBgUaw8SRGbMkLRrvL+CNA=="
+        "resolved": "4.0.102.19",
+        "contentHash": "Hb6P2ui6y0U+UNUjcC4ASFFoTLzCijhMzfOCXfoFTXq/o0YWQsO1oSH1NG2GQ9dlIT693xeeih0yAcfeL1dphg=="
       },
       "Microsoft.Extensions.DependencyInjection.Abstractions": {
         "type": "Transitive",
@@ -26,6 +26,7 @@
       "runtimeknowledge.providers": {
         "type": "Project",
         "dependencies": {
+          "AWSSDK.BedrockRuntime": "[4.0.101.17, )",
           "AWSSDK.S3": "[4.0.103.4, )",
           "RuntimeKnowledge.Contracts": "[1.0.0, )"
         }
@@ -35,6 +36,15 @@
         "dependencies": {
           "Npgsql": "[10.0.3, )",
           "RuntimeKnowledge.Contracts": "[1.0.0, )"
+        }
+      },
+      "AWSSDK.BedrockRuntime": {
+        "type": "CentralTransitive",
+        "requested": "[4.0.101.17, )",
+        "resolved": "4.0.101.17",
+        "contentHash": "AoBw6iV52rbnHYLVhsxhVWYHZY9+h9KRtHiTWegLGaIzsDPvOR1onF+W77J/8Ltnv9Q4rDnTtil8dkvr2yVedQ==",
+        "dependencies": {
+          "AWSSDK.Core": "[4.0.102.19, 5.0.0)"
         }
       },
       "AWSSDK.S3": {

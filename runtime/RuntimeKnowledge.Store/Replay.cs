@@ -69,6 +69,9 @@ public sealed class ReplayStore(Db db, IBundleObjects objects)
             WHERE w.generation = $1 AND c.generation = w.generation AND c.contribution_id = w.contribution_id
               AND (c.removed OR c.revision <> w.revision)
             """, token, candidate.Generation);
+        await ExecuteAsync(tx, """
+            UPDATE workspace_projection.snapshots SET index_requested = false WHERE generation = $1
+            """, token, candidate.Generation);
         var digest = await DigestAsync(tx, candidate, throughPosition, token);
         await ExecuteAsync(tx, """
             INSERT INTO workspace_projection.rebuilds

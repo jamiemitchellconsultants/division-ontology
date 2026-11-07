@@ -61,7 +61,7 @@ internal static class WorkspaceSql
 
     public static async Task<long> LockHeadAsync(NpgsqlTransaction tx, CancellationToken token) =>
         (long)(await ScalarAsync(tx, """
-            SELECT position FROM workspace_journal.head WHERE singleton FOR UPDATE
+            SELECT workspace_journal.lock_head()
             """, token) ?? throw new InvalidOperationException("Workspace journal head is missing."));
 
     public static async Task<long> AppendAsync(NpgsqlTransaction tx, string type, string snapshotId,

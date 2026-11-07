@@ -16,6 +16,8 @@ internal static class WorkspaceRoutes
             graph.EntityDetailAsync(request.Key, token));
         api.MapPost("/relationships/detail", (RelationshipDetailRequest request, GraphQueries graph, CancellationToken token) =>
             graph.RelationshipDetailAsync(request, token));
+        api.MapPost("/search", (SearchRequest request, SearchStore search, CancellationToken token) =>
+            search.SearchAsync(request.Query, request.Limit, token));
         api.MapPost("/traverse", (TraversalRequest request, GraphQueries graph, CancellationToken token) =>
             graph.TraverseAsync(request, token));
         api.MapGet("/history", (Guid? contributionId, string? cursor, int? limit, ContributionStore store, CancellationToken token) =>

@@ -7,6 +7,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../RuntimeKnowledge.Contracts/RuntimeKnowledge.Contracts.csproj" />
+    <PackageReference Include="AWSSDK.BedrockRuntime" />
     <PackageReference Include="AWSSDK.S3" />
   </ItemGroup>
 </Project>

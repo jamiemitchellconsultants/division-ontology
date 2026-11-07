@@ -16,6 +16,10 @@ public sealed class SnapshotStore(Db db, IBundleObjects objects, TimeProvider? c
         await using var tx = await connection.BeginTransactionAsync(cancellationToken);
         var state = await ReadStateAsync(tx, cancellationToken);
         await StageProjectionAsync(tx, state, bundle, cancellationToken);
+        await ExecuteAsync(tx, """
+            UPDATE workspace_projection.snapshots SET index_requested = true
+            WHERE generation = $1 AND snapshot_id = $2
+            """, cancellationToken, state.Generation, manifestId);
         await tx.CommitAsync(cancellationToken);
         return new SnapshotCandidate(manifestId, state.SnapshotId == manifestId ? "active" : "staged");
     }
@@ -35,11 +39,20 @@ public sealed class SnapshotStore(Db db, IBundleObjects objects, TimeProvider? c
             """, cancellationToken, state.Generation, manifestId) is not true)
             throw new WorkspaceException("snapshotNotStaged", "Stage and validate the snapshot before activation.");
 
+        var profile = await IndexRepository.ReadActiveProfileAsync(tx, cancellationToken);
+        if (profile is not null && !await IndexRepository.BaselineReadyAsync(tx, state.Generation, manifestId,
+            profile.Id, cancellationToken))
+            throw new WorkspaceException("snapshotIndexPending", "The staged snapshot is waiting for its baseline search index.");
+
         var position = await AppendAsync(tx, "snapshotActivated", manifestId, null, null, null,
             _clock.GetUtcNow(), new { manifestId }, cancellationToken);
         await ExecuteAsync(tx, """
             UPDATE workspace_projection.state SET snapshot_id = $1, activation_position = $2 WHERE singleton
             """, cancellationToken, manifestId, position);
+        await ExecuteAsync(tx, """
+            UPDATE workspace_projection.snapshots SET index_requested = false
+            WHERE generation = $1 AND snapshot_id = $2
+            """, cancellationToken, state.Generation, manifestId);
         await tx.CommitAsync(cancellationToken);
         return position;
     }
