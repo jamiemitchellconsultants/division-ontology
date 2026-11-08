@@ -1,0 +1,106 @@
+@page "/relationship/{Origin}/{Id}"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject WorkspaceClient Api
+@inject NavigationManager Navigation
+
+<h1>@(detail?.Relationship.Label ?? "Relationship")</h1>
+<ApiError Error="error" />
+
+@if (detail is { } record)
+{
+    <p>Active snapshot <code>@record.SnapshotId</code></p>
+    <RelationshipStep Step="record.Relationship" />
+    @if (record.Relationship.Key is { } key)
+    {
+        <p>Published relationship link <code>@Navigation.ToAbsoluteUri($"relationship/published/{WorkspaceLinks.Encode(key)}")</code></p>
+    }
+    @if (record.Relationship.Contribution is { } contribution)
+    {
+        <a href="@($"history/{contribution.Id:D}")">Relationship history</a>
+        @if (canManage)
+        {
+            <section aria-label="Relationship changes" @key="(contribution.Id, contribution.Version)">
+                <h2>Manage this contribution</h2>
+                @if (choices is null)
+                {
+                    <button type="button" disabled="@loadingChoices" @onclick="LoadChoices">Load relationship edit choices</button>
+                }
+                else
+                {
+                    <ContributionEditor Mode="relationship" Current="contribution" Entities="EntityChoices(record.Relationship)"
+                        Types="TypeChoices(contribution.Relationship!)" OnSaved="Reload" />
+                }
+                <ContributionEditor Mode="codification" Current="contribution" OnSaved="Reload" />
+                <ContributionEditor Mode="remove" Current="contribution" OnSaved="OpenHistory" />
+            </section>
+        }
+    }
+}
+
+@code {
+    [Parameter] public string Origin { get; set; } = "";
+    [Parameter] public string Id { get; set; } = "";
+    private RelationshipDetail? detail;
+    private WorkspaceApiException? error;
+    private InventoryChoices? choices;
+    private bool canManage, loadingChoices;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        detail = null;
+        choices = null;
+        canManage = false;
+        await Load();
+    }
+
+    private Task Reload(ContributionResult _) => Load();
+
+    private async Task Load()
+    {
+        error = null;
+        try
+        {
+            var request = Origin switch
+            {
+                "runtime" when Guid.TryParse(Id, out var id) => new RelationshipDetailRequest(RuntimeId: id),
+                "published" when WorkspaceLinks.Decode(Id) is { } key => new RelationshipDetailRequest(Key: key),
+                _ => throw new WorkspaceApiException(System.Net.HttpStatusCode.NotFound, detail: "Relationship was not found.")
+            };
+            var session = await Api.Session();
+            detail = await Api.Relationship(request);
+            canManage = session.CanManage;
+        }
+        catch (WorkspaceApiException problem) { error = problem; }
+    }
+
+    private async Task LoadChoices()
+    {
+        if (loadingChoices) return;
+        error = null;
+        loadingChoices = true;
+        try { choices = await InventoryChoices.Load(Api); }
+        catch (WorkspaceApiException problem) { error = problem; }
+        finally { loadingChoices = false; }
+    }
+
+    private IReadOnlyList<(PublishedKey Key, string Label)> EntityChoices(TraversalStep step)
+    {
+        var entities = choices!.Entities.ToList();
+        foreach (var endpoint in new[] { step.FromEndpoint, step.ToEndpoint })
+        {
+            if (endpoint is not null && !entities.Any(item => item.Key == endpoint.Key))
+                entities.Add((endpoint.Key, endpoint.Label + " (unavailable)"));
+        }
+        return entities;
+    }
+
+    private IReadOnlyList<(PublishedKey Key, string Label)> TypeChoices(RelationshipData relation)
+    {
+        var types = choices!.Types.ToList();
+        if (relation.Meaning.PublishedType is { } type && !types.Any(item => item.Key == type))
+            types.Add((type, relation.Label + " (unavailable)"));
+        return types;
+    }
+
+    private void OpenHistory(ContributionResult result) => Navigation.NavigateTo($"history/{result.Id:D}");
+}

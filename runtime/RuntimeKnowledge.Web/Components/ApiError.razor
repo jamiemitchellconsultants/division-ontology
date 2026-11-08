@@ -1,0 +1,23 @@
+@inject NavigationManager Navigation
+
+@if (Error is not null)
+{
+    <p role="alert">
+        @if (Error.Status == System.Net.HttpStatusCode.Unauthorized)
+        {
+            <button type="button" @onclick="SignIn">Sign in again</button>
+            <span> to continue.</span>
+        }
+        else
+        {
+            @Error.Message
+        }
+    </p>
+}
+
+@code {
+    [Parameter] public WorkspaceApiException? Error { get; set; }
+
+    private void SignIn() => Navigation.NavigateToLogin("authentication/login",
+        new InteractiveRequestOptions { Interaction = InteractionType.SignIn, ReturnUrl = Navigation.Uri });
+}

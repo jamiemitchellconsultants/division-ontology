@@ -1,0 +1,66 @@
+{
+  "realm": "workspace",
+  "enabled": true,
+  "sslRequired": "none",
+  "roles": {
+    "client": {
+      "workspace-api": [
+        { "name": "ReadKnowledgeGraph" },
+        { "name": "ManageKnowledgeGraph" }
+      ]
+    }
+  },
+  "clients": [
+    {
+      "clientId": "workspace-api",
+      "bearerOnly": true,
+      "protocol": "openid-connect"
+    },
+    {
+      "clientId": "workspace-spa",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "protocol": "openid-connect",
+      "redirectUris": ["${WORKSPACE_ORIGIN}/authentication/login-callback"],
+      "webOrigins": ["${WORKSPACE_ORIGIN}"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "${WORKSPACE_ORIGIN}/authentication/logout-callback"
+      },
+      "protocolMappers": [
+        {
+          "name": "workspace API audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.client.audience": "workspace-api",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "workspace-manager",
+      "enabled": true,
+      "firstName": "Workspace",
+      "lastName": "Manager",
+      "email": "manager@workspace.test",
+      "emailVerified": true,
+      "credentials": [{ "type": "password", "value": "${WORKSPACE_DEV_MANAGER_PASSWORD}", "temporary": false }],
+      "clientRoles": { "workspace-api": ["ManageKnowledgeGraph"] }
+    },
+    {
+      "username": "workspace-reader",
+      "enabled": true,
+      "firstName": "Workspace",
+      "lastName": "Reader",
+      "email": "reader@workspace.test",
+      "emailVerified": true,
+      "credentials": [{ "type": "password", "value": "${WORKSPACE_DEV_READER_PASSWORD}", "temporary": false }],
+      "clientRoles": { "workspace-api": ["ReadKnowledgeGraph"] }
+    }
+  ]
+}

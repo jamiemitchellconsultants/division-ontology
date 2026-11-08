@@ -1,0 +1,8 @@
+{$WORKSPACE_PUBLIC_HOST} {
+    handle /api/* {
+        reverse_proxy runtime-workspace-api:8080
+    }
+    handle {
+        reverse_proxy runtime-workspace-web:8080
+    }
+}

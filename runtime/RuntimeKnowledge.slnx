@@ -1,0 +1,9 @@
+<Solution>
+  <Project Path="RuntimeKnowledge.Store/RuntimeKnowledge.Store.csproj" />
+  <Project Path="RuntimeKnowledge.Tests/RuntimeKnowledge.Tests.csproj" />
+  <Project Path="RuntimeKnowledge.Contracts/RuntimeKnowledge.Contracts.csproj" />
+  <Project Path="RuntimeKnowledge.Providers/RuntimeKnowledge.Providers.csproj" />
+  <Project Path="RuntimeKnowledge.Worker/RuntimeKnowledge.Worker.csproj" />
+  <Project Path="RuntimeKnowledge.Api/RuntimeKnowledge.Api.csproj" />
+  <Project Path="RuntimeKnowledge.Web/RuntimeKnowledge.Web.csproj" />
+</Solution>

@@ -1,0 +1,162 @@
+name: runtime-knowledge-workspace
+
+x-worker: &worker
+  image: ${WORKSPACE_WORKER_IMAGE:?Supply the versioned worker image}
+
+x-embeddings: &embeddings
+  Workspace__Embeddings__Provider: Qwen
+  Workspace__Embeddings__Endpoint: ${WORKSPACE_EMBEDDING_ENDPOINT:?Supply the LocalAI embeddings endpoint}
+  Workspace__Embeddings__Model: ${WORKSPACE_EMBEDDING_MODEL:?Supply the Qwen3 Embedding 8B Q4 model name}
+  Workspace__Embeddings__Dimensions: "4096"
+  Workspace__Embeddings__Revision: ${WORKSPACE_EMBEDDING_REVISION:?Supply the exact embedding model revision}
+
+x-objects: &objects
+  Workspace__Objects__Endpoint: ${WORKSPACE_OBJECT_ENDPOINT:?Supply the private MinIO endpoint}
+  Workspace__Objects__Bucket: ${WORKSPACE_OBJECT_BUCKET:?Supply the private bundles bucket}
+  Workspace__Objects__AccessKey: ${WORKSPACE_OBJECT_ACCESS_KEY:?Supply the publisher access key}
+  Workspace__Objects__SecretKey: ${WORKSPACE_OBJECT_SECRET_KEY:?Supply the publisher secret key}
+
+services:
+  db:
+    image: ${WORKSPACE_DB_IMAGE:?Supply the versioned PostgreSQL image}
+    restart: unless-stopped
+    networks: [backend]
+    environment:
+      POSTGRES_DB: workspace
+      POSTGRES_USER: workspace_admin
+      POSTGRES_PASSWORD: ${WORKSPACE_DB_ADMIN_PASSWORD:?Supply the database bootstrap password}
+    volumes:
+      - database:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "workspace_admin", "-d", "workspace"]
+      interval: 5s
+      timeout: 4s
+      retries: 20
+
+  migrate:
+    <<: *worker
+    networks: [backend]
+    command: ["provision-database"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__Workspace: ${WORKSPACE_DB_ADMIN_CONNECTION_STRING:?Supply the bootstrap connection string}
+      Workspace__Database__ApiPassword: ${WORKSPACE_DB_API_PASSWORD:?Supply the API database password}
+      Workspace__Database__PublisherPassword: ${WORKSPACE_DB_PUBLISHER_PASSWORD:?Supply the publisher database password}
+      Workspace__Database__IndexerPassword: ${WORKSPACE_DB_INDEXER_PASSWORD:?Supply the indexer database password}
+
+  minio:
+    image: ${WORKSPACE_MINIO_IMAGE:?Supply the versioned MinIO image}
+    restart: unless-stopped
+    networks: [backend]
+    environment:
+      MINIO_ROOT_USER: ${WORKSPACE_MINIO_ROOT_USER:?Supply the private MinIO root user}
+      MINIO_ROOT_PASSWORD: ${WORKSPACE_MINIO_ROOT_PASSWORD:?Supply the private MinIO root password}
+    volumes:
+      - objects:/data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:9000/minio/health/ready"]
+      interval: 5s
+      timeout: 4s
+      retries: 20
+
+  api:
+    image: ${WORKSPACE_API_IMAGE:?Supply the versioned API image}
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      backend: {}
+      ingress:
+        aliases: [runtime-workspace-api]
+    environment:
+      <<: *embeddings
+      ConnectionStrings__Workspace: ${WORKSPACE_DB_API_CONNECTION_STRING:?Supply the API connection string}
+      Workspace__Identity__Provider: Keycloak
+      Workspace__Identity__Issuer: ${WORKSPACE_ISSUER:?Supply the public HTTPS Keycloak issuer}
+      Workspace__Identity__Audience: ${WORKSPACE_API_AUDIENCE:?Supply the API audience}
+      Workspace__Identity__ClientId: ${WORKSPACE_KEYCLOAK_API_CLIENT:?Supply the Keycloak client owning the roles}
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/health"]
+      interval: 5s
+      timeout: 4s
+      retries: 20
+
+  indexer:
+    <<: *worker
+    command: ["index-loop"]
+    restart: unless-stopped
+    networks: [backend]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      <<: *embeddings
+      ConnectionStrings__Workspace: ${WORKSPACE_DB_INDEXER_CONNECTION_STRING:?Supply the indexer connection string}
+    healthcheck:
+      test: ["CMD", "dotnet", "RuntimeKnowledge.Worker.dll", "index-ready"]
+      interval: 5s
+      timeout: 4s
+      retries: 20
+
+  publisher:
+    <<: *worker
+    profiles: ["operator"]
+    networks: [backend]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      minio:
+        condition: service_healthy
+    environment:
+      <<: *objects
+      ConnectionStrings__Workspace: ${WORKSPACE_DB_PUBLISHER_CONNECTION_STRING:?Supply the publisher connection string}
+
+  replay:
+    <<: *worker
+    profiles: ["operator"]
+    networks: [backend]
+    environment:
+      <<: *objects
+      ConnectionStrings__Workspace: ${WORKSPACE_DB_ADMIN_CONNECTION_STRING:?Supply the replay connection string}
+
+  web:
+    image: ${WORKSPACE_WEB_IMAGE:?Supply the versioned web image}
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      ingress:
+        aliases: [runtime-workspace-web]
+    environment:
+      WORKSPACE_PUBLIC_HOST: ${WORKSPACE_PUBLIC_HOST:?Supply the application hostname}
+    configs:
+      - source: web-settings
+        target: /srv/appsettings.json
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/appsettings.json"]
+      interval: 5s
+      timeout: 4s
+      retries: 20
+
+configs:
+  web-settings:
+    content: |
+      { "Identity": { "Authority": "${WORKSPACE_ISSUER}", "ClientId": "${WORKSPACE_SPA_CLIENT:?Supply the public SPA client ID}" } }
+
+networks:
+  backend: {}
+  ingress:
+    external: true
+    name: ${WORKSPACE_INGRESS_NETWORK:?Supply LocalAI's shared ingress network}
+
+volumes:
+  database:
+    external: true
+    name: ${WORKSPACE_DATABASE_VOLUME:?Supply the persistent PostgreSQL volume}
+  objects:
+    external: true
+    name: ${WORKSPACE_OBJECTS_VOLUME:?Supply the persistent MinIO volume}

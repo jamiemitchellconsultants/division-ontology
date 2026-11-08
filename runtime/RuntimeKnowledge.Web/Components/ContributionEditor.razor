@@ -1,0 +1,166 @@
+@inject WorkspaceClient Api
+@inject DraftState Drafts
+
+@if (draft is not null)
+{
+    <form @onsubmit="Save" @onsubmit:preventDefault>
+        <fieldset disabled="@saving">
+            <legend>@Title</legend>
+            @if (Mode == "annotation")
+            {
+                <label>Annotation category
+                    <select @bind="category">
+                        <option value="businessExplanation">Business explanation</option>
+                        <option value="wayOfWorking">Way of working</option>
+                        <option value="businessRbac">Business roles and access context</option>
+                    </select>
+                </label>
+                <label>Annotation text<textarea required @bind="text"></textarea></label>
+            }
+            @if (Mode == "relationship")
+            {
+                <KeyChoice Label="From entity" Options="Entities" @bind-Value="from" />
+                <KeyChoice Label="To entity" Options="Entities" @bind-Value="to" />
+                <KeyChoice Label="Relationship meaning" Options="Types" EmptyLabel="Custom meaning" @bind-Value="type" />
+                @if (type is null)
+                {
+                    <label>Custom label <input required @bind="label" /></label>
+                    <label>Explanation <textarea required @bind="explanation"></textarea></label>
+                }
+            }
+            @if (Mode == "codification")
+            {
+                <label>Published relationship link <input required @bind="codificationLink" /></label>
+                @if (codification is not null)
+                {
+                    <p>Selected record @codification.SourceId · <code>@codification.Identifier</code></p>
+                }
+            }
+            @if (Mode == "remove")
+            {
+                <p>Remove revision @version from the active workspace. Its history remains available.</p>
+            }
+            @if (conflict is not null)
+            {
+                <section aria-label="Current server record">
+                    <p>The current revision is @conflict.Version. Review it alongside your draft before submitting again.</p>
+                    <ContributionRecord Record="conflict" />
+                    @if (!conflict.Removed)
+                    {
+                        <button type="button" data-review @onclick="ConfirmReviewed">I reviewed the current revision</button>
+                    }
+                </section>
+            }
+            <button type="submit" disabled="@(conflict is not null || saving)">@Title</button>
+            <ApiError Error="error" />
+            @if (saved) { <p role="status">Change saved.</p> }
+        </fieldset>
+    </form>
+}
+
+@code {
+    [Parameter] public string Mode { get; set; } = "annotation";
+    [Parameter] public PublishedKey? Target { get; set; }
+    [Parameter] public RuntimeContribution? Current { get; set; }
+    [Parameter] public IReadOnlyList<(PublishedKey Key, string Label)> Entities { get; set; } = [];
+    [Parameter] public IReadOnlyList<(PublishedKey Key, string Label)> Types { get; set; } = [];
+    [Parameter] public EventCallback<ContributionResult> OnSaved { get; set; }
+
+    private ContributionDraft? draft;
+    private RuntimeContribution? conflict;
+    private WorkspaceApiException? error;
+    private int version;
+    private string category = "", text = "", label = "", explanation = "";
+    private PublishedKey? from, to, type, codification;
+    private const string PublishedLink = "relationship/published/";
+    private string codificationLink
+    {
+        get => codification is null ? rawLink : PublishedLink + WorkspaceLinks.Encode(codification);
+        set
+        {
+            rawLink = value.Trim();
+            var start = rawLink.IndexOf(PublishedLink, StringComparison.Ordinal);
+            codification = start < 0 ? null : WorkspaceLinks.Decode(rawLink[(start + PublishedLink.Length)..]);
+        }
+    }
+    private string rawLink = "";
+    private bool saving, saved;
+    private string DraftKey => $"{Mode}:{Current?.Id.ToString("D") ?? Target?.StorageKey}";
+    private string Title => Mode switch
+    {
+        "annotation" => Current is null ? "Add annotation" : "Save annotation",
+        "relationship" => Current is null ? "Add relationship" : "Save relationship",
+        "remove" => "Remove contribution",
+        _ => "Associate published codification"
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        var note = Current?.Annotation;
+        var relationship = Current?.Relationship;
+        draft = await Drafts.Get(DraftKey) ?? new ContributionDraft(Current?.Version ?? 0,
+            note?.Category ?? "businessExplanation", note?.Text ?? "", relationship?.From ?? Target,
+            relationship?.To, relationship?.Meaning.PublishedType, relationship?.Meaning.CustomLabel ?? "",
+            relationship?.Meaning.Explanation ?? "");
+        version = draft.Version;
+        (category, text, from, to, type, label, explanation, codification) =
+            (draft.Category, draft.Text, draft.From, draft.To, draft.Type, draft.Label, draft.Explanation, draft.Codification);
+        if (Current is { } current && current.Version != version)
+            conflict = current;
+    }
+
+    private void ConfirmReviewed()
+    {
+        version = conflict!.Version;
+        conflict = null;
+        error = null;
+    }
+
+    private async Task Save()
+    {
+        if (saving || conflict is not null) return;
+        saving = true;
+        saved = false;
+        error = null;
+        try
+        {
+            await Drafts.Save(DraftKey, new ContributionDraft(version, category, text, from, to, type, label, explanation, codification));
+            var result = await Submit();
+            await Drafts.Remove(DraftKey);
+            version = result.Version;
+            if (Current is null && Mode == "annotation") text = "";
+            saved = true;
+            await OnSaved.InvokeAsync(result);
+        }
+        catch (WorkspaceApiException problem)
+        {
+            conflict = problem.Status == System.Net.HttpStatusCode.Conflict ? problem.Current : null;
+            error = problem;
+        }
+        finally
+        {
+            saving = false;
+        }
+    }
+
+    private Task<ContributionResult> Submit()
+    {
+        if (Mode == "annotation")
+            return Current is null
+                ? Api.Annotate(new CreateAnnotation(Target!, category, text))
+                : Api.Edit(Current.Id, new EditContributionRequest(version, category, text));
+        if (Mode == "relationship" && from is not null && to is not null)
+        {
+            var meaning = type is null ? RelationshipMeaning.Custom(label, explanation) : RelationshipMeaning.Published(type);
+            return Current is null
+                ? Api.Connect(new CreateRelationship(from, to, meaning))
+                : Api.Edit(Current.Id, new EditContributionRequest(version, From: from, To: to, Meaning: meaning));
+        }
+        if (Mode == "remove" && Current is not null)
+            return Api.Remove(Current.Id, version);
+        if (Mode == "codification" && Current is not null && codification is not null)
+            return Api.Associate(Current.Id, version, codification);
+
+        throw new WorkspaceApiException(System.Net.HttpStatusCode.UnprocessableEntity, detail: "Select the required records.");
+    }
+}
