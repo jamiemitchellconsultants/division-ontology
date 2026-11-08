@@ -42,6 +42,22 @@ test('build and check produce stable complete outputs with provenance', async ()
   } finally { rmSync(data.root, { recursive: true, force: true }); }
 });
 
+test('build and check publish only the core when no source repositories are registered', async () => {
+  const data = pilot();
+  try {
+    await runCli(['build', '--checkout', data.override], { root: data.root });
+    writeFileSync(join(data.root, 'sources.json'), '{"sources":[]}');
+    await runCli(['build'], { root: data.root });
+    await runCli(['check'], { root: data.root });
+
+    const catalog = JSON.parse(readFileSync(join(data.root, 'dist/catalog.json'), 'utf8'));
+    assert.deepEqual(catalog.sources, []);
+    assert.deepEqual(catalog.links, []);
+    assert.deepEqual(catalog.concepts.map(({ iri }) => iri), [coreNamespace + 'StaffId']);
+    assert.doesNotMatch(readFileSync(join(data.root, 'dist/combined.nq'), 'utf8'), /urn:division-ontology:source:/);
+  } finally { rmSync(data.root, { recursive: true, force: true }); }
+});
+
 test('check detects a new committed source revision', async () => {
   const data = pilot();
   try {

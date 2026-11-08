@@ -1,10 +1,10 @@
 # Division ontology
 
-A stewarded shared vocabulary and a complete, sourced catalog of ontology concepts from related repositories. This private repository currently includes [JointBooking](https://github.com/jamiemitchellconsultants/JointBooking). Its first approved shared term is `StaffId`.
+A starter repository for a division to steward its shared vocabulary and publish a catalog of ontology concepts from its own participating repositories. The template starts with no registered sources or source links. The shared core includes the existing `StaffId` term.
 
-The shared vocabulary lives in [`core/ontology.ttl`](core/ontology.ttl). Each source remains authoritative for its local concepts. [`sources.json`](sources.json) names participating repositories; [`links/`](links/) holds explicit relationships to shared terms. The generated [`dist/catalog.md`](dist/catalog.md) is the readable view. [`dist/catalog.json`](dist/catalog.json) is a structured catalog; [`dist/combined.nq`](dist/combined.nq) preserves every source triple in named graphs. Both record source provenance.
+The shared vocabulary lives in [`core/ontology.ttl`](core/ontology.ttl). Each source remains authoritative for its local concepts. [`sources.json`](sources.json) names participating repositories; `links/` holds explicit relationships to shared terms. The generated [`dist/catalog.md`](dist/catalog.md) is the readable view. [`dist/catalog.json`](dist/catalog.json) is a structured catalog; [`dist/combined.nq`](dist/combined.nq) preserves every source triple in named graphs. Both record source provenance.
 
-The first catalog contains **73 JointBooking concepts, 13 rules, and one explicit shared link**, built from JointBooking commit `6957928a6c9054372dda915b359f63b73969ebee`. The division core contributes one approved term. Concepts with similar names remain separate unless an explicit link relates them. Source commits in the generated catalog show the current published snapshot.
+Register your division’s source repositories in `sources.json` through the review process below. Concepts with similar names remain separate unless a reviewed link relates them. Source commits in the generated catalog identify the published snapshot.
 
 ## Minimal instructions for an agent
 
@@ -20,15 +20,15 @@ Requires Node.js 20 or newer and a clean checkout of each source repository.
 ```bash
 npm ci
 npm test
-npm run build -- --checkout jamiemitchellconsultants/JointBooking=/path/to/JointBooking
-npm run check -- --checkout jamiemitchellconsultants/JointBooking=/path/to/JointBooking
+npm run build
+npm run check
 ```
 
-`build` writes the three files in `dist/` after all sources and links validate. `check` compares them against the current source commits without writing. A failed build leaves the previous complete catalog in place. Omit `--checkout` to clone the repositories named in `sources.json` with your existing Git credentials; this repository stores no credential. A local checkout must be clean and have an `origin` matching its configured source URL. The ontology is read directly from the recorded commit.
+`build` writes the three files in `dist/` after all sources and links validate. `check` compares them against the current source commits without writing. A failed build leaves the previous complete catalog in place. With no sources registered, both commands use only the shared core and need no source checkouts. After registration, pass `--checkout owner/repo=/absolute/path` to both commands for each source you want to read locally; otherwise they clone the configured sources with your existing Git credentials. A local checkout must be clean and have an `origin` matching its configured source URL. The ontology is read directly from the recorded commit.
 
 ## C4 impact pilot
 
-The local pilot reads a published catalog commit, reviewed mapping and binding commit, and clean checkouts for every catalog source. Its JSON and Markdown reports retain evidence and gaps; they do not decide impact or approve a request. The initial registries are empty and JointBooking cannot supply graph-backed paths until it publishes a graph at a catalog-pinned commit.
+The local pilot reads a published catalog commit, reviewed mapping and binding commit, and clean checkouts for every catalog source. Its JSON and Markdown reports retain evidence and gaps; they do not decide impact or approve a request. Graph-backed paths require a source graph at the catalog-pinned commit. The template’s mapping and binding registries start empty.
 
 Use Node.js 20 or newer. Supply `--catalog-commit`, `--registry-commit`, an absolute `--checkout owner/repo=/path` for every source, and `--output /path/outside/repositories` to each command. For example:
 
@@ -39,6 +39,18 @@ npm run c4 -- view --catalog-commit <sha> --registry-commit <sha> --checkout own
 ```
 
 View levels are `context`, `container`, `component` and `code`. `assessment-init` takes `--request-id` and `--description-file`; edit the generated JSON to record findings, then use `assessment-render --input FILE`. `feedback-render --input FILE --assessment-file FILE` renders a separate feedback record tied to the validated assessment digest. These commands also require the shared snapshot and checkout flags. To cite an inspected-code view in an assessment, include its digest in `viewIds` and supply its saved JSON using repeatable `--view-input FILE` on assessment and feedback rendering. `view` accepts an optional `--supplement FILE` for architect-inspected code evidence.
+
+## Try the workspace with disposable data
+
+On a Mac with Docker and jq, install the browser used by the smoke test, then run it from a checkout:
+
+```bash
+npm ci
+npx playwright install chromium
+bash deploy/workspace/local/smoke.sh
+```
+
+The script builds a temporary catalog and snapshot from the synthetic Ecommerce, Warehouse, and Accounting repositories used by the C4 pilot. It starts an isolated Docker Compose project, publishes the snapshot, signs in through the UI, and checks that a saved annotation and cross-repository relationship survive a database restart and a rebuild from the journal. It removes the test containers and data volumes when it finishes. Set `WORKSPACE_PORT` if the default test port (18087) is in use.
 
 ## Contribute
 
@@ -51,6 +63,6 @@ See [GOVERNANCE.md](GOVERNANCE.md). In brief:
 
 ## Current boundary
 
-The division build validates the shared term and produces a combined catalog. It does not alter JointBooking or its CI. Making every participating repository's own ontology checker consume a pinned division-core snapshot needs a later Ontology Kit integration; the current kit checks one local document, and JointBooking has its own Turtle projection. Until then, division validation runs here when this catalog is built.
+The division build validates the shared core and produces a combined catalog. Source repositories remain authoritative for their own ontologies. Making participating repositories’ ontology checkers consume a pinned division-core snapshot needs a later Ontology Kit integration; division validation currently runs here when this catalog is built.
 
 CI runs the code tests without cross-repository credentials. The scheduled sync uses a GitHub App to read private sources. Until the [App and branch-rule setup](docs/automation-setup.md) is complete, catalog refreshes remain manual and the existing owner review applies. The catalog is private because it includes all concepts and descriptions from its sources.
