@@ -23,6 +23,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [13](#entry-add-c4-pilot-acceptance-fixtures-and-automated-checks) | 2026-11-06 | Add C4 pilot acceptance fixtures and automated checks | product | For this pilot, use the automated B1–B15 comparisons as the acceptance record. Run acceptance on one M4 Mini and waive the duplicate second-machine run. Capture the participant's scope judgment separately as B4 feedback. |
 | [14](#entry-define-runtime-knowledge-workspace-architecture) | 2026-11-07 | Define runtime knowledge workspace architecture | product | - [ADR 0004](https://github.com/jamiemitchellconsultants/division-ontology/blob/b2e8ed75d151865ebaa2e608bc85f0abdb97e82e/docs/adr/0004-import-and-activate-pinned-knowledge-snapshots.md) packages pinned source artefacts and activates a… |
 | [15](#entry-plan-runtime-knowledge-workspace-implementation) | 2026-11-07 | Plan runtime knowledge workspace implementation | product | Use 12 test-first tasks. Prove the PostgreSQL and AGE transaction boundary, deterministic snapshot import, atomic contribution writes and ordered replay before connecting the API, identity providers, semantic search and Blazor UI. |
+| [16](#entry-build-the-runtime-knowledge-workspace) | 2026-11-08 | Build the runtime knowledge workspace | product | Store publication and contribution events in the durable PostgreSQL journal and preserve the content-addressed bundles referenced by it. Use separate database roles for the API, publisher and indexer. |
 
 ---
 
@@ -339,3 +340,27 @@ Use 12 test-first tasks. Prove the PostgreSQL and AGE transaction boundary, dete
 ## Consequences
 
 Development can verify the first 13 and last 11 behaviours with engineering fixtures. B14 remains a human acceptance measure with the nominated data product owner and wider-business reviewer. AWS verification remains credential-free simulation. Backup and disaster recovery remain in #53.
+
+---
+
+<a id="entry-build-the-runtime-knowledge-workspace"></a>
+
+## Entry 16 — 2026-11-08 — Build the runtime knowledge workspace
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The workspace combines pinned feeder publications with business contributions that need to survive an application redeploy. The approved deployment patterns share one graph and contribution model while their identity, object storage and embedding providers differ.
+
+## Decision
+
+Store publication and contribution events in the durable PostgreSQL journal and preserve the content-addressed bundles referenced by it. Use separate database roles for the API, publisher and indexer. In the AWS design, separate staging and activation of a manifest across bounded publisher runs while the indexer prepares the baseline.
+
+## Consequences
+
+A guarded cutover compares the rebuilt and active state at the same journal head before switching generations. The checked-in deployment artefacts support Mac Docker and LocalAI installation, and the AWS target has simulation evidence. Recovery procedures for damaged state and the inputs to replay remain with #53. The user phase records the live home-lab and business acceptance evidence.
+
+---
+
+AI-Fingerprint: sha256:416d04d25d3c
