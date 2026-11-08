@@ -1,12 +1,3 @@
 {
-  "sources": [
-    {
-      "id": "jamiemitchellconsultants/JointBooking",
-      "url": "https://github.com/jamiemitchellconsultants/JointBooking.git",
-      "ref": "main",
-      "ontologyPath": "docs/ontology.ttl",
-      "namespace": "https://jointbooking.internal/ontology#",
-      "linksPath": "links/JointBooking.json"
-    }
-  ]
+  "sources": []
 }

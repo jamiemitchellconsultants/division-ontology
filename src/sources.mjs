@@ -21,8 +21,8 @@ function sourceIdentity(url) {
 
 export function loadSources(manifestPath) {
   const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
-  if (!manifest || !Array.isArray(manifest.sources) || manifest.sources.length === 0) {
-    throw new Error('sources.json requires a non-empty sources array');
+  if (!manifest || !Array.isArray(manifest.sources)) {
+    throw new Error('sources.json requires a sources array');
   }
   const seen = new Set();
   for (const source of manifest.sources) {
