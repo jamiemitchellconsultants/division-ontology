@@ -24,6 +24,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [14](#entry-define-runtime-knowledge-workspace-architecture) | 2026-11-07 | Define runtime knowledge workspace architecture | product | - [ADR 0004](https://github.com/jamiemitchellconsultants/division-ontology/blob/b2e8ed75d151865ebaa2e608bc85f0abdb97e82e/docs/adr/0004-import-and-activate-pinned-knowledge-snapshots.md) packages pinned source artefacts and activates a… |
 | [15](#entry-plan-runtime-knowledge-workspace-implementation) | 2026-11-07 | Plan runtime knowledge workspace implementation | product | Use 12 test-first tasks. Prove the PostgreSQL and AGE transaction boundary, deterministic snapshot import, atomic contribution writes and ordered replay before connecting the API, identity providers, semantic search and Blazor UI. |
 | [16](#entry-build-the-runtime-knowledge-workspace) | 2026-11-08 | Build the runtime knowledge workspace | product | Store publication and contribution events in the durable PostgreSQL journal and preserve the content-addressed bundles referenced by it. Use separate database roles for the API, publisher and indexer. |
+| [17](#entry-start-division-ontology-templates-without-registered-sources) | 2026-11-08 | Start division ontology templates without registered sources | product | Start the template with no registered source repositories or source links. Retain the existing division-owned core. Use a disposable workspace with synthetic sources for demonstrations and persistence testing. |
 
 ---
 
@@ -364,3 +365,25 @@ A guarded cutover compares the rebuilt and active state at the same journal head
 ---
 
 AI-Fingerprint: sha256:416d04d25d3c
+
+---
+
+<a id="entry-start-division-ontology-templates-without-registered-sources"></a>
+
+## Entry 17 — 2026-11-08 — Start division ontology templates without registered sources
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+Each corporate division needs its own copy of this repository with a source inventory that it can steward. The existing default registration and link would carry JointBooking into every new copy, and the catalog builder currently rejects a source inventory with no entries.
+
+## Decision
+
+Start the template with no registered source repositories or source links. Retain the existing division-owned core. Use a disposable workspace with synthetic sources for demonstrations and persistence testing.
+
+## Consequences
+
+Each division registers its own sources. The catalog refresh follows this authored PR in a separate generated-only PR. Enable GitHub's template setting after the refreshed catalog is on main.
+
+AI-Fingerprint: sha256:0b3e04f1226b
