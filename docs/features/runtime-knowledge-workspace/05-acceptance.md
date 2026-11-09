@@ -51,13 +51,25 @@ Record the date, runner or operator, application revision, snapshot and model re
 | --- | --- | --- |
 | Local automated walkthrough | 9 November 2026, Codex on Mac | 118 repository tests and 35 runtime tests passed. The browser found both expected pilot leads and the reviewed cross-source handoff. It verified the business and architecture relationships, the saved annotation after API and database restart, and the same state digest after journal replay through position 5. |
 | Home-lab configuration | 9 November 2026, Codex on Mac | The Compose, Keycloak and Caddy configuration checks passed locally. |
-| Home-lab fixture | 9 November 2026, Codex preflight | Blocked. The operator needs to assign the existing workspace deployment to acceptance and provide its installer evidence, active synthetic snapshot digest and controlled credentials. The deployed runner then performs the browser checks, restart and replay. The host scenarios in the table remain open. |
+| Home-lab fixture | 9 November 2026, Jamie | The scripted checks passed against the existing workspace with the synthetic fixture active. The run passed DNS, the initial browser checks, persistence after restarting PostgreSQL and the API, guarded journal replay, and persistence after replay. The additional deployed host scenarios in the walkthrough table remain open. |
 | B14 | 9 November 2026, simulated rehearsal | Open. An independent wider-business reviewer is unavailable. |
 
 The local run used application revision `b2bfdb5455323a42dca080ec8ec8ed347c018791` with the acceptance changes in the working tree, snapshot `3c5908215dd4076bda34e9f5d90ed34e868fe66e8b53286f28702133e05075fd` and Qwen model revision `ac6da0dfba84a81fdbfbaf330198c33cd77c4cdfc53e8bc50eb581914a15621d`. The runner observed the indexed annotation after 1,664 ms initially and 12,356 ms after replay. The corresponding individual search requests took 128 ms and 136 ms. These measurements describe the disposable Mac fixture.
 
 The first browser run retrieved both search leads, then failed to find the full handoff because the walkthrough sent the wrong field for traversal depth. The final run set depth through the browser and checked the four-step handoff. The results above describe the automated run. The user-led walkthrough and independent review criteria remain open.
 
-The shared replay procedure added for the home lab was then exercised against the real disposable Mac stack on 9 November 2026. The follow-up passed 122 repository tests, 35 runtime tests and browser checks before restart, after restart and after replay through position 5. The deployed runner's preflight also rejected a mismatched installer snapshot and mismatched Compose image before any browser writes or restart. A live home-lab run remains open.
+The shared replay procedure added for the home lab was then exercised against the real disposable Mac stack on 9 November 2026. The follow-up passed 122 repository tests, 35 runtime tests and browser checks before restart, after restart and after replay through position 5. The deployed runner's preflight also rejected a mismatched installer snapshot and mismatched Compose image before any browser writes or restart.
 
 On 9 November 2026, James Mitchell ran the automated local walkthrough on M5MBP using revision `b46ce948b24e3550ac72f0cc8a0d7fee9391cd50` and synthetic snapshot `be2600100572809b63ef67a5a24e98b5cf50d6f0da94b1d4095d1725c7b089c0`. The evidence directory's `checks.tsv`, `runtime.trx` and `local-browser.log` confirm 122 repository tests, 35 runtime tests, the home-lab configuration check and all local browser checks passed. The replay digest matched at journal position 5. B14 was the only item flagged for human review in this local run.
+
+On the home lab, Jamie reported `passed scripted checks` in `run.json` for application revision `b2bfdb5455323a42dca080ec8ec8ed347c018791` and synthetic snapshot `bf5821c9e3194b30834aec9219944a5bff1a35d8a5c5087b4d3a5075049862fc`. An initial browser attempt stopped at workspace DNS resolution. Windows subsequently resolved the name and the retry passed. The configured model revision was `qwen3-embedding-8b-q4_k_m`. Its GGUF digest remains unverified, and B14 remains open for an independent reviewer.
+
+The deployed browser logs recorded these timings for the same fixture annotation:
+
+| Browser check | Time to retrieve the indexed annotation | Final query |
+| --- | ---: | ---: |
+| Initial | 2,289 ms | 76 ms |
+| After restart | 119 ms | 119 ms |
+| After replay | 2,269 ms | 75 ms |
+
+The guarded replay compared state at journal position **5**. After cutover, `projection-active.json` reported generation `0617272d-4664-4937-9fd8-e79f44e6ecca`, the same snapshot, and matching state digest `e48463f44ff5461b2a9f2e4e16e7e8918c9256223a5332b86ce8f551a1703b28`. The browser retrieved the saved data again from the rebuilt projection.
