@@ -52,7 +52,7 @@ From the acceptance checkout, run the six steps with one command:
 & ./deploy/workspace/run-home-lab-acceptance.ps1 -RunRoot $RunRoot
 ```
 
-The script runs preflight and waits for the selected release images, installs the locked dependencies and browser, builds or reuses the fixture, publishes it on the existing workspace, collects test credentials and runs the deployed walkthrough. It reports exceptions and the new evidence directory. The deployed walkthrough checks browser search and persistence after restart and guarded replay. It records B14 separately for an independent reviewer. Use `-Operator 'Name'` to override the Windows username in the evidence.
+The script runs preflight and waits for the selected release images, installs the locked dependencies and browser, builds or reuses the fixture, publishes it on the existing workspace, collects test credentials and runs the deployed walkthrough. It reports exceptions and the new evidence directory. The deployed walkthrough checks browser search and persistence after restart and guarded replay. It records the independent B14 review as deferred. Use `-Operator 'Name'` to override the Windows username in the evidence.
 
 For the optional checkout update and preflight retry, rerun with the same directory:
 
@@ -71,7 +71,7 @@ $Evidence = Read-Host 'Evidence directory printed by the runner'
 $Run = Get-Content -LiteralPath (Join-Path $Evidence 'run.json') -Raw | ConvertFrom-Json
 $Run | Select-Object status, snapshot, applicationRevision
 $Run.steps | Where-Object status -ne 'pass' | Format-Table name, status, message -Wrap
-$Run.humanReview
+$Run.deferred
 ```
 
 Record the outcome and any remaining host scenarios in the [acceptance record](05-acceptance.md). Use the recovery commands below if a run stopped while writes were paused.

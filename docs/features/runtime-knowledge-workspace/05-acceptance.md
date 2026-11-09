@@ -1,10 +1,12 @@
 # Runtime knowledge workspace acceptance
 
+**Accepted on 9 November 2026.** James Mitchell accepted the recorded Mac and home-lab walkthroughs. Any step without recorded evidence is **deferred and non-blocking** for this acceptance. The follow-up covers the remaining human review and scenario evidence. [Follow-up #65](https://github.com/jamiemitchellconsultants/division-ontology/issues/65)
+
 The pilot product is **Order Fulfilment** using the synthetic Ecommerce, Warehouse and Accounting repositories. Use the approved [behaviours](02-behaviours.md) and [runbook](05-runbook.md). Run the automated walkthrough first and ask the supervising user to inspect failures, inconsistencies, missing coverage and human decisions. The acceptance runner writes private logs, a test-results file and a check summary to its evidence directory. A passing suite is evidence for the scenarios it exercised. Record any remaining environment or human observations separately.
 
 ## Walkthrough and expected results
 
-The named .NET classes run through `deploy/workspace/acceptance.sh local` and are recorded in `runtime.trx`. **Browser** refers to the shared Mac and home-lab browser runner. The [home-lab procedure](05-runbook.md#home-lab-acceptance) chains browser checks, restart and guarded replay and records each step in `run.json`. **Host** indicates an additional scenario to exercise with the deployed fixture operator. The local runtime tests provide automated evidence for those scenarios using disposable databases.
+The named .NET classes run through `deploy/workspace/acceptance.sh local` and are recorded in `runtime.trx`. **Browser** refers to the shared Mac and home-lab browser runner. The [home-lab procedure](05-runbook.md#home-lab-acceptance) chains browser checks, restart and guarded replay and records each step in `run.json`. **Host** indicates additional deployed coverage deferred to #65. The local runtime tests provide automated evidence for those scenarios using disposable databases.
 
 | Behaviour | Steps and expected result | Executable evidence |
 | --- | --- | --- |
@@ -41,7 +43,7 @@ The named .NET classes run through `deploy/workspace/acceptance.sh local` and ar
 
 **Product definition.** Order Fulfilment gives Operations and Finance a shared view of how a customer order moves from Ecommerce to Warehouse dispatch and how shipment completion feeds sales invoicing in Accounting.
 
-**Simulated review.** “I’d use this to see who owns each handoff. If a shipped order hasn’t been invoiced, I’d start by checking whether the shipment completion reached Accounting.” B14 remains open for an independent reviewer.
+**Simulated review.** “I’d use this to see who owns each handoff. If a shipped order hasn’t been invoiced, I’d start by checking whether the shipment completion reached Accounting.” The independent B14 review is deferred to #65.
 
 ## Results
 
@@ -51,18 +53,18 @@ Record the date, runner or operator, application revision and snapshot for each 
 | --- | --- | --- |
 | Local automated walkthrough | 9 November 2026, Codex on Mac | 118 repository tests and 35 runtime tests passed. The browser found both expected pilot leads and the reviewed cross-source handoff. It verified the business and architecture relationships, the saved annotation after API and database restart, and the same state digest after journal replay through position 5. |
 | Home-lab configuration | 9 November 2026, Codex on Mac | The Compose, Keycloak and Caddy configuration checks passed locally. |
-| Home-lab fixture | 9 November 2026, Jamie | The scripted checks passed against the existing workspace with the synthetic fixture active. The run passed DNS, the initial browser checks, persistence after restarting PostgreSQL and the API, guarded journal replay, and persistence after replay. The additional deployed host scenarios in the walkthrough table remain open. |
-| B14 | 9 November 2026, simulated rehearsal | Open. An independent wider-business reviewer is unavailable. |
+| Home-lab fixture | 9 November 2026, Jamie | The scripted checks passed against the existing workspace with the synthetic fixture active. The run passed DNS, the initial browser checks, persistence after restarting PostgreSQL and the API, guarded journal replay, and persistence after replay. Additional deployed coverage is deferred. |
+| B14 | 9 November 2026, simulated rehearsal | Deferred. An independent wider-business reviewer is unavailable. |
 
 The local run used application revision `b2bfdb5455323a42dca080ec8ec8ed347c018791` with the acceptance changes in the working tree, snapshot `3c5908215dd4076bda34e9f5d90ed34e868fe66e8b53286f28702133e05075fd` and Qwen model revision `ac6da0dfba84a81fdbfbaf330198c33cd77c4cdfc53e8bc50eb581914a15621d`. The runner observed the indexed annotation after 1,664 ms initially and 12,356 ms after replay. The corresponding individual search requests took 128 ms and 136 ms. These measurements describe the disposable Mac fixture.
 
-The first browser run retrieved both search leads, then failed to find the full handoff because the walkthrough sent the wrong field for traversal depth. The final run set depth through the browser and checked the four-step handoff. The results above describe the automated run. The user-led walkthrough and independent review criteria remain open.
+The first browser run retrieved both search leads, then failed to find the full handoff because the walkthrough sent the wrong field for traversal depth. The final run set depth through the browser and checked the four-step handoff. The results above describe the automated run. Any additional user-led walkthrough evidence is deferred.
 
 The shared replay procedure added for the home lab was then exercised against the real disposable Mac stack on 9 November 2026. The follow-up passed 122 repository tests, 35 runtime tests and browser checks before restart, after restart and after replay through position 5. The deployed runner's preflight also rejected a mismatched installer snapshot and mismatched Compose image before any browser writes or restart.
 
 On 9 November 2026, James Mitchell ran the automated local walkthrough on M5MBP using revision `b46ce948b24e3550ac72f0cc8a0d7fee9391cd50` and synthetic snapshot `be2600100572809b63ef67a5a24e98b5cf50d6f0da94b1d4095d1725c7b089c0`. The evidence directory's `checks.tsv`, `runtime.trx` and `local-browser.log` confirm 122 repository tests, 35 runtime tests, the home-lab configuration check and all local browser checks passed. The replay digest matched at journal position 5. B14 was the only item flagged for human review in this local run.
 
-On the home lab, Jamie reported `passed scripted checks` in `run.json` for application revision `b2bfdb5455323a42dca080ec8ec8ed347c018791` and synthetic snapshot `bf5821c9e3194b30834aec9219944a5bff1a35d8a5c5087b4d3a5075049862fc`. An initial browser attempt stopped at workspace DNS resolution. Windows subsequently resolved the name and the retry passed. The logs recorded the configured embedding service as `qwen3-embedding-8b-q4_k_m`. B14 remains open for an independent reviewer.
+On the home lab, Jamie reported `passed scripted checks` in `run.json` for application revision `b2bfdb5455323a42dca080ec8ec8ed347c018791` and synthetic snapshot `bf5821c9e3194b30834aec9219944a5bff1a35d8a5c5087b4d3a5075049862fc`. An initial browser attempt stopped at workspace DNS resolution. Windows subsequently resolved the name and the retry passed. The logs recorded the configured embedding service as `qwen3-embedding-8b-q4_k_m`.
 
 The deployed browser logs recorded these timings for the same fixture annotation:
 
@@ -74,4 +76,12 @@ The deployed browser logs recorded these timings for the same fixture annotation
 
 The guarded replay compared state at journal position **5**. After cutover, `projection-active.json` reported generation `0617272d-4664-4937-9fd8-e79f44e6ecca`, the same snapshot, and matching state digest `e48463f44ff5461b2a9f2e4e16e7e8918c9256223a5332b86ce8f551a1703b28`. The browser retrieved the saved data again from the rebuilt projection.
 
-Jamie also completed a home-lab rerun using the one-command PowerShell procedure on 9 November 2026. The terminal printed the final B14 reminder and a new evidence directory, `evidence-9f421b73-2811-467f-a0ee-fd7db7a8122d`. The runner reaches that reminder after passing the browser checks, restart, guarded replay and post-replay persistence. B14 was the only exception reported by the scripted rerun.
+Jamie also completed a home-lab rerun using the one-command PowerShell procedure on 9 November 2026. The terminal printed the final B14 reminder and a new evidence directory, `evidence-9f421b73-2811-467f-a0ee-fd7db7a8122d`. That reminder appeared after passing the browser checks, restart, guarded replay and post-replay persistence. It was the only exception reported by the scripted rerun.
+
+## Deferred evidence
+
+- Collect an independent B14 explanation of the Order Fulfilment product's purpose and intended use.
+- Record any remaining manual walkthrough observations and executable coverage for the scenarios above.
+- Exercise the remaining deployed variants, including full inventory and search edge cases, valid and invalid snapshot replacement, unavailable and restored endpoints, cross-manager edits and stale versions, role and token changes, invalid saves and codification. Record live Entra evidence when that deployment is exercised.
+
+All of these items are non-blocking and tracked in [#65](https://github.com/jamiemitchellconsultants/division-ontology/issues/65).

@@ -69,7 +69,7 @@ async function main() {
     origin, applicationRevision: deployment.commit, images: deployment.images,
     embeddingModel: deployment.embeddingModel, embeddingRevision: deployment.embeddingRevision,
     browserRoute: options['local-ingress'] ? 'local Caddy' : 'system DNS',
-    snapshot, steps: [], humanReview: ['B14 independent reviewer'], status: 'running' };
+    snapshot, steps: [], deferred: ['B14 independent reviewer (follow-up #65)'], status: 'running' };
   const saveReport = () => save('run.json', JSON.stringify(report, null, 2) + '\n');
   const secrets = new Set(credentialKeys.filter(key => key.endsWith('_PASSWORD')).map(key => process.env[key]));
   const redact = text => [...secrets].sort((a, b) => b.length - a.length)
@@ -200,7 +200,6 @@ async function main() {
       (name, state) => save(`projection-${name}.json`, JSON.stringify(state, null, 2) + '\n')));
     await step('persistence after replay', () => browser('browser-replayed.log', '--check-persistence'));
     report.status = 'passed scripted checks';
-    console.error('REVIEW B14. Record the independent reviewer’s explanation.');
   } catch (error) {
     report.status = 'failed';
     throw error;

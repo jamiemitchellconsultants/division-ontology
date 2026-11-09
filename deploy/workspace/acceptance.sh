@@ -67,7 +67,6 @@ else
     fi
 fi
 
-printf 'B14\thuman review\tindependent reviewer explanation needed\n' >> "$results"
-printf 'REVIEW B14. Record the independent reviewer’s explanation in 05-acceptance.md.\n' >&2
+printf 'B14\tdeferred\tindependent reviewer follow-up #65\n' >> "$results"
 printf 'Evidence: %s\n' "$evidence"
 exit "$errors"
