@@ -27,7 +27,7 @@ function readDeployment(path, snapshot) {
   requireCondition(deployment.activeManifest === snapshot, 'The installer evidence must name the expected synthetic snapshot.');
   requireCondition(/^[a-f0-9]{40}$/.test(deployment.commit), 'The installer evidence needs the deployed commit.');
   requireCondition(deployment.embeddingDimensions === 4096 && deployment.embeddingRevision?.trim(),
-    'The installer evidence needs the 4,096-dimension model and its immutable revision.');
+    'The installer evidence needs the 4,096-dimension model and its configured revision.');
   requireCondition(typeof deployment.publicHost === 'string' && /^[a-z0-9.-]+$/i.test(deployment.publicHost),
     'The installer evidence needs a valid HTTPS hostname.');
   for (const key of Object.values(imageServices)) {
@@ -65,10 +65,13 @@ async function main() {
   mkdirSync(evidence, { mode: 0o700 });
   const save = (name, data) => writeFileSync(join(evidence, name), data, { mode: 0o600 });
   const origin = `https://${deployment.publicHost}`;
+  const evidenceGaps = /^(sha256:)?[a-f0-9]{64}$/i.test(deployment.embeddingRevision.trim())
+    ? []
+    : ['The configured embedding revision is a label. The GGUF digest remains unverified.'];
   const report = { started: new Date().toISOString(), operator: options.operator, project: options.project,
     origin, applicationRevision: deployment.commit, images: deployment.images,
     embeddingModel: deployment.embeddingModel, embeddingRevision: deployment.embeddingRevision,
-    snapshot, steps: [], humanReview: ['B14 independent reviewer'], status: 'running' };
+    snapshot, steps: [], evidenceGaps, humanReview: ['B14 independent reviewer'], status: 'running' };
   const saveReport = () => save('run.json', JSON.stringify(report, null, 2) + '\n');
   const secrets = new Set(credentialKeys.filter(key => key.endsWith('_PASSWORD')).map(key => process.env[key]));
   const redact = text => [...secrets].sort((a, b) => b.length - a.length)
@@ -160,6 +163,7 @@ async function main() {
       (name, state) => save(`projection-${name}.json`, JSON.stringify(state, null, 2) + '\n')));
     await step('persistence after replay', () => browser('browser-replayed.log', '--check-persistence'));
     report.status = 'passed scripted checks';
+    for (const gap of evidenceGaps) console.error(`REVIEW model evidence. ${gap}`);
     console.error('REVIEW B14. Record the independent reviewer’s explanation.');
   } catch (error) {
     report.status = 'failed';

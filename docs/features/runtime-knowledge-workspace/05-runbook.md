@@ -43,6 +43,7 @@ Run steps 1–6 in the same Administrator PowerShell on `ai-mcp-server`. Finish 
        $null = gh repo clone $Repo $AcceptanceCheckout -- --branch $AcceptanceRef --single-branch 2>$null
        if ($LASTEXITCODE -ne 0) { throw 'Could not clone the acceptance checkout.' }
        Set-Location -LiteralPath $AcceptanceCheckout -ErrorAction Stop
+       $Preparation = $null
        $Preparation = & ./deploy/workspace/prepare-home-lab.ps1 -RunRoot $RunRoot
        $Deployment = $Preparation.Deployment
        $ComposeArgs = $Preparation.ComposeArgs
@@ -50,7 +51,22 @@ Run steps 1–6 in the same Administrator PowerShell on `ai-mcp-server`. Finish 
    }
    ```
 
-   Qwen provisioning is outside this runbook. If the preflight reports missing settings, set the named `WORKSPACE_PUBLIC_HOST` or `WORKSPACE_EMBEDDING_*` environment variables from the existing deployment or its operator, then repeat this step. To select a reviewed lightweight release tag, add `-ReleaseRef` to the preflight invocation. The default is `main`.
+   Qwen provisioning is outside this runbook. If the preflight reports missing settings, set the named `WORKSPACE_PUBLIC_HOST` or `WORKSPACE_EMBEDDING_*` environment variables from the existing deployment or its operator, then repeat this step. A warning about a model revision label allows the walkthrough to proceed and is recorded as a model digest evidence gap. To select a reviewed lightweight release tag, add `-ReleaseRef` to the preflight invocation. The default is `main`.
+
+   To retry preflight after updating the checkout or supplying a missing setting, keep the same terminal and run the following block. This preserves the fixture from step 2 if you already built it.
+
+   ```powershell
+   . {
+       Set-Location -LiteralPath $AcceptanceCheckout -ErrorAction Stop
+       git pull --ff-only
+       if ($LASTEXITCODE -ne 0) { throw 'Could not update the acceptance checkout.' }
+       $Preparation = $null
+       $Preparation = & ./deploy/workspace/prepare-home-lab.ps1 -RunRoot $RunRoot
+       $Deployment = $Preparation.Deployment
+       $ComposeArgs = $Preparation.ComposeArgs
+       $InstallArgs = $Preparation.InstallArgs
+   }
+   ```
 
 2. **Build the fixture.** Run these commands in the acceptance checkout opened by step 1:
 
@@ -69,6 +85,13 @@ Run steps 1–6 in the same Administrator PowerShell on `ai-mcp-server`. Finish 
 3. **Deploy in place and publish the fixture.** For a clean run, [reset the workspace data](#reset-between-use-cases) first if the previous use case has finished and its data can be discarded. Keep both volumes through acceptance so restart and replay can verify the same contributions.
 
    ```powershell
+   if (-not $Preparation.ReleaseCommit -or -not $InstallArgs.GitRef) {
+       throw 'Preflight has not completed. Run the retry block in step 1.'
+   }
+   if ($ManifestId -notmatch '^[a-f0-9]{64}$' -or -not $BundleDir -or
+       -not (Test-Path -LiteralPath (Join-Path $BundleDir "manifests/$ManifestId.json"))) {
+       throw 'The fixture bundle is missing. Complete step 2.'
+   }
    $CurrentReleaseCommit = gh api "repos/$Repo/commits/$($InstallArgs.GitRef)" --jq '.sha'
    if ($LASTEXITCODE -ne 0 -or $CurrentReleaseCommit -ne $Preparation.ReleaseCommit) { throw 'The release ref changed. Repeat step 1.' }
    & $Preparation.Installer @InstallArgs -BundleDir $BundleDir -ManifestId $ManifestId
@@ -116,6 +139,7 @@ Run steps 1–6 in the same Administrator PowerShell on `ai-mcp-server`. Finish 
        $Run = Get-Content -LiteralPath $RunJson -Raw | ConvertFrom-Json
        $Run | Select-Object status, snapshot, applicationRevision, embeddingRevision
        $Run.steps | Where-Object status -ne 'pass' | Format-Table name, status, message -Wrap
+       $Run.evidenceGaps
        $Run.humanReview
        Get-ChildItem -LiteralPath $Evidence | Select-Object Name, Length
    } else {

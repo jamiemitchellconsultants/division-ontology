@@ -54,7 +54,7 @@ if ($Missing.Count) {
     throw "Missing existing workspace settings: $($Missing -join ', '). Supply those settings in the operator environment."
 }
 if ($Existing.WORKSPACE_EMBEDDING_REVISION -notmatch '^(sha256:)?[a-f0-9]{64}$') {
-    throw 'Supply the already deployed model digest in WORKSPACE_EMBEDDING_REVISION.'
+    Write-Warning 'The configured Qwen revision is a label. The walkthrough can run and will record the missing model digest.'
 }
 
 if ($ReleaseRef -ne 'main') {
