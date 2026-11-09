@@ -198,6 +198,19 @@ node deploy/workspace/verify-browser.mjs home-lab
 if ($LASTEXITCODE -ne 0) { throw 'Browser checks failed.' }
 ```
 
+If the runner reports a DNS error such as `ERR_NAME_NOT_RESOLVED`, check the workspace and issuer names from the same Windows terminal:
+
+```powershell
+$Installed = Get-Content -LiteralPath $Deployment -Raw | ConvertFrom-Json
+Clear-DnsClientCache
+Resolve-DnsName $Installed.publicHost -Type A -ErrorAction Stop
+Resolve-DnsName ([uri]$Installed.issuer).DnsSafeHost -Type A -ErrorAction Stop
+curl.exe -fsSI --max-time 15 "https://$($Installed.publicHost)/"
+if ($LASTEXITCODE -ne 0) { throw 'Check the workspace HTTPS route before retrying the browser.' }
+```
+
+If the names resolve and HTTPS responds, repeat steps 4 and 5 with the active synthetic snapshot. Keep the existing deployment and bundle for this retry.
+
 For the browser-only restart check, restart the services from the operator terminal. Keep the browser's existing scenario directory for the second command:
 
 ```powershell

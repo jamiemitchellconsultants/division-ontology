@@ -1,4 +1,5 @@
 import { execFile } from 'node:child_process';
+import { lookup } from 'node:dns/promises';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -75,17 +76,24 @@ async function main() {
   const saveReport = () => save('run.json', JSON.stringify(report, null, 2) + '\n');
   const secrets = new Set(credentialKeys.filter(key => key.endsWith('_PASSWORD')).map(key => process.env[key]));
   const redact = text => [...secrets].sort((a, b) => b.length - a.length)
-    .reduce((safe, value) => safe.replaceAll(value, '[redacted]'), text);
+    .reduce((safe, value) => safe.replaceAll(value, '[redacted]'),
+      text.replace(/Bearer [A-Za-z0-9._~-]+/gi, 'Bearer [redacted]'));
   save('snapshot', snapshot + '\n');
   saveReport();
-  async function run(command, args, { env = process.env, log, timeout = 300_000 } = {}) {
+  async function run(command, args, { env = process.env, log, showBrowserError = false, timeout = 300_000 } = {}) {
     try {
       const { stdout, stderr } = await exec(command, args, { env, timeout, maxBuffer: 4 * 1024 * 1024, windowsHide: true });
       if (log) save(log, redact(stdout + stderr));
       return stdout;
     } catch (error) {
-      if (log) save(log, redact((error.stdout ?? '') + (error.stderr ?? '')));
-      throw new Error(`${command} failed${log ? `. See ${log}` : ''} (exit ${error.code ?? error.signal ?? 'unknown'}).`);
+      const output = redact((error.stdout ?? '') + (error.stderr ?? ''));
+      if (log) save(log, output);
+      const browserError = showBrowserError && output.split(/\r?\n/).find(line =>
+        /^(?:\w*Error(?: \[[\w_]+\])?|\w+\.\w+): .+/.test(line));
+      const message = browserError
+        ? browserError.replace(/(https?:\/\/[^\s?#]+)[?#][^\s]*/g, '$1').slice(0, 360).replace(/[.\s]+$/, '')
+        : `${command} failed (exit ${error.code ?? error.signal ?? 'unknown'})`;
+      throw new Error(log ? `${message}. See ${log}.` : `${message}.`);
     }
   }
   const docker = (...args) => run('docker', [...compose, ...args]);
@@ -94,7 +102,7 @@ async function main() {
   const env = { ...process.env, WORKSPACE_VERIFY_ORIGIN: origin, WORKSPACE_SCENARIO_DIR: evidence,
     WORKSPACE_VERIFY_APP_VERSION: deployment.commit, WORKSPACE_VERIFY_MODEL_REVISION: deployment.embeddingRevision };
   const browser = (log, ...flags) => run(process.execPath,
-    [fileURLToPath(new URL('verify-browser.mjs', import.meta.url)), 'home-lab', ...flags], { env, log });
+    [fileURLToPath(new URL('verify-browser.mjs', import.meta.url)), 'home-lab', ...flags], { env, log, showBrowserError: true });
 
   async function step(name, check) {
     try {
@@ -150,6 +158,15 @@ async function main() {
         requireCondition(actual === deployment.images[imageServices[row.Service]], `Running image mismatch for ${row.Service}.`);
       }
       await describeFixture(replay, snapshot);
+    });
+    await step('browser DNS', async () => {
+      for (const host of new Set([new URL(origin).hostname, new URL(deployment.issuer).hostname])) {
+        try {
+          await lookup(host);
+        } catch (error) {
+          throw new Error(`Cannot resolve ${host} from the runner (${error.code ?? 'DNS lookup failed'}). Check DNS on the browser host.`);
+        }
+      }
     });
     await step('initial browser', () => browser('browser-initial.log'));
     await step('restart and health', async () => {
