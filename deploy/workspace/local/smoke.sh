@@ -41,17 +41,7 @@ trap cleanup EXIT
 "${compose[@]}" up -d --wait
 "$root/deploy/workspace/verify.sh" mac --check-persistence
 
-replay=("${compose[@]}" run --rm --no-deps -T replay)
-"${replay[@]}" writes pause
-live="$("${replay[@]}" describe-current)"
-position="$(jq -er '.throughPosition' <<< "$live")"
-rebuilt="$("${replay[@]}" replay --through "$position")"
-jq -en --argjson live "$live" --argjson rebuilt "$rebuilt" '
-  $live.generation != $rebuilt.generation and
-  $live.snapshotId == $rebuilt.snapshotId and
-  $live.stateDigest == $rebuilt.stateDigest
-' >/dev/null
-"${replay[@]}" activate-replay --generation "$(jq -er '.generation' <<< "$rebuilt")" --expect-position "$position"
-"${replay[@]}" writes resume
+replay="$(node "$root/deploy/workspace/verify-replay.mjs" "$(cat "$scenario/snapshot")" "${compose[@]:1}")"
+position="$(jq -er '.active.throughPosition' <<< "$replay")"
 "$root/deploy/workspace/verify.sh" mac --check-persistence
 printf 'Mac replay digest matched at journal position %s.\n' "$position"
