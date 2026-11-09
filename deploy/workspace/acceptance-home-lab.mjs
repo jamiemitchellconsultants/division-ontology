@@ -12,7 +12,7 @@ const digest = /^[a-f0-9]{64}$/;
 const imageServices = { api: 'API', indexer: 'WORKER', web: 'WEB', db: 'DB', minio: 'MINIO' };
 const credentialKeys = ['MANAGER_USERNAME', 'MANAGER_PASSWORD', 'READER_USERNAME', 'READER_PASSWORD']
   .map(key => 'WORKSPACE_VERIFY_' + key);
-const usage = 'Usage: node deploy/workspace/acceptance-home-lab.mjs --deployment FILE --snapshot DIGEST --evidence NEW_DIRECTORY --operator NAME [--project NAME] [--compose FILE] [--env-file FILE]';
+const usage = 'Usage: node deploy/workspace/acceptance-home-lab.mjs --deployment FILE --snapshot DIGEST --evidence NEW_DIRECTORY --operator NAME [--project NAME] [--compose FILE] [--env-file FILE] [--local-ingress]';
 
 function requireCondition(condition, message) {
   if (!condition) throw new Error(message);
@@ -45,7 +45,8 @@ async function main() {
   const { values: options } = parseArgs({ options: {
     deployment: { type: 'string' }, snapshot: { type: 'string' }, evidence: { type: 'string' },
     operator: { type: 'string' }, project: { type: 'string', default: 'runtime-knowledge-workspace' },
-    compose: { type: 'string' }, 'env-file': { type: 'string' }, help: { type: 'boolean' }
+    compose: { type: 'string' }, 'env-file': { type: 'string' },
+    'local-ingress': { type: 'boolean' }, help: { type: 'boolean' }
   } });
   if (options.help) {
     console.log(usage);
@@ -67,6 +68,7 @@ async function main() {
   const report = { started: new Date().toISOString(), operator: options.operator, project: options.project,
     origin, applicationRevision: deployment.commit, images: deployment.images,
     embeddingModel: deployment.embeddingModel, embeddingRevision: deployment.embeddingRevision,
+    browserRoute: options['local-ingress'] ? 'local Caddy' : 'system DNS',
     snapshot, steps: [], humanReview: ['B14 independent reviewer'], status: 'running' };
   const saveReport = () => save('run.json', JSON.stringify(report, null, 2) + '\n');
   const secrets = new Set(credentialKeys.filter(key => key.endsWith('_PASSWORD')).map(key => process.env[key]));
@@ -95,9 +97,30 @@ async function main() {
   const replay = (...args) => run('docker', [...compose, 'run', '--rm', '--no-deps', '-T', 'replay', ...args],
     { log: `replay-${args.join('-')}.log` });
   const env = { ...process.env, WORKSPACE_VERIFY_ORIGIN: origin, WORKSPACE_SCENARIO_DIR: evidence,
-    WORKSPACE_VERIFY_APP_VERSION: deployment.commit, WORKSPACE_VERIFY_MODEL_REVISION: deployment.embeddingRevision || 'configured provider' };
+    WORKSPACE_VERIFY_APP_VERSION: deployment.commit, WORKSPACE_VERIFY_MODEL_REVISION: deployment.embeddingRevision || 'configured provider',
+    WORKSPACE_VERIFY_LOOPBACK_HOSTS: '' };
   const browser = (log, ...flags) => run(process.execPath,
     [fileURLToPath(new URL('verify-browser.mjs', import.meta.url)), 'home-lab', ...flags], { env, log, showBrowserError: true });
+
+  async function verifyLocalIngress() {
+    const issuer = new URL(deployment.issuer);
+    requireCondition(issuer.protocol === 'https:' && !issuer.port && !issuer.username && !issuer.password &&
+      !issuer.search && !issuer.hash && /^[a-z0-9.-]+$/i.test(issuer.hostname), 'Local ingress needs a plain HTTPS issuer on port 443.');
+    const discovery = new URL(`${issuer.href.replace(/\/$/, '')}/.well-known/openid-configuration`);
+    const urls = [new URL(origin), discovery];
+    for (const [index, url] of urls.entries()) {
+      const log = index === 0 ? 'local-workspace-https.log' : 'local-issuer-https.log';
+      const status = await run(process.platform === 'win32' ? 'curl.exe' : 'curl', [
+        '--disable', '--noproxy', '*', '--resolve', `${url.hostname}:443:127.0.0.1`,
+        '--fail', '--silent', '--show-error', '--max-time', '15', '--output',
+        process.platform === 'win32' ? 'NUL' : '/dev/null', '--write-out', '%{http_code}', url.href
+      ], { log }).catch(error => {
+        throw new Error(`Local Caddy HTTPS check failed for ${url.hostname}. ${error.message}`);
+      });
+      requireCondition(status.trim() === '200', `Local Caddy returned HTTP ${status.trim()} for ${url.hostname}. See ${log}.`);
+    }
+    env.WORKSPACE_VERIFY_LOOPBACK_HOSTS = [...new Set(urls.map(url => url.hostname))].join(',');
+  }
 
   async function step(name, check) {
     try {
@@ -152,15 +175,19 @@ async function main() {
       }
       await describeFixture(replay, snapshot);
     });
-    await step('browser DNS', async () => {
-      for (const host of new Set([new URL(origin).hostname, new URL(deployment.issuer).hostname])) {
-        try {
-          await lookup(host);
-        } catch (error) {
-          throw new Error(`Cannot resolve ${host} from the runner (${error.code ?? 'DNS lookup failed'}). Check DNS on the browser host.`);
+    if (options['local-ingress']) {
+      await step('browser local ingress', verifyLocalIngress);
+    } else {
+      await step('browser DNS', async () => {
+        for (const host of new Set([new URL(origin).hostname, new URL(deployment.issuer).hostname])) {
+          try {
+            await lookup(host);
+          } catch (error) {
+            throw new Error(`Cannot resolve ${host} from the runner (${error.code ?? 'DNS lookup failed'}). Check DNS on the browser host.`);
+          }
         }
-      }
-    });
+      });
+    }
     await step('initial browser', () => browser('browser-initial.log'));
     await step('restart and health', async () => {
       await describeFixture(replay, snapshot);

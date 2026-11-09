@@ -122,7 +122,15 @@ curl.exe -fsSI --max-time 15 "https://$($Installed.publicHost)/"
 if ($LASTEXITCODE -ne 0) { throw 'Check the workspace HTTPS route before retrying the browser.' }
 ```
 
-If the names resolve and HTTPS responds, rerun the script with the same `$RunRoot`. Check indexer logs if search remains pending. Additional scenarios are listed in the [acceptance record](05-acceptance.md).
+If Windows resolves the names but Chromium still reports a DNS error on `ai-mcp-server`, rerun through that server's local Caddy:
+
+```powershell
+& ./deploy/workspace/run-home-lab-acceptance.ps1 -RunRoot $RunRoot -LocalIngress
+```
+
+`-LocalIngress` checks the workspace and Keycloak HTTPS endpoints on port 443 at `127.0.0.1` using their configured hostnames and normal certificate validation. It then maps those two names to loopback for the test browser. Use this option on the host that runs Caddy. The runner reuses the fixture and records the browser route in `run.json`.
+
+Check indexer logs if search remains pending. Additional scenarios are listed in the [acceptance record](05-acceptance.md).
 
 ### Reset between use cases
 

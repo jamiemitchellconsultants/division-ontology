@@ -5,7 +5,8 @@ param(
     [string] $ReleaseRef = 'main',
     [string] $Operator = [Environment]::UserName,
     [switch] $RetryPreflight,
-    [switch] $Redeploy
+    [switch] $Redeploy,
+    [switch] $LocalIngress
 )
 
 $ErrorActionPreference = 'Stop'
@@ -114,8 +115,10 @@ try {
     }
 
     $Evidence = Join-Path $RunRoot ("evidence-" + [guid]::NewGuid())
-    node deploy/workspace/acceptance-home-lab.mjs --deployment $Deployment `
-        --snapshot $ManifestId --evidence $Evidence --operator $Operator
+    $BrowserArgs = @('deploy/workspace/acceptance-home-lab.mjs', '--deployment', $Deployment,
+        '--snapshot', $ManifestId, '--evidence', $Evidence, '--operator', $Operator)
+    if ($LocalIngress) { $BrowserArgs += '--local-ingress' }
+    node @BrowserArgs
     if ($LASTEXITCODE -ne 0) { throw "Home-lab acceptance failed. See the exception above and $Evidence." }
 } finally {
     foreach ($Key in $PromptedPasswords) { [Environment]::SetEnvironmentVariable($Key, $null) }

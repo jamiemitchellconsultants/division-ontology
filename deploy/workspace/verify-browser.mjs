@@ -28,9 +28,16 @@ const pilotQueries = [
   ['What happens after a customer places an order?', 'ecommerce', 'node', 'graph#component'],
   ['How does Accounting learn that an order has shipped?', 'accounting', 'concept', 'ontology#Order']
 ];
+const loopbackHosts = homeLab ? (process.env.WORKSPACE_VERIFY_LOOPBACK_HOSTS || '').split(',').filter(Boolean) : [];
+assert.ok(loopbackHosts.every(host => /^[a-z0-9.-]+$/i.test(host)), 'Local ingress needs valid HTTPS hostnames.');
+const browserArgs = !homeLab ? ['--host-resolver-rules=MAP workspace.localhost 127.0.0.1'] : [];
+if (homeLab && loopbackHosts.length) {
+  const rules = loopbackHosts.map(host => `MAP ${host} 127.0.0.1`).join(',');
+  browserArgs.push(`--host-resolver-rules=${rules}`, '--no-proxy-server');
+}
 const browser = await chromium.launch({
   executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE,
-  args: homeLab ? [] : ['--host-resolver-rules=MAP workspace.localhost 127.0.0.1']
+  args: browserArgs
 });
 
 async function login(role) {
