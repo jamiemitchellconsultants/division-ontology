@@ -2,7 +2,7 @@
 
 ## Deploy
 
-Acceptance uses a disposable Mac Docker stack and a separate synthetic fixture deployment on the LocalAI home lab. Use Node and the locked dependencies in the repository, Docker Compose, jq, the SDK pinned in `runtime/global.json`, and Playwright Chromium. From the repository root:
+Acceptance uses a disposable Mac Docker stack and the single LocalAI home-lab deployment while it is assigned to the synthetic acceptance use case. Use Node and the locked dependencies in the repository, Docker Compose, jq, the SDK pinned in `runtime/global.json`, and Playwright Chromium. From the repository root:
 
 ```bash
 npm ci
@@ -15,7 +15,7 @@ The local runner builds and activates the Ecommerce, Warehouse and Accounting fi
 
 ### Home-lab acceptance
 
-1. **Choose an isolated fixture installation.** The LocalAI operator needs Docker Compose, Caddy, Keycloak, working HTTPS DNS and the Qwen3 8B Q4 embedding service. Use distinct persistent volumes for acceptance. The standard LocalAI installer uses fixed Compose project, volume and realm names, so a second installation using that installer needs a separate Docker and Keycloak environment. Follow the [deployment contract](../../../deploy/workspace/home-lab/deployment-contract.md) and [LocalAI installer guide](https://github.com/jamiemitchellconsultants/LocalAI/blob/main/docs/deploy-division-workspace.md).
+1. **Assign the existing deployment to acceptance.** Use the standard Compose project, hostname, Keycloak realm and embedding service. Finish the current use case first. For a clean acceptance run, [reset the workspace data](#reset-between-use-cases) if the deployment has data from a previous use case. Keep the PostgreSQL and MinIO volumes for the duration of this acceptance run so restart and replay can verify the same saved contributions. Follow the [deployment contract](../../../deploy/workspace/home-lab/deployment-contract.md) and [LocalAI installer guide](https://github.com/jamiemitchellconsultants/LocalAI/blob/main/docs/deploy-division-workspace.md).
 2. **Select the release.** Use a reviewed branch or tag whose five workspace images were published. If the selected commit has no images, run **Publish workspace images** for that revision before installing. Obtain the actual GGUF SHA-256 from the Qwen service operator and supply it to the installer as `-EmbeddingRevision`. The service must return 4,096 dimensions. Provide the installer's GitHub access through its configured credential store.
 3. **Build the fixture.** On the fixture host, open a checkout of the acceptance branch **outside** the installer’s working directory. The installer manages its own `src` checkout. In PowerShell from the acceptance checkout, run:
 
@@ -29,15 +29,15 @@ The local runner builds and activates the Ecommerce, Warehouse and Accounting fi
    if ($LASTEXITCODE -ne 0 -or $ManifestId -notmatch '^[a-f0-9]{64}$') { throw 'Fixture build failed.' }
    ```
 
-4. **Install and publish.** From Administrator PowerShell, run the reviewed LocalAI installer. Set `$Installer` to its script path, `$FixtureHost` to the dedicated HTTPS hostname without the scheme, `$ReleaseRef` to the reviewed Git ref, and `$ModelDigest` to the digest from step 2. Preserve the deployment evidence it writes.
+4. **Deploy the acceptance release in place and publish the fixture.** From Administrator PowerShell, run the reviewed LocalAI installer against the existing project. Set `$Installer` to its script path, `$WorkspaceHost` to the usual HTTPS hostname without the scheme, `$ReleaseRef` to the reviewed Git ref, and `$ModelDigest` to the digest from step 2. Preserve the deployment evidence it writes.
 
    ```powershell
-   & $Installer -PublicHost $FixtureHost -GitRef $ReleaseRef -EmbeddingRevision $ModelDigest `
+   & $Installer -PublicHost $WorkspaceHost -GitRef $ReleaseRef -EmbeddingRevision $ModelDigest `
        -BundleDir $BundleDir -ManifestId $ManifestId
    if ($LASTEXITCODE -ne 0) { throw 'Fixture installation failed.' }
    ```
 
-5. **Supply fixture identities.** Configure separate controlled manager and reader accounts in the fixture realm. Use the runner’s secret store to set `WORKSPACE_VERIFY_MANAGER_USERNAME`, `WORKSPACE_VERIFY_MANAGER_PASSWORD`, `WORKSPACE_VERIFY_READER_USERNAME` and `WORKSPACE_VERIFY_READER_PASSWORD` in its process environment. The runner reads the hostname, application revision, image digests and model revision from `deployment-evidence.json`. Run it where both the fixture Docker project and the HTTPS origin are reachable. Use the fixture’s trusted DNS and TLS configuration.
+5. **Supply test identities.** Use controlled manager and reader accounts in the existing workspace realm. Use the runner’s secret store to set `WORKSPACE_VERIFY_MANAGER_USERNAME`, `WORKSPACE_VERIFY_MANAGER_PASSWORD`, `WORKSPACE_VERIFY_READER_USERNAME` and `WORKSPACE_VERIFY_READER_PASSWORD` in its process environment. The runner reads the hostname, application revision, image digests and model revision from `deployment-evidence.json`. Run it where both the workspace Docker project and its HTTPS origin are reachable.
 6. **Run the deployed walkthrough.** From the acceptance checkout, set `$Operator` to the name to record in the evidence. Run the command below with the manifest digest from step 3 and a new evidence path under a private directory.
 
    ```powershell
@@ -49,9 +49,9 @@ The local runner builds and activates the Ecommerce, Warehouse and Accounting fi
    ```
 
    The runner checks the configured and running image digests, service health and active fixture digest before making any test writes. It runs the browser checks, restarts only PostgreSQL and the API, checks persistence, performs guarded replay and checks persistence again. It resumes writes after a replay failure. `run.json` lists the steps and their outcomes. Browser logs record the pilot searches, index wait and query latency. The projection JSON files record the compared digests and journal positions.
-7. **Review exceptions.** Keep the evidence directory and record its results in [the acceptance record](05-acceptance.md). Check the remaining host scenarios in that record, including replacement snapshots, role changes and explicit codification. Record B14 separately when an independent reviewer is available.
+7. **Review exceptions.** Keep the evidence directory and record its results in [the acceptance record](05-acceptance.md). Check the remaining host scenarios in that record, including replacement snapshots, role changes and explicit codification. Record B14 when an independent reviewer is available. Once acceptance is complete, reuse the same deployment for the next use case. Retain or reset its application data according to what that use case needs.
 
-The runner derives the Compose path and environment file from the installer’s evidence directory. Use `--compose`, `--env-file` and `--project` for an explicitly configured fixture project with different paths or name. If a runner is stopped while writes are paused, confirm the active fixture and follow the recovery steps below to resume them. Use a fresh evidence directory for each run.
+The runner derives the Compose path and environment file from the installer’s evidence directory. Use `--compose`, `--env-file` and `--project` if the existing workspace uses different paths or a different project name. If a runner is stopped while writes are paused, confirm the active fixture and follow the recovery steps below to resume them. Use a fresh evidence directory for each run.
 
 ## Operate
 
@@ -79,6 +79,28 @@ bash deploy/workspace/acceptance.sh home-lab "$evidence_root/home-lab-restarted"
 ```
 
 The first run records the contribution IDs in `scenario.json`. The persistence run looks them up and verifies traversal, history and indexed search. Record the operator, app revision, snapshot and model revision, along with the indexing wait and query latency logged by the browser. Check indexer logs for a provider or queue issue if search remains pending. Application-level checks that need replacement snapshots, additional identities or failure injection are listed in the [acceptance record](05-acceptance.md).
+
+### Reset between use cases
+
+When the current use case is finished and its data can be discarded, retain any acceptance evidence you need. With `$ComposeArgs` from **Operate**, the following PowerShell block validates the two volume names used by the standard LocalAI installer, stops the workspace and removes its PostgreSQL journal and MinIO bundles together.
+
+```powershell
+$ConfigJson = docker @ComposeArgs config --format json
+if ($LASTEXITCODE -ne 0) { throw 'Could not resolve the workspace volumes.' }
+$Volumes = ($ConfigJson | ConvertFrom-Json).volumes
+Remove-Variable ConfigJson
+$DatabaseVolume = $Volumes.database.name
+$ObjectsVolume = $Volumes.objects.name
+if ($DatabaseVolume -ne 'division-workspace-database' -or $ObjectsVolume -ne 'division-workspace-objects') {
+    throw 'Expected the standard LocalAI workspace volume names.'
+}
+docker @ComposeArgs down
+if ($LASTEXITCODE -ne 0) { throw 'Could not stop the workspace.' }
+docker volume rm $DatabaseVolume $ObjectsVolume
+if ($LASTEXITCODE -ne 0) { throw 'Check which workspace volume was removed before reinstalling.' }
+```
+
+Run the LocalAI installer for the next use case. It recreates the two application volumes. The deployment continues to use the same project, hostname, realm and embedding service.
 
 ## Recover
 
