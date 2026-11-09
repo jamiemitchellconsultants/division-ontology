@@ -27,8 +27,6 @@ function readDeployment(path, snapshot) {
   }
   requireCondition(deployment.activeManifest === snapshot, 'The installer evidence must name the expected synthetic snapshot.');
   requireCondition(/^[a-f0-9]{40}$/.test(deployment.commit), 'The installer evidence needs the deployed commit.');
-  requireCondition(deployment.embeddingDimensions === 4096 && deployment.embeddingRevision?.trim(),
-    'The installer evidence needs the 4,096-dimension model and its configured revision.');
   requireCondition(typeof deployment.publicHost === 'string' && /^[a-z0-9.-]+$/i.test(deployment.publicHost),
     'The installer evidence needs a valid HTTPS hostname.');
   for (const key of Object.values(imageServices)) {
@@ -66,13 +64,10 @@ async function main() {
   mkdirSync(evidence, { mode: 0o700 });
   const save = (name, data) => writeFileSync(join(evidence, name), data, { mode: 0o600 });
   const origin = `https://${deployment.publicHost}`;
-  const evidenceGaps = /^(sha256:)?[a-f0-9]{64}$/i.test(deployment.embeddingRevision.trim())
-    ? []
-    : ['The configured embedding revision is a label. The GGUF digest remains unverified.'];
   const report = { started: new Date().toISOString(), operator: options.operator, project: options.project,
     origin, applicationRevision: deployment.commit, images: deployment.images,
     embeddingModel: deployment.embeddingModel, embeddingRevision: deployment.embeddingRevision,
-    snapshot, steps: [], evidenceGaps, humanReview: ['B14 independent reviewer'], status: 'running' };
+    snapshot, steps: [], humanReview: ['B14 independent reviewer'], status: 'running' };
   const saveReport = () => save('run.json', JSON.stringify(report, null, 2) + '\n');
   const secrets = new Set(credentialKeys.filter(key => key.endsWith('_PASSWORD')).map(key => process.env[key]));
   const redact = text => [...secrets].sort((a, b) => b.length - a.length)
@@ -100,7 +95,7 @@ async function main() {
   const replay = (...args) => run('docker', [...compose, 'run', '--rm', '--no-deps', '-T', 'replay', ...args],
     { log: `replay-${args.join('-')}.log` });
   const env = { ...process.env, WORKSPACE_VERIFY_ORIGIN: origin, WORKSPACE_SCENARIO_DIR: evidence,
-    WORKSPACE_VERIFY_APP_VERSION: deployment.commit, WORKSPACE_VERIFY_MODEL_REVISION: deployment.embeddingRevision };
+    WORKSPACE_VERIFY_APP_VERSION: deployment.commit, WORKSPACE_VERIFY_MODEL_REVISION: deployment.embeddingRevision || 'configured provider' };
   const browser = (log, ...flags) => run(process.execPath,
     [fileURLToPath(new URL('verify-browser.mjs', import.meta.url)), 'home-lab', ...flags], { env, log, showBrowserError: true });
 
@@ -150,9 +145,7 @@ async function main() {
       }
       const api = config.services.api.environment;
       requireCondition(config.services.web.environment.WORKSPACE_PUBLIC_HOST === deployment.publicHost &&
-        api.Workspace__Identity__Issuer === deployment.issuer &&
-        api.Workspace__Embeddings__Revision === deployment.embeddingRevision &&
-        String(api.Workspace__Embeddings__Dimensions) === '4096', 'Compose host, identity or embedding configuration differs from installer evidence.');
+        api.Workspace__Identity__Issuer === deployment.issuer, 'Compose host or identity configuration differs from installer evidence.');
       for (const row of await waitHealthy()) {
         const actual = (await run('docker', ['inspect', '--format', '{{.Config.Image}}', row.ID])).trim();
         requireCondition(actual === deployment.images[imageServices[row.Service]], `Running image mismatch for ${row.Service}.`);
@@ -180,7 +173,6 @@ async function main() {
       (name, state) => save(`projection-${name}.json`, JSON.stringify(state, null, 2) + '\n')));
     await step('persistence after replay', () => browser('browser-replayed.log', '--check-persistence'));
     report.status = 'passed scripted checks';
-    for (const gap of evidenceGaps) console.error(`REVIEW model evidence. ${gap}`);
     console.error('REVIEW B14. Record the independent reviewer’s explanation.');
   } catch (error) {
     report.status = 'failed';

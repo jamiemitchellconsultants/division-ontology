@@ -24,139 +24,65 @@ cat "$evidence_root/local/checks.tsv"
 
 ### Home-lab acceptance
 
-Run steps 1–6 in the same Administrator PowerShell on `ai-mcp-server`. Finish the current use case before assigning the existing workspace to acceptance. The [LocalAI installer guide](https://github.com/jamiemitchellconsultants/LocalAI/blob/main/docs/deploy-division-workspace.md) covers the host prerequisites.
+Run the script in Administrator PowerShell on `ai-mcp-server`. Finish the current use case first, then use the same workspace deployment for acceptance. The [LocalAI installer guide](https://github.com/jamiemitchellconsultants/LocalAI/blob/main/docs/deploy-division-workspace.md) covers the host prerequisites.
 
-1. **Prepare the existing deployment in one command block.** This checks out the acceptance scripts, resolves the current workspace `main` commit, waits for its image build if needed, and fetches the LocalAI installer. It reads the existing workspace and embedding settings from the installer evidence. The preflight is quiet on success. If it starts an image build, wait for PowerShell to return to the prompt.
+If you already have the acceptance checkout, run `git pull --ff-only` there once to get the script. Use your existing `$RunRoot` to reuse its fixture and retain the prior evidence. On a new terminal or host, prepare a checkout once:
 
-   ```powershell
-   . {
-       $Repo = 'jamiemitchellconsultants/division-ontology'
-       $PrJson = gh pr view 64 --repo $Repo --json state,headRefName 2>$null
-       if ($LASTEXITCODE -ne 0) { throw 'Could not find the acceptance checkout. Check gh auth status.' }
-       $Pr = $PrJson | ConvertFrom-Json
-       $AcceptanceRef = if ($Pr.state -eq 'MERGED') { 'main' } elseif ($Pr.state -eq 'OPEN') { $Pr.headRefName } else {
-           throw 'The acceptance PR is closed without merging.'
-       }
-       $RunRoot = Join-Path ([IO.Path]::GetTempPath()) ("workspace-acceptance-" + [guid]::NewGuid())
-       New-Item -ItemType Directory -Path $RunRoot -ErrorAction Stop | Out-Null
-       $AcceptanceCheckout = Join-Path $RunRoot 'src'
-       $null = gh repo clone $Repo $AcceptanceCheckout -- --branch $AcceptanceRef --single-branch 2>$null
-       if ($LASTEXITCODE -ne 0) { throw 'Could not clone the acceptance checkout.' }
-       Set-Location -LiteralPath $AcceptanceCheckout -ErrorAction Stop
-       $Preparation = $null
-       $Preparation = & ./deploy/workspace/prepare-home-lab.ps1 -RunRoot $RunRoot
-       $Deployment = $Preparation.Deployment
-       $ComposeArgs = $Preparation.ComposeArgs
-       $InstallArgs = $Preparation.InstallArgs
-   }
-   ```
+```powershell
+. {
+    $Repo = 'jamiemitchellconsultants/division-ontology'
+    $PrJson = gh pr view 64 --repo $Repo --json state,headRefName
+    if ($LASTEXITCODE -ne 0) { throw 'Could not find the acceptance checkout. Check gh auth status.' }
+    $Pr = $PrJson | ConvertFrom-Json
+    $AcceptanceRef = if ($Pr.state -eq 'MERGED') { 'main' } elseif ($Pr.state -eq 'OPEN') { $Pr.headRefName } else {
+        throw 'The acceptance PR is closed without merging.'
+    }
+    $RunRoot = Join-Path ([IO.Path]::GetTempPath()) ("workspace-acceptance-" + [guid]::NewGuid())
+    New-Item -ItemType Directory -Path $RunRoot -ErrorAction Stop | Out-Null
+    $AcceptanceCheckout = Join-Path $RunRoot 'src'
+    gh repo clone $Repo $AcceptanceCheckout -- --branch $AcceptanceRef --single-branch
+    if ($LASTEXITCODE -ne 0) { throw 'Could not clone the acceptance checkout.' }
+    Set-Location -LiteralPath $AcceptanceCheckout -ErrorAction Stop
+}
+```
 
-   Qwen provisioning is outside this runbook. If the preflight reports missing settings, set the named `WORKSPACE_PUBLIC_HOST` or `WORKSPACE_EMBEDDING_*` environment variables from the existing deployment or its operator, then repeat this step. A warning about a model revision label allows the walkthrough to proceed and is recorded as a model digest evidence gap. To select a reviewed lightweight release tag, add `-ReleaseRef` to the preflight invocation. The default is `main`.
+From the acceptance checkout, run the six steps with one command:
 
-   To retry preflight after updating the checkout or supplying a missing setting, keep the same terminal and run the following block. This preserves the fixture from step 2 if you already built it.
+```powershell
+& ./deploy/workspace/run-home-lab-acceptance.ps1 -RunRoot $RunRoot
+```
 
-   ```powershell
-   . {
-       Set-Location -LiteralPath $AcceptanceCheckout -ErrorAction Stop
-       git pull --ff-only
-       if ($LASTEXITCODE -ne 0) { throw 'Could not update the acceptance checkout.' }
-       $Preparation = $null
-       $Preparation = & ./deploy/workspace/prepare-home-lab.ps1 -RunRoot $RunRoot
-       $Deployment = $Preparation.Deployment
-       $ComposeArgs = $Preparation.ComposeArgs
-       $InstallArgs = $Preparation.InstallArgs
-   }
-   ```
+The script runs preflight and waits for the selected release images, installs the locked dependencies and browser, builds or reuses the fixture, publishes it on the existing workspace, collects test credentials and runs the deployed walkthrough. It reports exceptions and the new evidence directory. The deployed walkthrough checks browser search and persistence after restart and guarded replay. It records B14 separately for an independent reviewer. Use `-Operator 'Name'` to override the Windows username in the evidence.
 
-2. **Build the fixture.** Run these commands in the acceptance checkout opened by step 1:
+For the optional checkout update and preflight retry, rerun with the same directory:
 
-   ```powershell
-   npm ci
-   if ($LASTEXITCODE -ne 0) { throw 'Dependency installation failed.' }
-   node ./node_modules/playwright/cli.js install chromium
-   if ($LASTEXITCODE -ne 0) { throw 'Chromium installation failed.' }
-   $FixtureRoot = Join-Path $RunRoot 'fixture'
-   New-Item -ItemType Directory -Path $FixtureRoot -ErrorAction Stop | Out-Null
-   $BundleDir = Join-Path $FixtureRoot 'bundle'
-   $ManifestId = node src/workspace/seed-fixture.mjs (Join-Path $FixtureRoot 'checkouts') $BundleDir
-   if ($LASTEXITCODE -ne 0 -or $ManifestId -notmatch '^[a-f0-9]{64}$') { throw 'Fixture build failed.' }
-   ```
+```powershell
+& ./deploy/workspace/run-home-lab-acceptance.ps1 -RunRoot $RunRoot -RetryPreflight
+```
 
-3. **Deploy in place and publish the fixture.** For a clean run, [reset the workspace data](#reset-between-use-cases) first if the previous use case has finished and its data can be discarded. Keep both volumes through acceptance so restart and replay can verify the same contributions.
+`-RetryPreflight` adds `git pull --ff-only` before preparation. Both commands reuse a valid fixture bundle and a matching deployment, then create a fresh evidence directory. Use `-Redeploy` to republish the same fixture if the actual deployment has drifted from its installer evidence. Use `-ReleaseRef` to select a reviewed lightweight release tag. The default is `main`.
 
-   ```powershell
-   if (-not $Preparation.ReleaseCommit -or -not $InstallArgs.GitRef) {
-       throw 'Preflight has not completed. Run the retry block in step 1.'
-   }
-   if ($ManifestId -notmatch '^[a-f0-9]{64}$' -or -not $BundleDir -or
-       -not (Test-Path -LiteralPath (Join-Path $BundleDir "manifests/$ManifestId.json"))) {
-       throw 'The fixture bundle is missing. Complete step 2.'
-   }
-   $CurrentReleaseCommit = gh api "repos/$Repo/commits/$($InstallArgs.GitRef)" --jq '.sha'
-   if ($LASTEXITCODE -ne 0 -or $CurrentReleaseCommit -ne $Preparation.ReleaseCommit) { throw 'The release ref changed. Repeat step 1.' }
-   & $Preparation.Installer @InstallArgs -BundleDir $BundleDir -ManifestId $ManifestId
-   if ($LASTEXITCODE -ne 0) { throw 'Fixture installation failed.' }
-   $Installed = Get-Content -LiteralPath $Deployment -Raw | ConvertFrom-Json
-   if ($Installed.commit -ne $Preparation.ReleaseCommit -or $Installed.activeManifest -ne $ManifestId) {
-       throw 'Installer evidence does not match the selected release and synthetic snapshot.'
-   }
-   docker @ComposeArgs ps -a
-   ```
+The runner uses the existing embedding configuration. The search checks require a working embedding service. Model identity and GGUF digest are outside acceptance. The preflight reports missing deployment settings so the operator can supply the existing configuration. If the previous use case has finished and its data can be discarded, the optional reset procedure is under **Operate**. Keep both volumes during acceptance.
 
-4. **Supply test identities.** The standard installer creates `manageknowledgegraph` and `readknowledgegraph` in the existing realm and prints their initial passwords when it creates them. Use these accounts or existing equivalents with the corresponding workspace roles. Enter passwords at the masked prompts.
+Inspect the result from the latest evidence directory printed by the script:
 
-   ```powershell
-   $env:WORKSPACE_VERIFY_MANAGER_USERNAME = Read-Host 'Manager username'
-   $env:WORKSPACE_VERIFY_MANAGER_PASSWORD = [System.Net.NetworkCredential]::new(
-       '', (Read-Host 'Manager password' -AsSecureString)).Password
-   $env:WORKSPACE_VERIFY_READER_USERNAME = Read-Host 'Reader username'
-   $env:WORKSPACE_VERIFY_READER_PASSWORD = [System.Net.NetworkCredential]::new(
-       '', (Read-Host 'Reader password' -AsSecureString)).Password
-   ```
+```powershell
+$Evidence = Read-Host 'Evidence directory printed by the runner'
+$Run = Get-Content -LiteralPath (Join-Path $Evidence 'run.json') -Raw | ConvertFrom-Json
+$Run | Select-Object status, snapshot, applicationRevision
+$Run.steps | Where-Object status -ne 'pass' | Format-Table name, status, message -Wrap
+$Run.humanReview
+```
 
-5. **Run the deployed walkthrough.** Run from the acceptance checkout where the Docker project and its HTTPS origin are reachable. The script reads the host, images and model revision from the installer evidence.
-
-   ```powershell
-   Set-Location -LiteralPath $AcceptanceCheckout -ErrorAction Stop
-   $Operator = Read-Host 'Name to record as acceptance operator'
-   $Evidence = Join-Path $RunRoot ("evidence-" + [guid]::NewGuid())
-   try {
-       node deploy/workspace/acceptance-home-lab.mjs --deployment $Deployment `
-           --snapshot $ManifestId --evidence $Evidence --operator $Operator
-       $AcceptanceExit = $LASTEXITCODE
-   } finally {
-       Remove-Item Env:WORKSPACE_VERIFY_MANAGER_PASSWORD, Env:WORKSPACE_VERIFY_READER_PASSWORD -ErrorAction SilentlyContinue
-   }
-   if ($AcceptanceExit -ne 0) { Write-Warning 'Review the acceptance exception in step 6.' }
-   ```
-
-   The runner checks the configured and running image digests, service health and active fixture digest before making any test writes. It runs the browser checks, restarts only PostgreSQL and the API, checks persistence, performs guarded replay and checks persistence again. It resumes writes after a replay failure. `run.json` lists the steps and their outcomes. Browser logs record the pilot searches, index wait and query latency. The projection JSON files record the compared digests and journal positions.
-6. **Review exceptions.** Print the run status, any failing step, and the human review items. Keep the full evidence directory.
-
-   ```powershell
-   $RunJson = Join-Path $Evidence 'run.json'
-   if (Test-Path -LiteralPath $RunJson) {
-       $Run = Get-Content -LiteralPath $RunJson -Raw | ConvertFrom-Json
-       $Run | Select-Object status, snapshot, applicationRevision, embeddingRevision
-       $Run.steps | Where-Object status -ne 'pass' | Format-Table name, status, message -Wrap
-       $Run.evidenceGaps
-       $Run.humanReview
-       Get-ChildItem -LiteralPath $Evidence | Select-Object Name, Length
-   } else {
-       Write-Warning 'The runner stopped before creating its evidence. Review the error from step 5.'
-   }
-   ```
-
-   Record the result and remaining host scenarios in the [acceptance record](05-acceptance.md). Record B14 when an independent reviewer is available. Reuse the same deployment for the next use case.
-
-The runner derives the Compose path and environment file from the installer’s evidence directory. Use `--compose`, `--env-file` and `--project` if the existing workspace uses different paths or a different project name. If a runner is stopped while writes are paused, confirm the active fixture and follow the recovery steps below to resume them. Use a fresh evidence directory for each run.
+Record the outcome and any remaining host scenarios in the [acceptance record](05-acceptance.md). Use the recovery commands below if a run stopped while writes were paused.
 
 ## Operate
 
-Check the running workspace from the operator terminal. Use the `$ComposeArgs` defined in step 1. If you opened a new terminal, enter the defaults below first.
+Check the running workspace from the operator terminal. Use the standard LocalAI installer paths below.
 
 ```powershell
 $WorkspaceRoot = 'C:\mcp\division-workspace'
+$Deployment = Join-Path $WorkspaceRoot 'deployment-evidence.json'
 $ComposeArgs = @('compose', '-p', 'runtime-knowledge-workspace',
     '-f', "$WorkspaceRoot\src\deploy\workspace\home-lab\compose.yml",
     '--env-file', "$WorkspaceRoot\workspace.env")
@@ -165,9 +91,12 @@ docker @ComposeArgs exec -T api curl -fsS http://127.0.0.1:8080/health
 docker @ComposeArgs logs --tail 80 migrate api indexer
 ```
 
-To publish a verified bundle independently of installation, use `$BundleDir` and `$ManifestId` from step 2:
+To publish the verified fixture independently of installation, use the same `$RunRoot` you passed to the script:
 
 ```powershell
+$Fixture = Get-Content -LiteralPath (Join-Path $RunRoot 'fixture-state.json') -Raw | ConvertFrom-Json
+$BundleDir = Join-Path $RunRoot "$($Fixture.directory)/bundle"
+$ManifestId = $Fixture.manifestId
 docker @ComposeArgs run --rm --no-deps -T -v "${BundleDir}:/bundle:ro" publisher upload /bundle
 if ($LASTEXITCODE -ne 0) { throw 'Bundle upload failed.' }
 docker @ComposeArgs run --rm --no-deps -T publisher stage $ManifestId
@@ -182,22 +111,6 @@ Start-Sleep -Seconds 3
 docker @ComposeArgs run --rm --no-deps -T replay describe-current
 ```
 
-For browser-only troubleshooting, open the acceptance checkout on the machine that can reach the workspace URL. Use the credential prompts in step 4 and a copy of the installer evidence:
-
-```powershell
-$BrowserEvidence = Read-Host 'Path to deployment-evidence.json'
-$Installed = Get-Content -LiteralPath $BrowserEvidence -Raw | ConvertFrom-Json
-if ($Installed.activeManifest -notmatch '^[a-f0-9]{64}$') { throw 'Expected the active synthetic manifest digest.' }
-$env:WORKSPACE_SCENARIO_DIR = Join-Path ([IO.Path]::GetTempPath()) ("workspace-browser-" + [guid]::NewGuid())
-New-Item -ItemType Directory -Path $env:WORKSPACE_SCENARIO_DIR | Out-Null
-Set-Content -LiteralPath (Join-Path $env:WORKSPACE_SCENARIO_DIR 'snapshot') -Value $Installed.activeManifest -Encoding Ascii
-$env:WORKSPACE_VERIFY_ORIGIN = "https://$($Installed.publicHost)"
-$env:WORKSPACE_VERIFY_APP_VERSION = $Installed.commit
-$env:WORKSPACE_VERIFY_MODEL_REVISION = $Installed.embeddingRevision
-node deploy/workspace/verify-browser.mjs home-lab
-if ($LASTEXITCODE -ne 0) { throw 'Browser checks failed.' }
-```
-
 If the runner reports a DNS error such as `ERR_NAME_NOT_RESOLVED`, check the workspace and issuer names from the same Windows terminal:
 
 ```powershell
@@ -209,25 +122,7 @@ curl.exe -fsSI --max-time 15 "https://$($Installed.publicHost)/"
 if ($LASTEXITCODE -ne 0) { throw 'Check the workspace HTTPS route before retrying the browser.' }
 ```
 
-If the names resolve and HTTPS responds, repeat steps 4 and 5 with the active synthetic snapshot. Keep the existing deployment and bundle for this retry.
-
-For the browser-only restart check, restart the services from the operator terminal. Keep the browser's existing scenario directory for the second command:
-
-```powershell
-# On ai-mcp-server:
-docker @ComposeArgs restart --no-deps db api
-docker @ComposeArgs ps -a
-
-# In the browser terminal, once the services are healthy:
-try {
-    node deploy/workspace/verify-browser.mjs home-lab --check-persistence
-    if ($LASTEXITCODE -ne 0) { throw 'Persistence checks failed.' }
-} finally {
-    Remove-Item Env:WORKSPACE_VERIFY_MANAGER_PASSWORD, Env:WORKSPACE_VERIFY_READER_PASSWORD -ErrorAction SilentlyContinue
-}
-```
-
-The first run records the contribution IDs in `scenario.json`. The persistence run looks them up and verifies traversal, history and indexed search. Record the operator, app revision, snapshot and model revision, along with the indexing wait and query latency logged by the browser. Check indexer logs for a provider or queue issue if search remains pending. Application-level checks that need replacement snapshots, additional identities or failure injection are listed in the [acceptance record](05-acceptance.md).
+If the names resolve and HTTPS responds, rerun the script with the same `$RunRoot`. Check indexer logs if search remains pending. Additional scenarios are listed in the [acceptance record](05-acceptance.md).
 
 ### Reset between use cases
 
@@ -270,8 +165,8 @@ To roll back the application release, first confirm that the previous release is
 ```powershell
 $PreviousReleaseRef = Read-Host 'Previously deployed and compatible release ref'
 if (-not $PreviousReleaseRef) { throw 'Enter the previous release ref.' }
-$RollbackArgs = $InstallArgs.Clone()
-$RollbackArgs.GitRef = $PreviousReleaseRef
+$Preparation = & ./deploy/workspace/prepare-home-lab.ps1 -RunRoot $RunRoot -WorkspaceRoot $WorkspaceRoot -ReleaseRef $PreviousReleaseRef
+$RollbackArgs = $Preparation.InstallArgs
 & $Preparation.Installer @RollbackArgs
 if ($LASTEXITCODE -ne 0) { throw 'Release rollback failed.' }
 docker @ComposeArgs ps -a
@@ -281,7 +176,8 @@ docker @ComposeArgs exec -T api curl -fsS http://127.0.0.1:8080/health
 To rehearse projection recovery while the workspace is assigned to acceptance, run the shared replay procedure with the expected synthetic digest. It checks the active snapshot, pauses writes, compares the live and rebuilt state at the same journal position, switches generations when they match, and resumes writes.
 
 ```powershell
-Set-Location -LiteralPath $AcceptanceCheckout -ErrorAction Stop
+$Evidence = Read-Host 'Evidence directory printed by the runner'
+$ManifestId = (Get-Content -LiteralPath (Join-Path $Evidence 'snapshot') -Raw).Trim()
 $ProjectionReport = node deploy/workspace/verify-replay.mjs $ManifestId @ComposeArgs
 if ($LASTEXITCODE -ne 0) { throw 'Replay failed. Review the exception and the active projection.' }
 $ProjectionReport | Set-Content -LiteralPath (Join-Path $Evidence 'manual-replay.json') -Encoding UTF8
@@ -291,6 +187,8 @@ $ProjectionReport | ConvertFrom-Json | Select-Object -ExpandProperty active
 If the runner was interrupted while writes were paused, confirm that the expected fixture is still active before resuming:
 
 ```powershell
+$Evidence = Read-Host 'Evidence directory printed by the runner'
+$ManifestId = (Get-Content -LiteralPath (Join-Path $Evidence 'snapshot') -Raw).Trim()
 $CurrentProjection = docker @ComposeArgs run --rm --no-deps -T replay describe-current
 if ($LASTEXITCODE -ne 0) { throw 'Could not confirm the active fixture.' }
 if (($CurrentProjection | ConvertFrom-Json).snapshotId -ne $ManifestId) { throw 'The expected fixture is not active.' }

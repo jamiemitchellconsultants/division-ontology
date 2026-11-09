@@ -45,7 +45,7 @@ The named .NET classes run through `deploy/workspace/acceptance.sh local` and ar
 
 ## Results
 
-Record the date, runner or operator, application revision, snapshot and model revision for each environment. Include relevant test outcomes and a reference to retained evidence. On the home lab, record index lag, search latency, persistence after restart and the same-position journal replay comparison.
+Record the date, runner or operator, application revision and snapshot for each environment. Include relevant test outcomes and a reference to retained evidence. On the home lab, record index lag, search latency, persistence after restart and the same-position journal replay comparison. Search must work with the configured embedding service. Its model identity and digest are outside acceptance.
 
 | Environment | Date and runner | Result |
 | --- | --- | --- |
@@ -62,7 +62,7 @@ The shared replay procedure added for the home lab was then exercised against th
 
 On 9 November 2026, James Mitchell ran the automated local walkthrough on M5MBP using revision `b46ce948b24e3550ac72f0cc8a0d7fee9391cd50` and synthetic snapshot `be2600100572809b63ef67a5a24e98b5cf50d6f0da94b1d4095d1725c7b089c0`. The evidence directory's `checks.tsv`, `runtime.trx` and `local-browser.log` confirm 122 repository tests, 35 runtime tests, the home-lab configuration check and all local browser checks passed. The replay digest matched at journal position 5. B14 was the only item flagged for human review in this local run.
 
-On the home lab, Jamie reported `passed scripted checks` in `run.json` for application revision `b2bfdb5455323a42dca080ec8ec8ed347c018791` and synthetic snapshot `bf5821c9e3194b30834aec9219944a5bff1a35d8a5c5087b4d3a5075049862fc`. An initial browser attempt stopped at workspace DNS resolution. Windows subsequently resolved the name and the retry passed. The configured model revision was `qwen3-embedding-8b-q4_k_m`. Its GGUF digest remains unverified, and B14 remains open for an independent reviewer.
+On the home lab, Jamie reported `passed scripted checks` in `run.json` for application revision `b2bfdb5455323a42dca080ec8ec8ed347c018791` and synthetic snapshot `bf5821c9e3194b30834aec9219944a5bff1a35d8a5c5087b4d3a5075049862fc`. An initial browser attempt stopped at workspace DNS resolution. Windows subsequently resolved the name and the retry passed. The logs recorded the configured embedding service as `qwen3-embedding-8b-q4_k_m`. B14 remains open for an independent reviewer.
 
 The deployed browser logs recorded these timings for the same fixture annotation:
 

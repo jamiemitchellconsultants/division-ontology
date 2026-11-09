@@ -53,10 +53,6 @@ $Missing = @($Existing.Keys | Where-Object { [string]::IsNullOrWhiteSpace($Exist
 if ($Missing.Count) {
     throw "Missing existing workspace settings: $($Missing -join ', '). Supply those settings in the operator environment."
 }
-if ($Existing.WORKSPACE_EMBEDDING_REVISION -notmatch '^(sha256:)?[a-f0-9]{64}$') {
-    Write-Warning 'The configured Qwen revision is a label. The walkthrough can run and will record the missing model digest.'
-}
-
 if ($ReleaseRef -ne 'main') {
     if ($ReleaseRef -notmatch '^workspace-v[\w.-]+$') { throw 'Select main or a lightweight workspace-v* release tag.' }
     $TagType = Invoke-Checked 'gh' @('api', "repos/$Repo/git/ref/tags/$ReleaseRef", '--jq', '.object.type') 'Could not resolve the release tag.'

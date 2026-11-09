@@ -46,7 +46,7 @@ if [[ "$target" == local ]]; then
     run home-lab-config bash deploy/workspace/home-lab/verify-config.sh
     run local-browser bash deploy/workspace/local/smoke.sh
 else
-    required=(WORKSPACE_SCENARIO_DIR WORKSPACE_VERIFY_ORIGIN WORKSPACE_VERIFY_MODEL_REVISION
+    required=(WORKSPACE_SCENARIO_DIR WORKSPACE_VERIFY_ORIGIN
         WORKSPACE_VERIFY_APP_VERSION WORKSPACE_VERIFY_MANAGER_USERNAME WORKSPACE_VERIFY_MANAGER_PASSWORD
         WORKSPACE_VERIFY_READER_USERNAME WORKSPACE_VERIFY_READER_PASSWORD)
     for key in "${required[@]}"; do

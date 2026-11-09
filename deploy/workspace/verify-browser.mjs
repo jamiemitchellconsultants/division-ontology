@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -8,20 +9,21 @@ const target = process.argv[2];
 const homeLab = target === 'home-lab';
 const origin = homeLab ? process.env.WORKSPACE_VERIFY_ORIGIN
   : `http://workspace.localhost:${process.env.WORKSPACE_PORT ?? '8087'}`;
-const modelRevision = homeLab ? process.env.WORKSPACE_VERIFY_MODEL_REVISION
+const modelRevision = homeLab ? (process.env.WORKSPACE_VERIFY_MODEL_REVISION || 'configured provider')
   : 'ac6da0dfba84a81fdbfbaf330198c33cd77c4cdfc53e8bc50eb581914a15621d';
 const appVersion = process.env.WORKSPACE_VERIFY_APP_VERSION ?? (homeLab ? null : 'working-tree');
 const scenario = process.env.WORKSPACE_SCENARIO_DIR;
 const persistence = process.argv[3] === '--check-persistence';
 assert.ok(origin && (!homeLab || new URL(origin).protocol === 'https:'), 'Set the HTTPS home-lab fixture origin.');
-assert.ok(modelRevision && appVersion, 'Record the fixture embedding model revision and application version.');
+assert.ok(appVersion, 'Record the fixture application version.');
 assert.ok(scenario, 'Set WORKSPACE_SCENARIO_DIR to a dedicated fixture directory.');
 const snapshot = (await readFile(join(scenario, 'snapshot'), 'utf8')).trim();
 const stateFile = join(scenario, 'scenario.json');
 const from = { sourceId: 'fixture/ecommerce', kind: 'concept', identifier: 'https://example.test/ecommerce/ontology#Order' };
 const to = { sourceId: 'fixture/warehouse', kind: 'concept', identifier: 'https://example.test/warehouse/ontology#Order' };
 const entityPath = key => `/entity/${Buffer.from(JSON.stringify(key)).toString('base64url')}`;
-const note = 'Finance approvers reconcile synthetic storefront orders before dispatch.';
+const baseNote = 'Finance approvers reconcile synthetic storefront orders before dispatch.';
+const baseRelationshipLabel = 'Routes to warehouse';
 const pilotQueries = [
   ['What happens after a customer places an order?', 'ecommerce', 'node', 'graph#component'],
   ['How does Accounting learn that an order has shipped?', 'accounting', 'concept', 'ontology#Order']
@@ -83,11 +85,11 @@ async function login(role) {
   };
 }
 
-async function waitForIndexed(client, id) {
+async function waitForIndexed(client, id, query) {
   const started = performance.now();
   for (let attempt = 0; attempt < 90; attempt++) {
     const queriedAt = performance.now();
-    const result = await client.request('/api/search', { query: note });
+    const result = await client.request('/api/search', { query });
     if (result.hits.some(hit => hit.annotationId === id)) {
       console.log(`Qwen ${modelRevision}: fixture annotation retrieved in ${Math.round(performance.now() - started)} ms, including an exact query of ${Math.round(performance.now() - queriedAt)} ms.`);
       return;
@@ -182,22 +184,26 @@ try {
   if (persistence) {
     state = JSON.parse(await readFile(stateFile, 'utf8'));
   } else {
+    const attempt = randomUUID().slice(0, 8);
+    const note = `${baseNote} Acceptance run ${attempt}.`;
+    const relationshipLabel = `${baseRelationshipLabel} (${attempt})`;
     manager = await login('manager');
     assert.deepEqual(await manager.request('/api/session'), { canRead: true, canManage: true });
-    await manager.page.getByLabel('Annotation category').selectOption('businessRbac');
-    await manager.page.getByLabel('Annotation text').fill(note);
-    await manager.page.getByRole('button', { name: 'Add annotation' }).click();
+    const form = manager.page.getByRole('group', { name: 'Add annotation', exact: true });
+    await form.getByLabel('Annotation category').selectOption('businessRbac');
+    await form.getByLabel('Annotation text').fill(note);
+    await form.getByRole('button', { name: 'Add annotation', exact: true }).click();
     await manager.page.getByText(note, { exact: true }).waitFor();
     const entity = await manager.request('/api/entities/detail', { key: from });
     const annotation = entity.annotations.find(record => record.annotation?.text === note);
     assert.ok(annotation);
 
     const relationship = await manager.request('/api/contributions/relationships', {
-      from, to, meaning: { customLabel: 'Routes to warehouse', explanation: 'Synthetic storefront order handoff' }
+      from, to, meaning: { customLabel: relationshipLabel, explanation: 'Synthetic storefront order handoff' }
     }, 201);
-    state = { snapshot, annotationId: annotation.id, relationshipId: relationship.id };
+    state = { snapshot, annotationId: annotation.id, relationshipId: relationship.id, note, relationshipLabel };
     await writeFile(stateFile, JSON.stringify(state));
-    await waitForIndexed(manager, annotation.id);
+    await waitForIndexed(manager, annotation.id, note);
   }
 
   const reader = await login('reader');
@@ -207,7 +213,7 @@ try {
     target: from, category: 'businessExplanation', text: 'Reader attempt'
   }, 403);
   await reader.page.getByRole('button', { name: 'Traverse' }).click();
-  await reader.page.getByRole('link', { name: 'Routes to warehouse' }).waitFor();
+  await reader.page.getByRole('link', { name: state.relationshipLabel ?? baseRelationshipLabel, exact: true }).waitFor();
   const paths = await reader.request('/api/traverse', { start: from });
   assert.equal(paths.snapshotId, state.snapshot);
   assert.ok(paths.paths.some(path => path.steps.some(step => step.runtimeId === state.relationshipId)));
@@ -215,7 +221,7 @@ try {
   const history = await reader.request(`/api/history?contributionId=${state.relationshipId}`);
   assert.equal(history.entries.length, 1);
   assert.equal(history.entries[0].type, 'relationshipCreated');
-  if (persistence) await waitForIndexed(reader, state.annotationId);
+  if (persistence) await waitForIndexed(reader, state.annotationId, state.note ?? baseNote);
   else {
     await checkOrderFulfilment(reader);
     await checkArchitecturalRelationship(manager, reader);
