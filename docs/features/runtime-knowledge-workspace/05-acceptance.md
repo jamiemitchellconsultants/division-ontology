@@ -4,7 +4,7 @@ The pilot product is **Order Fulfilment** using the synthetic Ecommerce, Warehou
 
 ## Walkthrough and expected results
 
-The named .NET classes run through `deploy/workspace/acceptance.sh local` and are recorded in `runtime.trx`. **Browser** refers to the shared Mac and home-lab browser runner. **Host** indicates a scenario to exercise with the deployed fixture operator. The local runtime tests provide automated evidence for those scenarios using disposable databases.
+The named .NET classes run through `deploy/workspace/acceptance.sh local` and are recorded in `runtime.trx`. **Browser** refers to the shared Mac and home-lab browser runner. The [home-lab procedure](05-runbook.md#home-lab-acceptance) chains browser checks, restart and guarded replay and records each step in `run.json`. **Host** indicates an additional scenario to exercise with the deployed fixture operator. The local runtime tests provide automated evidence for those scenarios using disposable databases.
 
 | Behaviour | Steps and expected result | Executable evidence |
 | --- | --- | --- |
@@ -51,9 +51,11 @@ Record the date, runner or operator, application revision, snapshot and model re
 | --- | --- | --- |
 | Local automated walkthrough | 9 November 2026, Codex on Mac | 118 repository tests and 35 runtime tests passed. The browser found both expected pilot leads and the reviewed cross-source handoff. It verified the business and architecture relationships, the saved annotation after API and database restart, and the same state digest after journal replay through position 5. |
 | Home-lab configuration | 9 November 2026, Codex on Mac | The Compose, Keycloak and Caddy configuration checks passed locally. |
-| Home-lab fixture | 9 November 2026, Codex preflight | Blocked. The runner needs the dedicated fixture HTTPS origin, expected active snapshot digest, app and embedding revisions, and credentials for the controlled manager and reader. The LocalAI operator needs to run the restart and guarded replay against the fixture. The host scenarios in the table remain open. |
+| Home-lab fixture | 9 November 2026, Codex preflight | Blocked. The operator needs to install the dedicated fixture and provide its installer evidence, active snapshot digest and controlled credentials. The deployed runner then performs the browser checks, restart and replay. The host scenarios in the table remain open. |
 | B14 | 9 November 2026, simulated rehearsal | Open. An independent wider-business reviewer is unavailable. |
 
 The local run used application revision `b2bfdb5455323a42dca080ec8ec8ed347c018791` with the acceptance changes in the working tree, snapshot `3c5908215dd4076bda34e9f5d90ed34e868fe66e8b53286f28702133e05075fd` and Qwen model revision `ac6da0dfba84a81fdbfbaf330198c33cd77c4cdfc53e8bc50eb581914a15621d`. The runner observed the indexed annotation after 1,664 ms initially and 12,356 ms after replay. The corresponding individual search requests took 128 ms and 136 ms. These measurements describe the disposable Mac fixture.
 
 The first browser run retrieved both search leads, then failed to find the full handoff because the walkthrough sent the wrong field for traversal depth. The final run set depth through the browser and checked the four-step handoff. The results above describe the automated run. The user-led walkthrough and independent review criteria remain open.
+
+The shared replay procedure added for the home lab was then exercised against the real disposable Mac stack on 9 November 2026. The follow-up passed 122 repository tests, 35 runtime tests and browser checks before restart, after restart and after replay through position 5. The deployed runner's preflight also rejected a mismatched installer snapshot and mismatched Compose image before any browser writes or restart. A live home-lab run remains open.
