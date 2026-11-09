@@ -26,7 +26,7 @@ cat "$evidence_root/local/checks.tsv"
 
 Run steps 1–7 in the same Administrator PowerShell on `ai-mcp-server`. Finish the current use case before assigning the existing workspace to acceptance. The [LocalAI installer guide](https://github.com/jamiemitchellconsultants/LocalAI/blob/main/docs/deploy-division-workspace.md) covers the host prerequisites.
 
-1. **Identify the existing deployment and fetch the installer.** Use the workspace's existing hostname, project and Keycloak realm. Enter the reviewed LocalAI Git ref when prompted.
+1. **Identify the existing deployment and fetch the installer.** Use the workspace's existing hostname, project and Keycloak realm. The commands fetch the installer from the current LocalAI `main` commit.
 
    ```powershell
    Get-Command gh, git, node, npm, docker -ErrorAction Stop | Select-Object Name, Source
@@ -44,11 +44,12 @@ Run steps 1–7 in the same Administrator PowerShell on `ai-mcp-server`. Finish 
        '--env-file', "$WorkspaceRoot\workspace.env")
    $RunRoot = Join-Path ([IO.Path]::GetTempPath()) ("workspace-acceptance-" + [guid]::NewGuid())
    New-Item -ItemType Directory -Path $RunRoot | Out-Null
-   $LocalAiRef = Read-Host 'Reviewed LocalAI Git ref for the installer'
-   if (-not $LocalAiRef) { throw 'Enter the reviewed LocalAI ref.' }
+   $LocalAiCommit = gh api 'repos/jamiemitchellconsultants/LocalAI/commits/main' --jq '.sha'
+   if ($LASTEXITCODE -ne 0 -or $LocalAiCommit -notmatch '^[a-f0-9]{40}$') { throw 'Could not resolve LocalAI main.' }
+   Write-Host "LocalAI installer commit: $LocalAiCommit"
    $Installer = Join-Path $RunRoot 'setup-division-workspace-windows.ps1'
    $InstallerSource = gh api --method GET -H 'Accept: application/vnd.github.raw+json' `
-       'repos/jamiemitchellconsultants/LocalAI/contents/docs/setup-division-workspace-windows.ps1' -f "ref=$LocalAiRef"
+       'repos/jamiemitchellconsultants/LocalAI/contents/docs/setup-division-workspace-windows.ps1' -f "ref=$LocalAiCommit"
    if ($LASTEXITCODE -ne 0) { throw 'Could not fetch the LocalAI installer.' }
    $InstallerSource | Set-Content -LiteralPath $Installer -Encoding UTF8
    & $Installer -WorkDir $WorkspaceRoot -Diagnostics
