@@ -73,3 +73,5 @@ The deployed browser logs recorded these timings for the same fixture annotation
 | After replay | 2,269 ms | 75 ms |
 
 The guarded replay compared state at journal position **5**. After cutover, `projection-active.json` reported generation `0617272d-4664-4937-9fd8-e79f44e6ecca`, the same snapshot, and matching state digest `e48463f44ff5461b2a9f2e4e16e7e8918c9256223a5332b86ce8f551a1703b28`. The browser retrieved the saved data again from the rebuilt projection.
+
+Jamie also completed a home-lab rerun using the one-command PowerShell procedure on 9 November 2026. The terminal printed the final B14 reminder and a new evidence directory, `evidence-9f421b73-2811-467f-a0ee-fd7db7a8122d`. The runner reaches that reminder after passing the browser checks, restart, guarded replay and post-replay persistence. B14 was the only exception reported by the scripted rerun.
