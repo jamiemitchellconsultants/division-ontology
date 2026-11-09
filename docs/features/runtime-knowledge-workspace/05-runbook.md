@@ -2,13 +2,18 @@
 
 ## Deploy
 
-Acceptance uses a disposable Mac Docker stack and the single LocalAI home-lab deployment while it is assigned to the synthetic acceptance use case. Use Node and the locked dependencies in the repository, Docker Compose, jq, the SDK pinned in `runtime/global.json`, and Playwright Chromium. From the repository root:
+Acceptance uses a disposable Mac Docker stack and the single LocalAI home-lab deployment while it is assigned to the synthetic acceptance use case. Use Node, Docker Compose, jq and the SDK pinned in `runtime/global.json`. Open a terminal at the root of the **same checkout that contains this runbook**. The runner and the pinned Playwright dependency are part of the acceptance changes.
 
 ```bash
-npm ci
-npx playwright install chromium
-evidence_root=$(mktemp -d)
-bash deploy/workspace/acceptance.sh local "$evidence_root/local"
+if [ -f deploy/workspace/acceptance.sh ]; then
+  npm ci &&
+  node ./node_modules/playwright/cli.js install chromium &&
+  evidence_root=$(mktemp -d) &&
+  bash deploy/workspace/acceptance.sh local "$evidence_root/local"
+else
+  printf '%s\n' 'Open the acceptance checkout containing deploy/workspace/acceptance.sh.' >&2
+  false
+fi
 ```
 
 The local runner builds and activates the Ecommerce, Warehouse and Accounting fixture. The Compose project, credentials, ports and volumes are isolated. The script restarts the API and PostgreSQL, verifies a guarded replay, then removes its containers and volumes. Set `WORKSPACE_PORT` if port 18087 is occupied. Keep the evidence directory for the acceptance record.
@@ -20,8 +25,13 @@ The local runner builds and activates the Ecommerce, Warehouse and Accounting fi
 3. **Build the fixture.** On the fixture host, open a checkout of the acceptance branch **outside** the installer’s working directory. The installer manages its own `src` checkout. In PowerShell from the acceptance checkout, run:
 
    ```powershell
+   if (-not (Test-Path 'deploy/workspace/acceptance-home-lab.mjs' -PathType Leaf)) {
+       throw 'Open the acceptance checkout containing deploy/workspace/acceptance-home-lab.mjs.'
+   }
    npm ci
-   npx playwright install chromium
+   if ($LASTEXITCODE -ne 0) { throw 'Dependency installation failed.' }
+   node ./node_modules/playwright/cli.js install chromium
+   if ($LASTEXITCODE -ne 0) { throw 'Chromium installation failed.' }
    $FixtureRoot = Join-Path ([IO.Path]::GetTempPath()) ("workspace-fixture-" + [guid]::NewGuid())
    New-Item -ItemType Directory -Path $FixtureRoot | Out-Null
    $BundleDir = Join-Path $FixtureRoot 'bundle'
