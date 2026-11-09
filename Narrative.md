@@ -25,6 +25,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [15](#entry-plan-runtime-knowledge-workspace-implementation) | 2026-11-07 | Plan runtime knowledge workspace implementation | product | Use 12 test-first tasks. Prove the PostgreSQL and AGE transaction boundary, deterministic snapshot import, atomic contribution writes and ordered replay before connecting the API, identity providers, semantic search and Blazor UI. |
 | [16](#entry-build-the-runtime-knowledge-workspace) | 2026-11-08 | Build the runtime knowledge workspace | product | Store publication and contribution events in the durable PostgreSQL journal and preserve the content-addressed bundles referenced by it. Use separate database roles for the API, publisher and indexer. |
 | [17](#entry-start-division-ontology-templates-without-registered-sources) | 2026-11-08 | Start division ontology templates without registered sources | product | Start the template with no registered source repositories or source links. Retain the existing division-owned core. Use a disposable workspace with synthetic sources for demonstrations and persistence testing. |
+| [18](#entry-prepare-supervised-workspace-acceptance) | 2026-11-09 | Prepare supervised workspace acceptance | product | Use Order Fulfilment as the synthetic pilot and run acceptance against the existing workspace. Automate preparation, publication, browser checks, restart and guarded replay. Require search to work with the configured embedding service. |
 
 ---
 
@@ -387,3 +388,25 @@ Start the template with no registered source repositories or source links. Retai
 Each division registers its own sources. The catalog refresh follows this authored PR in a separate generated-only PR. Enable GitHub's template setting after the refreshed catalog is on main.
 
 AI-Fingerprint: sha256:0b3e04f1226b
+
+---
+
+<a id="entry-prepare-supervised-workspace-acceptance"></a>
+
+## Entry 18 — 2026-11-09 — Prepare supervised workspace acceptance
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The workspace needed a repeatable acceptance procedure with evidence for review. The home lab reuses one deployment across use cases.
+
+## Decision
+
+Use Order Fulfilment as the synthetic pilot and run acceptance against the existing workspace. Automate preparation, publication, browser checks, restart and guarded replay. Require search to work with the configured embedding service. Accept the recorded local and home-lab evidence and defer the remaining steps to #65.
+
+## Consequences
+
+Repeat runs can reuse the fixture and deployment while retaining separate evidence. The operator can reset workspace data between use cases. Merging this PR closes the acceptance phase. Issue #65 tracks the deferred evidence separately.
+
+AI-Fingerprint: sha256:e143ed4f2f82
