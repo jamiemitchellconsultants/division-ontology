@@ -24,127 +24,63 @@ cat "$evidence_root/local/checks.tsv"
 
 ### Home-lab acceptance
 
-Run steps 1–7 in the same Administrator PowerShell on `ai-mcp-server`. Finish the current use case before assigning the existing workspace to acceptance. The [LocalAI installer guide](https://github.com/jamiemitchellconsultants/LocalAI/blob/main/docs/deploy-division-workspace.md) covers the host prerequisites.
+Run steps 1–6 in the same Administrator PowerShell on `ai-mcp-server`. Finish the current use case before assigning the existing workspace to acceptance. The [LocalAI installer guide](https://github.com/jamiemitchellconsultants/LocalAI/blob/main/docs/deploy-division-workspace.md) covers the host prerequisites.
 
-1. **Identify the existing deployment and fetch the installer.** Use the workspace's existing hostname, project and Keycloak realm. The commands fetch the installer from the current LocalAI `main` commit.
+1. **Prepare the existing deployment in one command block.** This checks out the acceptance scripts, resolves the current workspace `main` commit, waits for its image build if needed, and fetches the LocalAI installer. It reads the existing workspace and embedding settings from the installer evidence. The preflight is quiet on success. If it starts an image build, wait for PowerShell to return to the prompt.
 
    ```powershell
-   Get-Command gh, git, node, npm, docker -ErrorAction Stop | Select-Object Name, Source
-   gh auth status --hostname github.com
-   if ($LASTEXITCODE -ne 0) { throw 'Sign in with gh auth login --hostname github.com, then retry.' }
-   if (-not $env:MCP_GITHUB_TOKEN) {
-       $env:MCP_GITHUB_TOKEN = [Environment]::GetEnvironmentVariable('MCP_GITHUB_TOKEN', 'Machine')
+   . {
+       $Repo = 'jamiemitchellconsultants/division-ontology'
+       $PrJson = gh pr view 64 --repo $Repo --json state,headRefName 2>$null
+       if ($LASTEXITCODE -ne 0) { throw 'Could not find the acceptance checkout. Check gh auth status.' }
+       $Pr = $PrJson | ConvertFrom-Json
+       $AcceptanceRef = if ($Pr.state -eq 'MERGED') { 'main' } elseif ($Pr.state -eq 'OPEN') { $Pr.headRefName } else {
+           throw 'The acceptance PR is closed without merging.'
+       }
+       $RunRoot = Join-Path ([IO.Path]::GetTempPath()) ("workspace-acceptance-" + [guid]::NewGuid())
+       New-Item -ItemType Directory -Path $RunRoot -ErrorAction Stop | Out-Null
+       $AcceptanceCheckout = Join-Path $RunRoot 'src'
+       $null = gh repo clone $Repo $AcceptanceCheckout -- --branch $AcceptanceRef --single-branch 2>$null
+       if ($LASTEXITCODE -ne 0) { throw 'Could not clone the acceptance checkout.' }
+       Set-Location -LiteralPath $AcceptanceCheckout -ErrorAction Stop
+       $Preparation = & ./deploy/workspace/prepare-home-lab.ps1 -RunRoot $RunRoot
+       $Deployment = $Preparation.Deployment
+       $ComposeArgs = $Preparation.ComposeArgs
+       $InstallArgs = $Preparation.InstallArgs
    }
-   if (-not $env:MCP_GITHUB_TOKEN) { throw 'Set up the LocalAI installer credential first.' }
-   $Repo = 'jamiemitchellconsultants/division-ontology'
-   $WorkspaceRoot = 'C:\mcp\division-workspace'
-   $Deployment = Join-Path $WorkspaceRoot 'deployment-evidence.json'
-   $ComposeArgs = @('compose', '-p', 'runtime-knowledge-workspace',
-       '-f', "$WorkspaceRoot\src\deploy\workspace\home-lab\compose.yml",
-       '--env-file', "$WorkspaceRoot\workspace.env")
-   $RunRoot = Join-Path ([IO.Path]::GetTempPath()) ("workspace-acceptance-" + [guid]::NewGuid())
-   New-Item -ItemType Directory -Path $RunRoot | Out-Null
-   $LocalAiCommit = gh api 'repos/jamiemitchellconsultants/LocalAI/commits/main' --jq '.sha'
-   if ($LASTEXITCODE -ne 0 -or $LocalAiCommit -notmatch '^[a-f0-9]{40}$') { throw 'Could not resolve LocalAI main.' }
-   Write-Host "LocalAI installer commit: $LocalAiCommit"
-   $Installer = Join-Path $RunRoot 'setup-division-workspace-windows.ps1'
-   $InstallerSource = gh api --method GET -H 'Accept: application/vnd.github.raw+json' `
-       'repos/jamiemitchellconsultants/LocalAI/contents/docs/setup-division-workspace-windows.ps1' -f "ref=$LocalAiCommit"
-   if ($LASTEXITCODE -ne 0) { throw 'Could not fetch the LocalAI installer.' }
-   $InstallerSource | Set-Content -LiteralPath $Installer -Encoding UTF8
-   & $Installer -WorkDir $WorkspaceRoot -Diagnostics
-   $WorkspaceHost = if (Test-Path -LiteralPath $Deployment) {
-       (Get-Content -LiteralPath $Deployment -Raw | ConvertFrom-Json).publicHost
-   } else {
-       Read-Host 'Workspace HTTPS hostname, without https://'
-   }
-   if (-not $WorkspaceHost) { throw 'Enter the workspace hostname before continuing.' }
    ```
 
-2. **Check the release images and model.** Enter `main` or a reviewed lightweight `workspace-v*` release tag. Check for a successful image build for its exact commit.
+   Qwen provisioning is outside this runbook. If the preflight reports missing settings, set the named `WORKSPACE_PUBLIC_HOST` or `WORKSPACE_EMBEDDING_*` environment variables from the existing deployment or its operator, then repeat this step. To select a reviewed lightweight release tag, add `-ReleaseRef` to the preflight invocation. The default is `main`.
+
+2. **Build the fixture.** Run these commands in the acceptance checkout opened by step 1:
 
    ```powershell
-   $ReleaseRef = Read-Host 'Reviewed release ref (main or workspace-v* tag)'
-   if ($ReleaseRef -ne 'main' -and $ReleaseRef -notlike 'workspace-v*') { throw 'Enter main or a reviewed workspace-v* tag.' }
-   if ($ReleaseRef -ne 'main') {
-       $TagTarget = gh api "repos/$Repo/git/ref/tags/$ReleaseRef" --jq '.object.type'
-       if ($LASTEXITCODE -ne 0 -or $TagTarget -ne 'commit') { throw 'Select a lightweight release tag or main.' }
-   }
-   $ReleaseCommit = gh api "repos/$Repo/commits/$ReleaseRef" --jq '.sha'
-   if ($LASTEXITCODE -ne 0 -or $ReleaseCommit -notmatch '^[a-f0-9]{40}$') { throw 'Could not resolve the release ref.' }
-   gh run list --repo $Repo --workflow workspace-images.yml --commit $ReleaseCommit --status success --limit 3
-   if ($LASTEXITCODE -ne 0) { throw 'Could not check image publication.' }
-   ```
-
-   If there is no successful run, publish the images and wait for the run. Use the run ID for the selected commit from the listing.
-
-   ```powershell
-   gh workflow run workspace-images.yml --repo $Repo --ref $ReleaseRef
-   if ($LASTEXITCODE -ne 0) { throw 'Could not start image publication.' }
-   gh run list --repo $Repo --workflow workspace-images.yml --commit $ReleaseCommit --limit 5
-   $PublishRunId = Read-Host 'Image publication run ID'
-   gh run watch $PublishRunId --repo $Repo --exit-status
-   if ($LASTEXITCODE -ne 0) { throw 'Image publication did not succeed.' }
-   ```
-
-   On `ai-speed-core`, read the existing Qwen service's report:
-
-   ```powershell
-   Get-Content 'C:\llama.cpp-embeddings\install-report.json' -Raw | ConvertFrom-Json |
-       Select-Object endpoint, servedModelName, dimensions, ggufSha256
-   ```
-
-   Back in the same `ai-mcp-server` terminal, enter those values and test the endpoint:
-
-   ```powershell
-   $EmbeddingEndpoint = Read-Host 'Qwen report endpoint'
-   $EmbeddingModel = Read-Host 'Qwen report servedModelName'
-   $ModelDigest = (Read-Host 'Qwen report ggufSha256').Trim().ToLowerInvariant()
-   if ($ModelDigest -notmatch '^[a-f0-9]{64}$') { throw 'Enter the 64-character GGUF SHA-256.' }
-   $Probe = Invoke-RestMethod -Uri $EmbeddingEndpoint -Method Post -ContentType 'application/json' -TimeoutSec 60 `
-       -Body (@{model = $EmbeddingModel; input = 'Workspace acceptance health check'} | ConvertTo-Json -Compress)
-   if (@($Probe.data[0].embedding).Count -ne 4096) { throw 'The embedding service did not return 4,096 dimensions.' }
-   ```
-
-3. **Check out the acceptance scripts and build the fixture.** Use the branch of the acceptance PR while it is open and `main` after it merges. This checkout sits outside the installer's managed `src` directory.
-
-   ```powershell
-   $AcceptanceRef = Read-Host 'Acceptance Git branch (feature/runtime-knowledge-workspace/user while PR #64 is open)'
-   if (-not $AcceptanceRef) { throw 'Enter the acceptance branch.' }
-   $AcceptanceCheckout = Join-Path $RunRoot 'src'
-   gh repo clone $Repo $AcceptanceCheckout -- --branch $AcceptanceRef --single-branch
-   if ($LASTEXITCODE -ne 0) { throw 'Could not clone the acceptance branch.' }
-   Set-Location -LiteralPath $AcceptanceCheckout -ErrorAction Stop
-   if (-not (Test-Path 'deploy/workspace/acceptance-home-lab.mjs' -PathType Leaf)) {
-       throw 'Open the acceptance checkout containing deploy/workspace/acceptance-home-lab.mjs.'
-   }
    npm ci
    if ($LASTEXITCODE -ne 0) { throw 'Dependency installation failed.' }
    node ./node_modules/playwright/cli.js install chromium
    if ($LASTEXITCODE -ne 0) { throw 'Chromium installation failed.' }
    $FixtureRoot = Join-Path $RunRoot 'fixture'
+   New-Item -ItemType Directory -Path $FixtureRoot -ErrorAction Stop | Out-Null
    $BundleDir = Join-Path $FixtureRoot 'bundle'
    $ManifestId = node src/workspace/seed-fixture.mjs (Join-Path $FixtureRoot 'checkouts') $BundleDir
    if ($LASTEXITCODE -ne 0 -or $ManifestId -notmatch '^[a-f0-9]{64}$') { throw 'Fixture build failed.' }
    ```
 
-4. **Deploy in place and publish the fixture.** For a clean run, [reset the workspace data](#reset-between-use-cases) first if the previous use case has finished and its data can be discarded. Keep both volumes through acceptance so restart and replay can verify the same contributions.
+3. **Deploy in place and publish the fixture.** For a clean run, [reset the workspace data](#reset-between-use-cases) first if the previous use case has finished and its data can be discarded. Keep both volumes through acceptance so restart and replay can verify the same contributions.
 
    ```powershell
-   $CurrentReleaseCommit = gh api "repos/$Repo/commits/$ReleaseRef" --jq '.sha'
-   if ($LASTEXITCODE -ne 0 -or $CurrentReleaseCommit -ne $ReleaseCommit) { throw 'The release ref changed. Repeat step 2.' }
-   & $Installer -WorkDir $WorkspaceRoot -PublicHost $WorkspaceHost -GitRef $ReleaseRef `
-       -EmbeddingEndpoint $EmbeddingEndpoint -EmbeddingModel $EmbeddingModel -EmbeddingRevision $ModelDigest `
-       -BundleDir $BundleDir -ManifestId $ManifestId
+   $CurrentReleaseCommit = gh api "repos/$Repo/commits/$($InstallArgs.GitRef)" --jq '.sha'
+   if ($LASTEXITCODE -ne 0 -or $CurrentReleaseCommit -ne $Preparation.ReleaseCommit) { throw 'The release ref changed. Repeat step 1.' }
+   & $Preparation.Installer @InstallArgs -BundleDir $BundleDir -ManifestId $ManifestId
    if ($LASTEXITCODE -ne 0) { throw 'Fixture installation failed.' }
    $Installed = Get-Content -LiteralPath $Deployment -Raw | ConvertFrom-Json
-   if ($Installed.commit -ne $ReleaseCommit -or $Installed.activeManifest -ne $ManifestId) {
+   if ($Installed.commit -ne $Preparation.ReleaseCommit -or $Installed.activeManifest -ne $ManifestId) {
        throw 'Installer evidence does not match the selected release and synthetic snapshot.'
    }
    docker @ComposeArgs ps -a
    ```
 
-5. **Supply test identities.** The standard installer creates `manageknowledgegraph` and `readknowledgegraph` in the existing realm and prints their initial passwords when it creates them. Use these accounts or existing equivalents with the corresponding workspace roles. Enter passwords at the masked prompts.
+4. **Supply test identities.** The standard installer creates `manageknowledgegraph` and `readknowledgegraph` in the existing realm and prints their initial passwords when it creates them. Use these accounts or existing equivalents with the corresponding workspace roles. Enter passwords at the masked prompts.
 
    ```powershell
    $env:WORKSPACE_VERIFY_MANAGER_USERNAME = Read-Host 'Manager username'
@@ -155,7 +91,7 @@ Run steps 1–7 in the same Administrator PowerShell on `ai-mcp-server`. Finish 
        '', (Read-Host 'Reader password' -AsSecureString)).Password
    ```
 
-6. **Run the deployed walkthrough.** Run from the acceptance checkout where the Docker project and its HTTPS origin are reachable. The script reads the host, images and model revision from the installer evidence.
+5. **Run the deployed walkthrough.** Run from the acceptance checkout where the Docker project and its HTTPS origin are reachable. The script reads the host, images and model revision from the installer evidence.
 
    ```powershell
    Set-Location -LiteralPath $AcceptanceCheckout -ErrorAction Stop
@@ -168,11 +104,11 @@ Run steps 1–7 in the same Administrator PowerShell on `ai-mcp-server`. Finish 
    } finally {
        Remove-Item Env:WORKSPACE_VERIFY_MANAGER_PASSWORD, Env:WORKSPACE_VERIFY_READER_PASSWORD -ErrorAction SilentlyContinue
    }
-   if ($AcceptanceExit -ne 0) { Write-Warning 'Review the acceptance exception in step 7.' }
+   if ($AcceptanceExit -ne 0) { Write-Warning 'Review the acceptance exception in step 6.' }
    ```
 
    The runner checks the configured and running image digests, service health and active fixture digest before making any test writes. It runs the browser checks, restarts only PostgreSQL and the API, checks persistence, performs guarded replay and checks persistence again. It resumes writes after a replay failure. `run.json` lists the steps and their outcomes. Browser logs record the pilot searches, index wait and query latency. The projection JSON files record the compared digests and journal positions.
-7. **Review exceptions.** Print the run status, any failing step, and the human review items. Keep the full evidence directory.
+6. **Review exceptions.** Print the run status, any failing step, and the human review items. Keep the full evidence directory.
 
    ```powershell
    $RunJson = Join-Path $Evidence 'run.json'
@@ -183,7 +119,7 @@ Run steps 1–7 in the same Administrator PowerShell on `ai-mcp-server`. Finish 
        $Run.humanReview
        Get-ChildItem -LiteralPath $Evidence | Select-Object Name, Length
    } else {
-       Write-Warning 'The runner stopped before creating its evidence. Review the error from step 6.'
+       Write-Warning 'The runner stopped before creating its evidence. Review the error from step 5.'
    }
    ```
 
@@ -205,7 +141,7 @@ docker @ComposeArgs exec -T api curl -fsS http://127.0.0.1:8080/health
 docker @ComposeArgs logs --tail 80 migrate api indexer
 ```
 
-To publish a verified bundle independently of installation, use `$BundleDir` and `$ManifestId` from step 3:
+To publish a verified bundle independently of installation, use `$BundleDir` and `$ManifestId` from step 2:
 
 ```powershell
 docker @ComposeArgs run --rm --no-deps -T -v "${BundleDir}:/bundle:ro" publisher upload /bundle
@@ -222,7 +158,7 @@ Start-Sleep -Seconds 3
 docker @ComposeArgs run --rm --no-deps -T replay describe-current
 ```
 
-For browser-only troubleshooting, open the acceptance checkout on the machine that can reach the workspace URL. Use the credential prompts in step 5 and a copy of the installer evidence:
+For browser-only troubleshooting, open the acceptance checkout on the machine that can reach the workspace URL. Use the credential prompts in step 4 and a copy of the installer evidence:
 
 ```powershell
 $BrowserEvidence = Read-Host 'Path to deployment-evidence.json'
@@ -297,8 +233,9 @@ To roll back the application release, first confirm that the previous release is
 ```powershell
 $PreviousReleaseRef = Read-Host 'Previously deployed and compatible release ref'
 if (-not $PreviousReleaseRef) { throw 'Enter the previous release ref.' }
-& $Installer -WorkDir $WorkspaceRoot -PublicHost $WorkspaceHost -GitRef $PreviousReleaseRef `
-    -EmbeddingEndpoint $EmbeddingEndpoint -EmbeddingModel $EmbeddingModel -EmbeddingRevision $ModelDigest
+$RollbackArgs = $InstallArgs.Clone()
+$RollbackArgs.GitRef = $PreviousReleaseRef
+& $Preparation.Installer @RollbackArgs
 if ($LASTEXITCODE -ne 0) { throw 'Release rollback failed.' }
 docker @ComposeArgs ps -a
 docker @ComposeArgs exec -T api curl -fsS http://127.0.0.1:8080/health
