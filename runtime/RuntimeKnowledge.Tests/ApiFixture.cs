@@ -75,9 +75,10 @@ internal sealed class ApiFixture : IAsyncDisposable
     public HttpClient CreateClient() => _factory.CreateClient();
 
     public HttpClient ClientWithToken(string[] roles, bool expired = false, string? issuer = null,
-        string? audience = null, bool wrongSignature = false, string? keycloakClient = null, bool injectCapability = false)
+        string? audience = null, bool wrongSignature = false, string? keycloakClient = null, bool injectCapability = false,
+        string subject = "fixture-user")
     {
-        var claims = new List<Claim> { new("sub", "fixture-user") };
+        var claims = new List<Claim> { new("sub", subject) };
         if (_provider == "Keycloak")
         {
             var resources = new Dictionary<string, object> { [keycloakClient ?? ClientId] = new { roles } };

@@ -1,10 +1,44 @@
 using System.Net;
+using System.Net.Http.Json;
+using RuntimeKnowledge.Contracts;
 using Xunit;
 
 namespace RuntimeKnowledge.Tests;
 
 public sealed class IdentityTests
 {
+    [Fact]
+    public async Task AnotherManagerCanEditAndRemoveWithTheirOwnAttribution()
+    {
+        await using var f = await ApiFixture.OpenAsync("Keycloak");
+        using var author = f.ClientWithToken(["ManageKnowledgeGraph"], subject: "original-manager");
+        using var editor = f.ClientWithToken(["ManageKnowledgeGraph"], subject: "second-manager");
+        using var reader = f.ClientWithToken(["ReadKnowledgeGraph"], subject: "fixture-reader");
+        using var created = await f.PostAnnotationAsync(author);
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+        var note = (await created.Content.ReadFromJsonAsync<ContributionResult>())!;
+        var path = $"/api/contributions/{note.Id:D}";
+        var edit = new EditContributionRequest(note.Version, "businessExplanation", "Clarified by the second manager.");
+        using var deniedEdit = await reader.PutAsJsonAsync(path, edit);
+        using var deniedRemoval = await reader.PostAsJsonAsync(path + "/remove", new RemoveContributionRequest(note.Version));
+        Assert.Equal(HttpStatusCode.Forbidden, deniedEdit.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, deniedRemoval.StatusCode);
+
+        using var edited = await editor.PutAsJsonAsync(path, edit);
+        edited.EnsureSuccessStatusCode();
+        var revision = (await edited.Content.ReadFromJsonAsync<ContributionResult>())!;
+        using var removed = await editor.PostAsJsonAsync(path + "/remove", new RemoveContributionRequest(revision.Version));
+        removed.EnsureSuccessStatusCode();
+
+        var history = (await reader.GetFromJsonAsync<HistoryPage>($"/api/history?contributionId={note.Id:D}"))!;
+        Assert.Equal(new[] { "original-manager", "second-manager", "second-manager" },
+            history.Entries.OrderBy(entry => entry.Position).Select(entry => entry.Actor.Subject));
+        var removal = Assert.Single(history.Entries, entry => entry.After.Removed);
+        Assert.Equal(note.Id, removal.ContributionId);
+        Assert.Equal("original-manager", removal.After.Author.Subject);
+        Assert.Equal(edit.Text, removal.Before!.Annotation!.Text);
+    }
+
     [Theory]
     [InlineData("Keycloak")]
     [InlineData("Entra")]

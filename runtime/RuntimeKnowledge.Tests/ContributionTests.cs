@@ -54,6 +54,19 @@ public sealed class ContributionTests
     }
 
     [Fact]
+    public async Task IncompleteMeaningCreatesNeitherRelationshipNorHistory()
+    {
+        await using var s = await Scenario.OpenAsync();
+        await s.ActivateAsync("initial");
+        var store = new ContributionStore(s.Db);
+        var error = await Assert.ThrowsAsync<WorkspaceException>(() => store.ApplyAsync(s.Actor,
+            new CreateRelationship(s.A, s.B, RelationshipMeaning.Custom("routes", " ")), None));
+        Assert.Equal("invalidMeaning", error.Code);
+        Assert.DoesNotContain(await s.TraverseAsync(s.A), step => step.RuntimeId.HasValue);
+        Assert.Empty((await store.HistoryAsync(null, new PageRequest(), None)).Entries);
+    }
+
+    [Fact]
     public async Task PublicationWinsBeforeWaitingWriteAndRetainedRecordsStayEditable()
     {
         await using var s = await Scenario.OpenAsync();
