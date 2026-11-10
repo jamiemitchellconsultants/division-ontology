@@ -48,14 +48,15 @@ jobs:
         uses: actions/create-github-app-token@v3
         id: source-token
         with:
-          client-id: ${{ vars.DIVISION_SYNC_APP_CLIENT_ID }}
-          private-key: ${{ secrets.DIVISION_SYNC_APP_PRIVATE_KEY }}
+          client-id: ${{ vars.DIVISION_SOURCE_APP_CLIENT_ID || vars.DIVISION_SYNC_APP_CLIENT_ID }}
+          private-key: ${{ secrets.DIVISION_SOURCE_APP_PRIVATE_KEY || secrets.DIVISION_SYNC_APP_PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
           permission-contents: read
       - name: Evaluate trusted policy
         env:
           GH_TOKEN: ${{ github.token }}
           GH_SOURCE_TOKEN: ${{ steps.source-token.outputs.token }}
+          DIVISION_SOURCE_APP: ${{ vars.DIVISION_SOURCE_APP_CLIENT_ID && 'enabled' || 'disabled' }}
           GIT_ASKPASS: ${{ github.workspace }}/scripts/git-askpass.sh
           GIT_TERMINAL_PROMPT: '0'
           PR_NUMBER: ${{ github.event.pull_request.number }}
