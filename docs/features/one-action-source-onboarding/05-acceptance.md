@@ -9,7 +9,7 @@ Every behaviour B1–B17 has a scripted walkthrough and an executable acceptance
 
 Participant, architect and reviewer: the person who runs the commands in [What to run](#what-to-run) and records each result below. They read and approve the executable tests; the commands, not the participant, compare actual with expected results.
 
-**Status: local executable layer passed; acceptance not complete.** The local executable layer passed on a clean checkout of the PR head (see [Formal results](#formal-results)). The participant has not yet approved `test/acceptance/onboarding.test.mjs`, and the deployed environment does not exist yet, so the deployed layer has not been run.
+**Status: local build accepted; deployed environment not yet run.** The local executable layer passed on a clean checkout of the PR head and the participant has approved the executable test file (see [Formal results](#formal-results)). The deployed environment does not exist yet, so the deployed layer has not been run.
 
 ## What to run
 
@@ -186,7 +186,7 @@ During preparation, before any acceptance, `npm run --silent acceptance:onboardi
 
 Record the result of the command for every behaviour in each environment, with the date, the revision and the person who ran it. The commands compare actual with expected results, so the walkthrough column records that the executable run covered that behaviour. A failure is pushback to the build, not something to fix here.
 
-**Local build, executable layer.** On 10 November 2026, James Mitchell ran `npm ci && npm run --silent acceptance:onboarding` on `M4Mini.local` using Node `v26.7.0` at revision `ebe0113`, the head of PR 91, with `Working tree: clean`. All 23 acceptance checks passed, including one named check for each of B1–B17, and the command reported `PASS — repository tests and one-action source onboarding B1–B17`. Approval of the executable test file is still to be given.
+**Local build, executable layer.** On 10 November 2026, James Mitchell ran `npm ci && npm run --silent acceptance:onboarding` on `M4Mini.local` using Node `v26.7.0` at revision `ebe0113`, the head of PR 91, with `Working tree: clean`. All 23 acceptance checks passed, including one named check for each of B1–B17, and the command reported `PASS — repository tests and one-action source onboarding B1–B17`. On 10 November 2026, after a plain-English summary of what `test/acceptance/onboarding.test.mjs` does and does not prove, James Mitchell approved the executable test file. The local build is accepted for the executable layer.
 
 | Behaviour | Local walkthrough | Local executable | Deployed walkthrough | Deployed run |
 | --- | --- | --- | --- | --- |
@@ -208,4 +208,4 @@ Record the result of the command for every behaviour in each environment, with t
 | B16 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | not yet run | not yet run |
 | B17 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | not yet run | not yet run |
 
-**Acceptance: not complete.** The local executable layer passed; the participant's approval of the executable tests and the whole deployed layer are still open.
+**Acceptance: not complete.** The local build is accepted; the whole deployed layer is still open.
