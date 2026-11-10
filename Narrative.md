@@ -34,6 +34,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [24](#entry-docs-amend-one-action-onboarding-vision-for-division-templates) | 2026-11-10 | docs: amend one-action onboarding vision for division templates | product | An owner joins one particular division by granting that division's own read-only App access. Joining must need no steward approval of the steward-governed source registration or division settings. |
 | [25](#entry-docs-feature-define-one-action-source-onboarding-behaviours) | 2026-11-10 | docs(feature): define one-action source onboarding behaviours | product | A SourceAccessGrant to a division's own read-only App registers a repository that has a committed SourceImportConfiguration; `sources.json` stays for steward-registered sources and governs when a repository is both. |
 | [26](#entry-ci-run-the-catalog-sync-every-two-hours) | 2026-11-10 | ci: run the catalog sync every two hours | product | Division copies run the scheduled sync every two hours. The template keeps the sync disabled. |
+| [27](#entry-docs-feature-define-one-action-source-onboarding-architecture) | 2026-11-10 | docs(feature): define one-action source onboarding architecture | product | Each division has a dedicated read-only source App (Contents and Metadata read) that owners add repositories to, separate from the division-writer App. |
 
 ---
 
@@ -618,5 +619,29 @@ Division copies run the scheduled sync every two hours. The template keeps the s
 In a division, a new source version reaches the generated catalog PR up to two hours after commit rather than 30 minutes, which still meets "the next normal sync" in the one-action onboarding vision; manual dispatch remains for an immediate run. In the template, generated `dist/` changes, such as those following new core terms, are made by a separate generated-only PR rather than by the sync.
 
 AI-Fingerprint: sha256:0db922f6f455
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+---
+
+<a id="entry-docs-feature-define-one-action-source-onboarding-architecture"></a>
+
+## Entry 27 — 2026-11-10 — docs(feature): define one-action source onboarding architecture
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The accepted behaviours need a source owner's one action to join a division catalog without write access or steward approval. The current sync App has write permission across its installation, so granting it would not be read-only. Source registration changes force steward review, one invalid source fails the whole build, and `dist/` is only a function of live sources, so an earlier valid version cannot be kept when a source turns invalid or loses access. The Analyst left open how grants are discovered (U11) and which file configures an import (U10).
+
+## Decision
+
+Each division has a dedicated read-only source App (Contents and Metadata read) that owners add repositories to, separate from the division-writer App. Grants are found by polling the installation during the normal sync; no webhook receiver is built (ADR 0009). A source declares its ontology path and namespace in `.division-ontology.json` on its default branch, rather than overloading InternalOntology's `ontology.config.json`, whose `ontologyPath` names the Markdown view (ADR 0010). Import status is generated into `dist/` with no timestamps, and the committed `dist/` is a build input so the last valid version is carried forward. Content failures become status, while GitHub or network failures fail the run (ADR 0011). Each source records its origin; granted-source failures are isolated while registered sources stay strict; namespace conflicts favour the existing holder; and refreshes touching only granted sources classify as automatic (ADR 0012).
+
+## Consequences
+
+Divisions need two Apps and two sets of credentials, and a new grant can take up to two hours to appear. Granted sources can publish their own definitions in their own namespace without review, limited by the namespace checks and by links staying steward-only. `verifyRefresh` must include the base `dist/`, and readers of `catalog.sources` such as the C4 loader and the workspace importer will see granted and stale sources. The developer must confirm how to read the installation's `repository_selection` and the Contents API volume. Offering to write `.division-ontology.json` in InternalOntology's installer is a separate change in that repository.
+
+AI-Fingerprint: sha256:b2eeb0b6eb7c
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
