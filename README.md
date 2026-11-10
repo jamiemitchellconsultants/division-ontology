@@ -55,6 +55,8 @@ The demo builds its own division repository, so it skips the real registration s
 
 Requires Node.js 20 or newer and a clean checkout of each source repository.
 
+If the committed catalog holds granted sources, `build` and `check` also list the source-read App's installation, so run them with `DIVISION_SOURCE_APP=enabled` and `GH_SOURCE_TOKEN` set to a read-only installation token for that App (never in a file or argument list). Without them the command stops rather than treating the granted sources as removed.
+
 ```bash
 npm ci
 npm test

@@ -18,3 +18,9 @@ test('README, AGENTS and GOVERNANCE describe the single owner action and its lim
   assert.match(text('GOVERNANCE.md'), /granted/i);
   assert.match(text('GOVERNANCE.md'), /namespace/i);
 });
+test('docs state the limits found in review: own account only, paired credentials, local builds', () => {
+  assert.match(text('docs/automation-setup.md'), /division's own GitHub account/);
+  assert.match(text('docs/automation-setup.md'), /Set the client ID variable and the private key secret together/);
+  assert.match(text('docs/Add-Repo-With-Internal-Ontology-To-Division-Ontology-Three-Step-Instructions.md'), /same GitHub account or organisation/);
+  assert.match(text('README.md'), /DIVISION_SOURCE_APP=enabled/);
+});

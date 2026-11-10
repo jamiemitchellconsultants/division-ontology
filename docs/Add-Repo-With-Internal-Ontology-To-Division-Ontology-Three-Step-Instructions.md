@@ -12,6 +12,8 @@ A source owner can join a division without a pull request here or any steward ap
 3. Wait for the next sync, or ask the division's App owner to run `Sync division catalog`.
 4. Look for the repository's row under **Import status** in the division's `dist/catalog.md`. `current` means its concepts are published at that commit; `invalid`, `not configured` or `access removed` explain what to fix.
 
+The repository must be in the same GitHub account or organisation as the division, because the division's sync only lists its own account's installation of the App.
+
 The steps below remain for steward-registered sources, for reviewed links to shared terms, and for repositories that cannot be granted. A granted source cannot carry links or change shared terms, and a namespace already used by the core or another source is rejected.
 
 ## Who needs what access

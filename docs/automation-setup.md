@@ -24,6 +24,8 @@ The next normal sync, up to two hours later or when you run `Sync division catal
 
 A failed or incomplete listing, a rate limit or any other GitHub error fails the whole run and leaves `dist/` untouched; it is never read as removed access. A content problem in one source (invalid configuration, unreadable or invalid ontology, a namespace already in use) is reported in that source's status row and does not hold back the others; its last valid version stays in the catalog marked stale. Refreshes that only change granted sources merge without a steward. Links, shared terms, `sources.json` and `division.json` still need a steward.
 
+Grants are discovered only in the division's own GitHub account or organisation: the source token is minted for this repository's owner, so an installation of the source-read App elsewhere is never listed and gets no status row. Set the client ID variable and the private key secret together; setting only one makes the workflow read with mismatched credentials and the run fails.
+
 A steward-registered private source must also be installed on whichever App reads it. If it is both registered and granted, the registration governs.
 
 ## 2. Make the trusted policy the merge gate

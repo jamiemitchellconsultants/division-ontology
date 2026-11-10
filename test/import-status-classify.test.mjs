@@ -69,3 +69,7 @@ test('one failing source does not hold back the others, and rows are sorted', ()
   assert.deepEqual(rows.map((row) => [row.source, row.status]), [['o/a', 'invalid'], ['o/m', 'not configured'], ['o/z', 'current']]);
   assert.deepEqual(sources.map((s) => s.id), ['o/z']);
 });
+test('registered ids match published ids ignoring case (review 5)', () => {
+  const out = classify({ published: published(['Org/Repo', sha('a'), ns('a')]), registeredIds: new Set(['org/repo']) });
+  assert.deepEqual([out.rows, out.sources], [[], []]);
+});

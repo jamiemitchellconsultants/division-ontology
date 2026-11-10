@@ -17,6 +17,17 @@ function readConfiguration(directory, commit) {
   return parseImportConfiguration(git(['show', `${commit}:${IMPORT_CONFIG_PATH}`], directory));
 }
 
+// A granted ontology may only make statements about its own terms (ADR 0012): the namespace itself,
+// without its trailing # or /, is allowed as the ontology header.
+function foreignSubject(quads, namespace) {
+  const header = namespace.replace(/[#/]$/, '');
+  for (const item of quads) {
+    if (item.subject.termType !== 'NamedNode') continue;
+    if (!item.subject.value.startsWith(namespace) && item.subject.value !== header) return item.subject.value;
+  }
+  return null;
+}
+
 function importOne(repository, urlFor, checkoutOverrides) {
   const { id, defaultBranch } = repository;
   let resolved;
@@ -29,6 +40,8 @@ function importOne(repository, urlFor, checkoutOverrides) {
     const { ontologyPath, namespace } = configuration.config;
     try {
       const quads = readSourceOntology({ id, ontologyPath, namespace }, directory, commit);
+      const foreign = foreignSubject(quads, namespace);
+      if (foreign) return { id, attemptedCommit: commit, result: { ok: false, reason: reason('concept-outside-namespace', foreign) } };
       return { id, attemptedCommit: commit, result: { ok: true, namespace, quads } };
     } catch (error) {
       if (!REASON_CODES.includes(error.code)) throw error;
