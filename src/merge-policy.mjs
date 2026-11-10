@@ -2,15 +2,17 @@ import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { verifyRefresh } from './verify-refresh.mjs';
+import { loadDivision } from './division.mjs';
 
 const generated = new Set(['dist/catalog.json', 'dist/catalog.md', 'dist/combined.nq']);
+const stewardGoverned = new Set(['sources.json', 'division.json']);
 
 export function evaluateMergePolicy({ changedPaths, classification, reviews, headSha, stewardLogins }) {
   if (!changedPaths.length) return { allowed: false, reason: 'pull request has no changed files' };
   const generatedChange = changedPaths.some((path) => generated.has(path));
   const otherChange = changedPaths.some((path) => !generated.has(path));
   if (generatedChange && otherChange) return { allowed: false, reason: 'generated catalog and authored files must use separate pull requests' };
-  if (!generatedChange && !changedPaths.includes('sources.json')) return { allowed: true, reason: 'change does not import or register an ontology' };
+  if (!generatedChange && !changedPaths.some((path) => stewardGoverned.has(path))) return { allowed: true, reason: 'change does not import or register an ontology or change division stewardship' };
   if (generatedChange && classification?.mode === 'automatic') return { allowed: true, reason: 'current generated catalog verified with no linked-concept drift' };
   const stewards = new Set(stewardLogins.map((login) => login.toLowerCase()));
   const stewardReviews = reviews.filter((review) => stewards.has(review.user?.login?.toLowerCase())).sort((a, b) => a.id - b.id);
@@ -84,7 +86,7 @@ export async function checkPr(path) {
     ? await verifyRefresh({ baseRoot: resolve('.'), candidateDist: resolve('_candidate/dist'), changedPaths })
     : { mode: 'review', reasons: ['authored file change'] };
   const reviews = await pages(`/repos/${repo}/pulls/${number}/reviews`);
-  const decision = evaluateMergePolicy({ changedPaths, classification, reviews, headSha: process.env.PR_HEAD_SHA, stewardLogins: ['jamiemitchellconsultants', 'james-mitchell-ba'] });
+  const decision = evaluateMergePolicy({ changedPaths, classification, reviews, headSha: process.env.PR_HEAD_SHA, stewardLogins: loadDivision(resolve('.')).stewards });
   console.log(decision.reason);
   if (!decision.allowed) process.exitCode = 1;
 }

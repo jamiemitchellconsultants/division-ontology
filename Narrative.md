@@ -29,6 +29,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [19](#entry-amend-c4-vision-to-stop-naming-the-pilot-source) | 2026-11-10 | Amend C4 vision to stop naming the pilot source | product | State the deployment-evidence rule as a per-source constraint and describe the Graphify research without naming the repository. The outcomes, scope and research findings are otherwise unchanged. |
 | [20](#entry-amend-workspace-architecture-to-stop-naming-jointbooking) | 2026-11-10 | Amend workspace architecture to stop naming JointBooking | product | Describe the engineering inputs as the division catalog plus the sources a division registers, with the synthetic fixtures for demonstration. |
 | [21](#entry-amend-c4-architecture-to-state-deployment-evidence-per-source) | 2026-11-10 | Amend C4 architecture to state deployment evidence per source | product | Express the Terraform-only rule as a per-source deployment-evidence constraint, matching the implemented selector configuration, and describe the no-graph case without naming a repository. |
+| [22](#entry-make-the-repository-usable-as-a-division-template) | 2026-11-10 | Make the repository usable as a division template | product | Move the namespace and steward logins into a steward-governed `division.json` read by the build and the trusted merge policy, and provide a one-time `init-division` script that requires each division to choose its namespace explicitly. |
 
 ---
 
@@ -489,5 +490,31 @@ No plan or code change is needed: the implementation already reads deployment se
 ---
 
 AI-Fingerprint: sha256:70d38003fa70
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+---
+
+<a id="entry-make-the-repository-usable-as-a-division-template"></a>
+
+## Entry 22 — 2026-11-10 — Make the repository usable as a division template
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The repository is a template that each corporate division copies to steward its own catalog. Copies inherited this repository's steward logins in the merge policy, so a division could never approve its own first source registration. They also inherited this repository's core namespace, its Project Narrative and in-flight feature work, and references to JointBooking, a source the template no longer registers.
+
+## Decision
+
+Move the namespace and steward logins into a steward-governed `division.json` read by the build and the trusted merge policy, and provide a one-time `init-division` script that requires each division to choose its namespace explicitly. Keep the shipped C4 and workspace feature documentation in copies, because the deploy runbook and core ontology cite it, and remove only this repository's narrative, in-flight feature and planning history. Rejected: deriving stewards from CODEOWNERS (a PR could edit both together) and leaving the namespace shared by default (divisions could mint conflicting terms under one IRI).
+
+## Consequences
+
+A division can start from the template, run one command and onboard sources under its own stewards. Changing stewards or the namespace becomes a steward-approved change. The template itself can no longer register sources without removing the template guard test. Keeping the template's namespace in a copy remains possible, but only by passing it explicitly.
+
+---
+
+AI-Fingerprint: sha256:1d58baf5699b
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
