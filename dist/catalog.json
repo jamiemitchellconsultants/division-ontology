@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "core": {
     "namespace": "https://github.com/jamiemitchellconsultants/division-ontology#",
-    "version": "0.3.0",
-    "conceptCount": 8
+    "version": "0.4.0",
+    "conceptCount": 11
   },
   "sources": [],
   "concepts": [
@@ -68,6 +68,33 @@
         "http://www.w3.org/2002/07/owl#Class"
       ],
       "definition": "A persistent human-authored relationship between identified published entities, with stated meaning and runtime provenance, usable independently of repository codification.",
+      "source": "division-core"
+    },
+    {
+      "iri": "https://github.com/jamiemitchellconsultants/division-ontology#SourceAccessGrant",
+      "label": "SourceAccessGrant",
+      "types": [
+        "http://www.w3.org/2002/07/owl#Class"
+      ],
+      "definition": "A source repository administrator's grant of read-only access to one division's App, which is that owner's consent to import the repository's whole committed ontology into that division's catalog and registers the repository as a source without steward approval.",
+      "source": "division-core"
+    },
+    {
+      "iri": "https://github.com/jamiemitchellconsultants/division-ontology#SourceImportConfiguration",
+      "label": "SourceImportConfiguration",
+      "types": [
+        "http://www.w3.org/2002/07/owl#Class"
+      ],
+      "definition": "Repository-owned committed configuration in a source repository that identifies its ontology path and namespace for import.",
+      "source": "division-core"
+    },
+    {
+      "iri": "https://github.com/jamiemitchellconsultants/division-ontology#SourceImportStatus",
+      "label": "SourceImportStatus",
+      "types": [
+        "http://www.w3.org/2002/07/owl#Class"
+      ],
+      "definition": "The catalog's per-source record of a granted source's state (current, invalid, not configured or access removed), last attempted commit, last published commit and any actionable failure reason.",
       "source": "division-core"
     },
     {
