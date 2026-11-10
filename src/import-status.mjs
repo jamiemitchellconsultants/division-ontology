@@ -1,3 +1,7 @@
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { Parser } from 'n3';
+
 export const STATUSES = ['current', 'invalid', 'not configured', 'access removed'];
 export const REASON_CODES = ['config-missing', 'config-invalid', 'ontology-unreadable', 'ontology-invalid-turtle',
   'concept-outside-namespace', 'no-concepts', 'namespace-conflict', 'access-removed'];
@@ -80,4 +84,19 @@ export function classifyGrantedSources({ discovery, outcomes, published, registe
   rows.sort((a, b) => byCodepoint(a.source, b.source));
   sources.sort((a, b) => byCodepoint(a.id, b.id));
   return { rows, sources };
+}
+
+// The committed dist/ is a build input: it holds the last published version of every granted source (ADR 0011).
+export function readPublishedState(root) {
+  const catalogPath = join(root, 'dist/catalog.json');
+  const published = new Map();
+  if (!existsSync(catalogPath)) return published;
+  const granted = JSON.parse(readFileSync(catalogPath, 'utf8')).sources.filter((source) => source.origin === 'granted');
+  if (!granted.length) return published;
+  const all = new Parser({ format: 'N-Quads' }).parse(readFileSync(join(root, 'dist/combined.nq'), 'utf8'));
+  for (const { id, commit, namespace } of granted) {
+    const graph = `urn:division-ontology:source:${encodeURIComponent(id)}:${commit}`;
+    published.set(id, { commit, namespace, quads: all.filter((item) => item.graph.value === graph) });
+  }
+  return published;
 }
