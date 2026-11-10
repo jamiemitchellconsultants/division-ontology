@@ -3,6 +3,17 @@
 Three prompts for onboarding a new source repository, one per actor. Replace
 `OWNER/REPO` with the actual GitHub `owner/repo` before use.
 
+## Fast path: grant the division's read-only App
+
+A source owner can join a division without a pull request here or any steward approval:
+
+1. Commit `.division-ontology.json` to the root of the repository's default branch: `{ "schemaVersion": 1, "ontologyPath": "docs/ontology.ttl", "namespace": "https://your.namespace/ontology#" }`. The path must name the committed Turtle ontology and the namespace must be the one its concepts use.
+2. Add the repository to the division's source-read App (its selected repositories). You need administrator access to the repository, and your organisation must allow you to add the App.
+3. Wait for the next sync, or ask the division's App owner to run `Sync division catalog`.
+4. Look for the repository's row under **Import status** in the division's `dist/catalog.md`. `current` means its concepts are published at that commit; `invalid`, `not configured` or `access removed` explain what to fix.
+
+The steps below remain for steward-registered sources, for reviewed links to shared terms, and for repositories that cannot be granted. A granted source cannot carry links or change shared terms, and a namespace already used by the core or another source is rejected.
+
 ## Who needs what access
 
 | Persona | Access to `division-ontology` | Access to `OWNER/REPO` | What only they can do |

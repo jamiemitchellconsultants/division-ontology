@@ -2,13 +2,29 @@
 
 The workflows can be merged before credentials are configured. Until setup is complete, scheduled runs fail with a configuration message, and the existing branch review rule continues to govern PRs. Do not set `DIVISION_AUTO_MERGE_READY` until a live policy check and branch rule have been verified.
 
-## 1. Give the sync workflow scoped installation tokens
+## 1. Create the two Apps
 
-Create a GitHub App owned by the organisation or account that owns this repository, with repository **Contents: Read and write** and **Pull requests: Read and write** permissions. Webhooks are not needed. Install it on **selected repositories**: this repository and each configured private source. Record its client ID in this repository's Actions variable `DIVISION_SYNC_APP_CLIENT_ID`. Generate a private key and put its entire PEM content in the Actions secret `DIVISION_SYNC_APP_PRIVATE_KEY`. Do not put the key or token in a file, PR, URL, or command argument.
+Each division creates its own pair of GitHub Apps, owned by the organisation or account that owns this repository. Webhooks are not needed for either.
 
-The workflow mints a source token with Contents **read** over the installed repositories, and a separate writer token with Contents and Pull requests **write** limited to `division-ontology`. The App itself still has latent Contents write permission across every repository in its installation. For stricter separation, use two Apps: a source-read App installed on sources and a division-writer App installed only here; adjust the two token steps and variable/secret names before setup. The single-App version needs the fewest administrative actions.
+**Division-writer App.** Repository **Contents: Read and write** and **Pull requests: Read and write**. Install it on this repository only. Record its client ID in the Actions variable `DIVISION_SYNC_APP_CLIENT_ID` and put its private key (the whole PEM) in the Actions secret `DIVISION_SYNC_APP_PRIVATE_KEY`.
 
-When a new private source is approved, add that repository to the App installation. Its entry in `sources.json` alone does not grant read access. All division readers are assumed to have permission to read every participating source's published concepts.
+**Source-read App.** Repository **Contents: read** and **Metadata: read**, and nothing else. This is the App source owners add their repositories to, so it must never be installed on this repository. Record its client ID in the Actions variable `DIVISION_SOURCE_APP_CLIENT_ID` and put its private key in the Actions secret `DIVISION_SOURCE_APP_PRIVATE_KEY`. Do not put either key or any token in a file, PR, URL or command argument.
+
+The workflow mints a source token from the source-read App and a separate writer token, limited to this repository, from the division-writer App. Without the source-read App variables, the workflow falls back to the writer App for reading steward-registered sources and does not look for granted sources. A single-App setup therefore keeps working for steward-registered sources, but it cannot take grants, and the sync stops with a configuration message if the committed catalog already holds a granted source.
+
+### How a source joins
+
+A source owner needs only one action: add their repository to the source-read App's selected repositories (or install it on all repositories). The repository must have committed `.division-ontology.json` at the root of its default branch:
+
+```json
+{ "schemaVersion": 1, "ontologyPath": "docs/ontology.ttl", "namespace": "https://example.org/ontology#" }
+```
+
+The next normal sync, up to two hours later or when you run `Sync division catalog`, lists the App's installation, imports each configured repository's default-branch head, and publishes its concepts with a row in the catalog's import status table. That sync costs one request per installed repository to check for the file, so very large installations should be installed on selected repositories. With an **All repositories** installation only repositories that carry `.division-ontology.json` join; with selected repositories, a repository without it is reported as `not configured`.
+
+A failed or incomplete listing, a rate limit or any other GitHub error fails the whole run and leaves `dist/` untouched; it is never read as removed access. A content problem in one source (invalid configuration, unreadable or invalid ontology, a namespace already in use) is reported in that source's status row and does not hold back the others; its last valid version stays in the catalog marked stale. Refreshes that only change granted sources merge without a steward. Links, shared terms, `sources.json` and `division.json` still need a steward.
+
+A steward-registered private source must also be installed on whichever App reads it. If it is both registered and granted, the registration governs.
 
 ## 2. Make the trusted policy the merge gate
 
@@ -25,3 +41,5 @@ Enable repository **Allow auto-merge**, then set the Actions variable `DIVISION_
 Trigger `Sync division catalog` with **Run workflow**. Confirm a no-change run exits successfully without a PR, or that a changed source updates the single `automation/catalog-refresh` PR. Check that its body lists source commits, its AI fingerprint check passes, `merge-policy` checks fresh output, and no credential appears in logs or generated files. On a linked-concept change, confirm that it waits for steward approval; after approving, wait for `Recheck division reviews` to rerun the gate. If the source moves after the PR was created, the policy fails it until the next sync refreshes the PR.
 
 An inaccessible or malformed source causes a failed workflow and leaves the published `dist/` untouched. Correct the source or App installation, then use **Sync division ontology now** with a coding agent to retry.
+
+To test a grant, commit `.division-ontology.json` to a scratch repository, add that repository to the source-read App, run `Sync division catalog`, and confirm the repository appears in `dist/catalog.md` under **Import status** with a `current` row. Remove it from the App and run the sync again to see `access removed`.

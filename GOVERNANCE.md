@@ -10,6 +10,8 @@ A shared IRI is stable. Renaming a label does not silently change its meaning. A
 
 Every configured repository contributes all named concepts from its committed Turtle ontology. Source repositories own their definitions. This repository records their source commit in the generated catalog and keeps each source in its own RDF named graph.
 
+A repository added to the division's read-only source App with a committed `.division-ontology.json` is a granted source. It joins without steward approval and contributes all its concepts, and its import status is published in the catalog. A granted source can never carry links or change shared terms, and a namespace that overlaps the core's or another source's is rejected, so the existing holder is unaffected. A repository that is also registered in `sources.json` is one source, and its steward registration governs.
+
 A link is a reviewed assertion, never an automatic conclusion from a matching name. `exact` asserts class equivalence and therefore requires equal canonical labels; `specializes` asserts that the local class is narrower than the shared class. Incorrect links are corrected by a new pull request. Similarity suggestions may inform review but do not block or create links.
 
 ## Publication

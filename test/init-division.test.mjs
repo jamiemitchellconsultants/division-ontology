@@ -35,6 +35,8 @@ test('a fresh copy gets its own namespace, stewards, empty narrative and catalog
     assert.ok(existsSync(join(root, 'docs/features/runtime-knowledge-workspace/05-runbook.md')));
     const catalog = JSON.parse(readFileSync(join(root, 'dist/catalog.json'), 'utf8'));
     assert.equal(catalog.core.namespace, namespace);
+    assert.deepEqual(catalog.sources, []);
+    assert.deepEqual(catalog.importStatus, []);
     assert.ok(catalog.concepts.every((concept) => concept.iri.startsWith(namespace)));
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
