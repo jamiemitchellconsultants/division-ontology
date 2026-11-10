@@ -32,6 +32,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [22](#entry-make-the-repository-usable-as-a-division-template) | 2026-11-10 | Make the repository usable as a division template | product | Move the namespace and steward logins into a steward-governed `division.json` read by the build and the trusted merge policy, and provide a one-time `init-division` script that requires each division to choose its namespace explicitly. |
 | [23](#entry-add-demo-commands-for-the-synthetic-three-repo-ingestion) | 2026-11-10 | Add demo commands for the synthetic three-repo ingestion | product | Make the existing fixture available through `npm run demo:*` scripts and add a demo script that keeps the local workspace running until `demo:down` is run. All demo data lives outside the checkout so it is fully removable. |
 | [24](#entry-docs-amend-one-action-onboarding-vision-for-division-templates) | 2026-11-10 | docs: amend one-action onboarding vision for division templates | product | An owner joins one particular division by granting that division's own read-only App access. Joining must need no steward approval of the steward-governed source registration or division settings. |
+| [25](#entry-docs-feature-define-one-action-source-onboarding-behaviours) | 2026-11-10 | docs(feature): define one-action source onboarding behaviours | product | A SourceAccessGrant to a division's own read-only App registers a repository that has a committed SourceImportConfiguration; `sources.json` stays for steward-registered sources and governs when a repository is both. |
 
 ---
 
@@ -568,5 +569,29 @@ An owner joins one particular division by granting that division's own read-only
 The analyst works from a vision that matches the template model. Behaviours and acceptance must target a division copy, and admission must avoid the steward-gated files. Multi-division routing from a single grant is not designed for.
 
 AI-Fingerprint: sha256:73f4718393ff
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+---
+
+<a id="entry-docs-feature-define-one-action-source-onboarding-behaviours"></a>
+
+## Entry 25 — 2026-11-10 — docs(feature): define one-action source onboarding behaviours
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The vision requires one owner action to join a division catalog, no steward admission approval, prompt visibility, unattended updates and source-specific import status. Today a source joins only through a steward-approved `sources.json` change, and any catalog refresh that changes source registration needs steward review. The repository is also now a template that must ship with no sources.
+
+## Decision
+
+A SourceAccessGrant to a division's own read-only App registers a repository that has a committed SourceImportConfiguration; `sources.json` stays for steward-registered sources and governs when a repository is both. Refreshes that only add, update or change the status of granted sources merge automatically; links and core terms keep review. Import status lives in the generated catalog. Removed access and invalid later versions keep the last published version, marked stale. All-repositories installations admit only configured repositories. The default branch head is imported, and namespace conflicts reject the new claimant. Acceptance runs in a division created with `init-division`. SourceAccessGrant, SourceImportConfiguration and SourceImportStatus are added to the core ontology.
+
+## Consequences
+
+The architect must design discovery of grants and removals, the SourceImportConfiguration contract with InternalOntology, a refresh classification that treats granted-source changes as automatic, and a catalog status table without time-based churn. Organisation policy for per-division Apps must be confirmed during acceptance planning. Renamed, transferred and archived repositories are out of scope. The generated catalog change for the new core terms follows in the scheduled-sync PR.
+
+AI-Fingerprint: sha256:f853655fff7a
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
