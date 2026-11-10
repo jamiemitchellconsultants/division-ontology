@@ -77,6 +77,11 @@ npm run c4 -- view --catalog-commit <sha> --registry-commit <sha> --checkout own
 
 View levels are `context`, `container`, `component` and `code`. `assessment-init` takes `--request-id` and `--description-file`; edit the generated JSON to record findings, then use `assessment-render --input FILE`. `feedback-render --input FILE --assessment-file FILE` renders a separate feedback record tied to the validated assessment digest. These commands also require the shared snapshot and checkout flags. To cite an inspected-code view in an assessment, include its digest in `viewIds` and supply its saved JSON using repeatable `--view-input FILE` on assessment and feedback rendering. `view` accepts an optional `--supplement FILE` for architect-inspected code evidence.
 
+## Features and project narrative
+
+- [`docs/features/`](docs/features/) holds each feature's working record: vision, behaviours, architecture, plans, and user acceptance.
+- [`Narrative.md`](Narrative.md) is the generated project history of what was asked, decided, why, and what followed. Edit its fragments in [`narrative/entries/`](narrative/entries/), not the generated file.
+
 ## Try the workspace with disposable data
 
 On a Mac with Docker and jq, install the browser used by the smoke test, then run it from a checkout:
