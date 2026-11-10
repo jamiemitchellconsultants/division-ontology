@@ -30,6 +30,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [20](#entry-amend-workspace-architecture-to-stop-naming-jointbooking) | 2026-11-10 | Amend workspace architecture to stop naming JointBooking | product | Describe the engineering inputs as the division catalog plus the sources a division registers, with the synthetic fixtures for demonstration. |
 | [21](#entry-amend-c4-architecture-to-state-deployment-evidence-per-source) | 2026-11-10 | Amend C4 architecture to state deployment evidence per source | product | Express the Terraform-only rule as a per-source deployment-evidence constraint, matching the implemented selector configuration, and describe the no-graph case without naming a repository. |
 | [22](#entry-make-the-repository-usable-as-a-division-template) | 2026-11-10 | Make the repository usable as a division template | product | Move the namespace and steward logins into a steward-governed `division.json` read by the build and the trusted merge policy, and provide a one-time `init-division` script that requires each division to choose its namespace explicitly. |
+| [23](#entry-add-demo-commands-for-the-synthetic-three-repo-ingestion) | 2026-11-10 | Add demo commands for the synthetic three-repo ingestion | product | Make the existing fixture available through `npm run demo:*` scripts and add a demo script that keeps the local workspace running until `demo:down` is run. All demo data lives outside the checkout so it is fully removable. |
 
 ---
 
@@ -516,5 +517,31 @@ A division can start from the template, run one command and onboard sources unde
 ---
 
 AI-Fingerprint: sha256:1d58baf5699b
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+---
+
+<a id="entry-add-demo-commands-for-the-synthetic-three-repo-ingestion"></a>
+
+## Entry 23 — 2026-11-10 — Add demo commands for the synthetic three-repo ingestion
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+A team that creates a division repository from this template starts with no registered sources and empty C4 registries, so it has nothing to look at until a real repository has been onboarded. A synthetic three-system fixture and a workspace smoke test already existed, but the fixture was documented only under `test/fixtures/`, and the smoke test tears the workspace down as soon as its checks finish.
+
+## Decision
+
+Make the existing fixture available through `npm run demo:*` scripts and add a demo script that keeps the local workspace running until `demo:down` is run. All demo data lives outside the checkout so it is fully removable. Registering the synthetic repositories in this repository's real `sources.json` was rejected because it would pollute the template and its generated catalog.
+
+## Consequences
+
+New teams can explore the catalog, C4 paths and the workspace UI with one command and remove everything afterwards. Because the demo builds its own division repository, it does not demonstrate the reviewed registration, scheduled sync and catalog PR flow; the README points to Contribute for that. The workspace demo requires Docker and jq.
+
+---
+
+AI-Fingerprint: sha256:ac5c525b1bd7
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
