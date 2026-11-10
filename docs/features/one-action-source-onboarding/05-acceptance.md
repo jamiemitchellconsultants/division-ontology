@@ -9,7 +9,7 @@ Every behaviour B1–B17 has a scripted walkthrough and an executable acceptance
 
 Participant, architect and reviewer: the person who runs the commands in [What to run](#what-to-run) and records each result below. They read and approve the executable tests; the commands, not the participant, compare actual with expected results.
 
-**Status: local build accepted; deployed environment not yet run. Organisation policy (U12) is not tested.** The local executable layer passed on a clean checkout of the PR head and the participant has approved the executable test file (see [Formal results](#formal-results)). The deployed environment does not exist yet, so the deployed layer has not been run.
+**Status: local build accepted; deployed run passed for all behaviours except B3, B4 and B5, which were not run there. Organisation policy (U12) is not tested.** The local executable layer passed on a clean checkout of the PR head and the participant has approved the executable test file (see [Formal results](#formal-results)). The deployed run is recorded under [Formal results](#formal-results).
 
 ## What to run
 
@@ -192,22 +192,38 @@ Record the result of the command for every behaviour in each environment, with t
 
 | Behaviour | Local walkthrough | Local executable | Deployed walkthrough | Deployed run |
 | --- | --- | --- | --- | --- |
-| B1 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | not yet run | not yet run |
-| B2 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | not yet run | not yet run |
-| B3 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | not yet run | not yet run |
-| B4 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | not yet run | not yet run |
-| B5 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | not yet run | not yet run |
-| B6 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | not yet run | not yet run |
-| B7 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | not yet run | not yet run |
-| B8 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | not yet run | not yet run |
-| B9 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | not yet run | not yet run |
-| B10 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | not yet run | not yet run |
-| B11 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | not yet run | not yet run |
-| B12 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | not yet run | not yet run |
-| B13 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | not yet run | not yet run |
-| B14 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | not yet run | not yet run |
-| B15 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | not yet run | not yet run |
-| B16 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | not yet run | not yet run |
-| B17 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | not yet run | not yet run |
+| B1 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | compared by the deployed run | pass, D2 (10 Nov 2026) |
+| B2 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | compared by the deployed run | pass, D2 (10 Nov 2026) |
+| B3 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | not run (see below) | not run (see below) |
+| B4 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | not run (see below) | not run (see below) |
+| B5 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | not run (see below) | not run (see below) |
+| B6 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | compared by the deployed run | pass, D2 (10 Nov 2026) |
+| B7 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | compared by the deployed run | pass, D1 (10 Nov 2026) |
+| B8 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | compared by the deployed run | pass, D4 (10 Nov 2026) |
+| B9 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | compared by the deployed run | pass, D5 (10 Nov 2026) |
+| B10 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | compared by the deployed run | pass, D6 (10 Nov 2026) |
+| B11 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | compared by the deployed run | pass, D6, D7 (10 Nov 2026) |
+| B12 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | compared by the deployed run | pass, D8 (10 Nov 2026) |
+| B13 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | compared by the deployed run | pass, D3 (10 Nov 2026) |
+| B14 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | compared by the deployed run | pass, D9, D10 (10 Nov 2026) |
+| B15 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | compared by the deployed run | pass, D8 (10 Nov 2026) |
+| B16 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | compared by the deployed run | pass, D8 (10 Nov 2026) |
+| B17 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | compared by the deployed run | pass, D11 (10 Nov 2026) |
 
-**Acceptance: not complete.** The local build is accepted; the whole deployed layer is still open.
+**Deployed environment, 10 November 2026.** The participant, James Mitchell, ran the deployed layer on `M4Mini.local` against a division created from the template with `init-division`: `jamiemitchellconsultants/onboarding-acceptance-division`, with the Apps `jm-acceptance-division-writer` and `jm-acceptance-source-read` (installations 180587683 and 180587866) and the test repositories `onboarding-acceptance-alpha`, `-beta` and `-gamma`, all under the personal account `jamiemitchellconsultants`. The acceptance tooling was at revision `7f21247` (the head of PR 91). Step D1 (B7) passed on the first attempt, before any sync had run. After three defects found along the way were fixed, `onboarding-deployed.mjs run … --manual-app --from D2` reported `PASS — 10 steps covering B1, B6, B2, B13, B8, B9, B11, B10, B16, B12, B15, B14, B17`. An independent read-only check afterwards (`alpha=current`, `beta=invalid`, `gamma=not configured`) also passed, and all nine refresh PRs the run caused (#3 and #6 to #13) merged with zero reviews, which is what an automatic classification means.
+
+**Defects found by the deployed run, each raised as pushback to the build and fixed before the run could pass.**
+
+1. The sync and review-recheck workflows asked for their writer token on a repository literally named `division-ontology`, so no division with another name could sync (fixed in PR 92).
+2. The sync's finalize step fetched the division repository with the source-read token, which the Apps design keeps off that repository, so a private division could not finalize its refresh PR (fixed in PR 94, with an amendment to ADR 0009).
+3. A division copy kept the template's own tests, two of which assert that the repository has no sources, so its required `test` check failed on the first refresh that added a source (fixed in PR 96; `init-division` now removes them).
+
+**Not run in the deployed environment.**
+
+- **B3** needs a merged `sources.json` PR approved by a steward other than its author. The division has one steward, who is also the only author, so GitHub cannot give that approval. It is covered by the local executable run.
+- **B4** needs a second division with its own pair of Apps. It is covered by the local executable run, and by construction: each division installs its own App, so another division's installation is a different list.
+- **B5** needs the source-read App installed on all repositories of the account, which would give a read-only App access to every private repository the account owns.
+
+**Not tested at all.** Organisation policy about who may add an App (assumption U12): a personal account cannot test it, and the participant cannot create an organisation. That the source owner has no write access to the division repository could not be shown with a single account; the run shows only that joining needed no commit or PR in the division repository beyond the generated refresh. Beta was already in the App's repository list before step D8, so D8 tested the namespace conflict, the invalid-first-version case and isolation, but not a grant arriving in the same sync as its configuration.
+
+**Acceptance: not complete.** The local build is accepted and the deployed run passed for every behaviour it covers. B3, B4 and B5 have no deployed result, and the participant has not yet decided whether the acceptance stands without them.
