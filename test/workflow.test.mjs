@@ -7,7 +7,7 @@ import YAML from 'yaml';
 const workflow = (name) => YAML.parse(readFileSync(join(import.meta.dirname, '../.github/workflows', name), 'utf8'));
 test('scheduled sync is manually runnable and restricts PR updates to generated outputs', () => {
   const sync = workflow('sync-catalog.yml');
-  assert.equal(sync.on.schedule[0].cron, '*/30 * * * *');
+  assert.equal(sync.on.schedule[0].cron, '0 */2 * * *');
   assert.ok(sync.on.workflow_dispatch);
   const steps = Object.values(sync.jobs)[0].steps;
   const create = steps.find((step) => step.uses?.startsWith('peter-evans/create-pull-request@'));
