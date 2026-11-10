@@ -40,6 +40,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [30](#entry-fix-let-a-division-copy-use-any-repository-name) | 2026-11-10 | fix: let a division copy use any repository name | product | Remove `owner` and `repositories` from the writer-token step in both workflows. |
 | [31](#entry-fix-fetch-the-division-repository-with-the-writer-token-not-the-source-t) | 2026-11-10 | fix: fetch the division repository with the writer token, not the source token | product | The finalize step authenticates its git fetch with the division-writer token, which is installed on the division repository. The source-read token is for reading source repositories only: it clones sources and lists the installation. |
 | [32](#entry-fix-remove-the-template-only-tests-from-a-new-division-copy) | 2026-11-10 | fix: remove the template-only tests from a new division copy | product | `init-division` removes `test/template.test.mjs` and `test/init-division.test.mjs` from a division copy, next to the template history it already removes. |
+| [33](#entry-docs-feature-one-action-source-onboarding-acceptance) | 2026-11-10 | docs(feature): one-action source onboarding acceptance | product | Two acceptance layers per behaviour. Locally, a scripted harness creates two divisions with the real `init-division`, five local Git repositories and a file-backed stand-in for the App installation. |
 
 ---
 
@@ -768,5 +769,29 @@ In the deployed acceptance, sync run 42865502599 succeeded, refresh PR #3 was fi
 A new division's required `test` check no longer fails when a source joins. An existing division deletes the two files in a pull request, as the README now says. The template keeps both tests and still enforces that it ships empty. Any future test that asserts template-only facts must be added to `templateOnlyTests` in `scripts/init-division.mjs`. Nothing else about behaviour, the catalog or the architecture changes.
 
 AI-Fingerprint: sha256:50ca021c6ca6
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+---
+
+<a id="entry-docs-feature-one-action-source-onboarding-acceptance"></a>
+
+## Entry 33 — 2026-11-10 — docs(feature): one-action source onboarding acceptance
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The build passes its own tests, but its GitHub client has only run against stubs, and the behaviours are only accepted when someone follows each one from outside and the same scenarios pass as executable tests, locally and in a real division with its own pair of Apps.
+
+## Decision
+
+Two acceptance layers per behaviour. Locally, a scripted harness creates two divisions with the real `init-division`, five local Git repositories and a file-backed stand-in for the App installation. The same actions drive both the numbered walkthrough and the ordered executable story in `test/acceptance/onboarding.test.mjs` (B1–B17). One extra check runs the real GitHub client over HTTP against a local API stand-in. In the deployed environment, `test/acceptance/onboarding-deployed.mjs` reads the published catalog and the live source heads and reports each discrepancy; granting and committing stay manual GitHub actions. At the participant's direction the commands compare actual with expected results themselves and stop only on an exception. Locally, `npm run --silent acceptance:onboarding` lists every check by name and prints one PASS line, or the expected and actual values of a failing check. Deployed, `onboarding-deployed.mjs run` commits to the test repositories and changes the App's repository list through `gh`, dispatches the division's sync, waits for it and its refresh PR, compares the published catalog with the live repositories, and stops at the first exception; `--dry-run` lists what it would do without calling GitHub. The deployed run has not been run against GitHub. The existing `rerun.mjs` takes a suite name, so `npm run acceptance:onboarding` mirrors `acceptance:c4`.
+
+## Consequences
+
+Nothing changes in the product in this PR. All six criteria on #14 are ticked. Organisation policy for adding the App (U12) is out of scope for this acceptance because it runs on a personal account; it is recorded as not tested. B4 needs a second division copy. There is no supported way to remove a granted source that has lost access; it stays in the catalog marked stale. That is recorded as a known limit, not fixed here.
+
+AI-Fingerprint: sha256:494972783627
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
