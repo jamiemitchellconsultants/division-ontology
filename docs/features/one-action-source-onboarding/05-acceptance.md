@@ -9,7 +9,7 @@ Every behaviour B1–B17 has a scripted walkthrough and an executable acceptance
 
 Participant, architect and reviewer: the person who runs the commands in [What to run](#what-to-run) and records each result below. They read and approve the executable tests; the commands, not the participant, compare actual with expected results.
 
-**Status: prepared, not yet accepted.** The local executable layer has been run during preparation (see [Preparation run](#preparation-run)), but it has not been run on a clean checkout of a reviewed revision, no executable test has been approved by the participant, and the deployed environment does not exist yet. Nothing under [Formal results](#formal-results) has been recorded as passed.
+**Status: local executable layer passed; acceptance not complete.** The local executable layer passed on a clean checkout of the PR head (see [Formal results](#formal-results)). The participant has not yet approved `test/acceptance/onboarding.test.mjs`, and the deployed environment does not exist yet, so the deployed layer has not been run.
 
 ## What to run
 
@@ -184,26 +184,28 @@ During preparation, before any acceptance, `npm run --silent acceptance:onboardi
 
 ## Formal results
 
-Record the walkthrough result (pass or fail for each step), the executable result, the date, the revision and the person for every behaviour in each environment. A failure is pushback to the build, not something to fix here.
+Record the result of the command for every behaviour in each environment, with the date, the revision and the person who ran it. The commands compare actual with expected results, so the walkthrough column records that the executable run covered that behaviour. A failure is pushback to the build, not something to fix here.
 
-| Behaviour | Local walkthrough | Local executable | Deployed walkthrough | Deployed check |
+**Local build, executable layer.** On 10 November 2026, James Mitchell ran `npm ci && npm run --silent acceptance:onboarding` on `M4Mini.local` using Node `v26.7.0` at revision `ebe0113`, the head of PR 91, with `Working tree: clean`. All 23 acceptance checks passed, including one named check for each of B1–B17, and the command reported `PASS — repository tests and one-action source onboarding B1–B17`. Approval of the executable test file is still to be given.
+
+| Behaviour | Local walkthrough | Local executable | Deployed walkthrough | Deployed run |
 | --- | --- | --- | --- | --- |
-| B1 | not yet run | not yet run | not yet run | not yet run |
-| B2 | not yet run | not yet run | not yet run | not yet run |
-| B3 | not yet run | not yet run | not yet run | not yet run |
-| B4 | not yet run | not yet run | not yet run | not yet run |
-| B5 | not yet run | not yet run | not yet run | not yet run |
-| B6 | not yet run | not yet run | not yet run | not yet run |
-| B7 | not yet run | not yet run | not yet run | not yet run |
-| B8 | not yet run | not yet run | not yet run | not yet run |
-| B9 | not yet run | not yet run | not yet run | not yet run |
-| B10 | not yet run | not yet run | not yet run | not yet run |
-| B11 | not yet run | not yet run | not yet run | not yet run |
-| B12 | not yet run | not yet run | not yet run | not yet run |
-| B13 | not yet run | not yet run | not yet run | not yet run |
-| B14 | not yet run | not yet run | not yet run | not yet run |
-| B15 | not yet run | not yet run | not yet run | not yet run |
-| B16 | not yet run | not yet run | not yet run | not yet run |
-| B17 | not yet run | not yet run | not yet run | not yet run |
+| B1 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | not yet run | not yet run |
+| B2 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | not yet run | not yet run |
+| B3 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | not yet run | not yet run |
+| B4 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | not yet run | not yet run |
+| B5 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | not yet run | not yet run |
+| B6 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | not yet run | not yet run |
+| B7 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | not yet run | not yet run |
+| B8 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | not yet run | not yet run |
+| B9 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | not yet run | not yet run |
+| B10 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | not yet run | not yet run |
+| B11 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | not yet run | not yet run |
+| B12 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | not yet run | not yet run |
+| B13 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | not yet run | not yet run |
+| B14 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | not yet run | not yet run |
+| B15 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | not yet run | not yet run |
+| B16 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | not yet run | not yet run |
+| B17 | compared by the executable run | pass (10 Nov 2026, `ebe0113`) | not yet run | not yet run |
 
-**Acceptance: not yet run.**
+**Acceptance: not complete.** The local executable layer passed; the participant's approval of the executable tests and the whole deployed layer are still open.
