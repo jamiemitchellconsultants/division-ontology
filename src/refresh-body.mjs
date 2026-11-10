@@ -12,6 +12,11 @@ export function renderRefreshBody({ catalog, mode, reasons, fingerprint }) {
     '| Source | Commit | Concepts |', '| --- | --- | ---: |',
     ...catalog.sources.map((source) => `| ${source.id} | \`${source.commit}\` | ${source.conceptCount} |`), '',
   ];
+  if (catalog.importStatus?.length) {
+    const commit = (value) => value ? `\`${value.slice(0, 12)}\`` : '—';
+    lines.push('### Import status', '', '| Source | Status | Published commit | Reason |', '| --- | --- | --- | --- |',
+      ...catalog.importStatus.map((item) => `| ${item.source} | ${item.status} | ${commit(item.publishedCommit)} | ${item.reason ? `${item.reason.code}: ${item.reason.detail}` : ''} |`), '');
+  }
   if (reasons.length) lines.push('Review reasons:', '', ...reasons.map((reason) => `- ${reason}`), '');
   lines.push(`AI-Fingerprint: sha256:${fingerprint}`, '');
   return lines.join('\n');

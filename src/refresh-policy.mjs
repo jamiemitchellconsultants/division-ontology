@@ -18,7 +18,7 @@ function conceptView(catalog, predicate) {
 }
 
 function sourceView(catalog) {
-  return sortJson(catalog.sources.map((item) => [item.id, item.namespace]));
+  return sortJson(catalog.sources.filter((item) => (item.origin ?? 'registered') === 'registered').map((item) => [item.id, item.namespace]));
 }
 
 function linkView(catalog) {
