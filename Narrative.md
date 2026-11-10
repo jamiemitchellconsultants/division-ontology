@@ -37,6 +37,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [27](#entry-docs-feature-define-one-action-source-onboarding-architecture) | 2026-11-10 | docs(feature): define one-action source onboarding architecture | product | Each division has a dedicated read-only source App (Contents and Metadata read) that owners add repositories to, separate from the division-writer App. |
 | [28](#entry-docs-feature-plan-one-action-source-onboarding-build) | 2026-11-10 | docs(feature): plan one-action source onboarding build | product | Thirteen test-first tasks, each ending in a focused commit: reasons, import configuration, a fixture division with a fake grant provider, the granted-source importer, grant discovery, status classification, the catalog builder and… |
 | [29](#entry-feat-one-action-source-onboarding) | 2026-11-10 | feat: one-action source onboarding | product | Granted sources are built beside the strict registered path. |
+| [30](#entry-fix-let-a-division-copy-use-any-repository-name) | 2026-11-10 | fix: let a division copy use any repository name | product | Remove `owner` and `repositories` from the writer-token step in both workflows. |
 
 ---
 
@@ -693,5 +694,29 @@ Granted sources are built beside the strict registered path. A grant provider li
 Every catalog gains `origin`, `stale` and `importStatus`, so `npm run check` reports `dist/catalog.json` stale for `importStatus` only until the scheduled sync PR merges. Divisions need two Apps to take grants, and a grant can take up to two hours to appear. Granted sources are GitHub.com only. The GitHub client is tested against stubs only; the first live run, and acceptance of B1, B4, B6 and B14 with the organisation-policy assumption U12, belong to the user phase. A local build of a division that holds granted sources needs `DIVISION_SOURCE_APP` and `GH_SOURCE_TOKEN`. Writing `.division-ontology.json` from InternalOntology's installer is a separate change in that repository. An independent review found and this PR fixes: blank-node relabelling in carried-forward sources, published namespaces displaced by another source or a steward registration, ontologies over 1 MiB, granted statements about terms outside the namespace, case-sensitive registered ids, and unescaped reasons in the refresh body. Still open: C4 snapshots need a checkout of every source including stale ones.
 
 AI-Fingerprint: sha256:0899d6e39504
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+---
+
+<a id="entry-fix-let-a-division-copy-use-any-repository-name"></a>
+
+## Entry 30 — 2026-11-10 — fix: let a division copy use any repository name
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+Deployed acceptance of one-action source onboarding ran in a throwaway division named `onboarding-acceptance-division`. The sync run (https://github.com/jamiemitchellconsultants/onboarding-acceptance-division/actions/runs/42859953184) failed at "Create division-writer token" with `404 Not Found` because `.github/workflows/sync-catalog.yml` and `.github/workflows/review-recheck.yml` asked the token action for a repository literally named `division-ontology`. This has been so since 2026-09-26 (37e76ec), but the feature's outcome is that every division created from the template can onboard sources. The source-read token, the App setup check and the installation all worked in the same run.
+
+## Decision
+
+Remove `owner` and `repositories` from the writer-token step in both workflows. The token action then scopes the token to only the current repository (its documented behaviour when both are empty), which works for any repository name and is as narrow as before. The source-read token, which deliberately covers the whole installation, is unchanged. `test/workflow.test.mjs` now asserts the writer tokens carry no owner or repositories value, and that no workflow names a literal repository when minting a token.
+
+## Consequences
+
+Divisions may use any repository name. A division copy that already exists picks the fix up by taking these two workflow files. The acceptance run can proceed: it is repeated in the throwaway division once this merges. No behaviour, architecture or catalog output changes. `workspace-images.yml` still names its container image after the template, which is harmless and left alone.
+
+AI-Fingerprint: sha256:29388d63dcba
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
