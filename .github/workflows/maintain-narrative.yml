@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: jamiemitchellconsultants/Narrative@main
+      - uses: jamiemitchellconsultants/Narrative@1c5cf0ad7e10b9b197081280019cb36f5455943b
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           required-label: narrative-required

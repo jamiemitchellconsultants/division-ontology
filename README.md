@@ -4,7 +4,18 @@ A starter repository for a division to steward its shared vocabulary and publish
 
 The shared vocabulary lives in [`core/ontology.ttl`](core/ontology.ttl). Each source remains authoritative for its local concepts. [`sources.json`](sources.json) names participating repositories; `links/` holds explicit relationships to shared terms. The generated [`dist/catalog.md`](dist/catalog.md) is the readable view. [`dist/catalog.json`](dist/catalog.json) is a structured catalog; [`dist/combined.nq`](dist/combined.nq) preserves every source triple in named graphs. Both record source provenance.
 
-Register your division’s source repositories in `sources.json` through the review process below. Concepts with similar names remain separate unless a reviewed link relates them. Source commits in the generated catalog identify the published snapshot.
+Register your division’s source repositories in `sources.json` through the review process below.
+
+## Start a new division from this template
+
+Create the repository with **Use this template**, then run this once in a checkout of the new repository, before registering any sources:
+
+```bash
+npm ci
+npm run init-division -- --namespace https://example.com/sales-division/ontology# --steward your-login --steward deputy-login
+```
+
+It writes the namespace and steward logins to [`division.json`](division.json), moves the shared core into that namespace, sets the stewards as code owners, empties the Project Narrative and removes this template's in-flight feature work and planning history. It then rebuilds `dist/`. The stewards in `division.json` are the only reviewers whose approval satisfies the `merge-policy` check. Keep the template's namespace only if every division should share one set of core IRIs. Review and commit the result, then complete the [one-time automation setup](docs/automation-setup.md). Concepts with similar names remain separate unless a reviewed link relates them. Source commits in the generated catalog identify the published snapshot.
 
 ## Minimal instructions for an agent
 

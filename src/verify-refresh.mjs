@@ -23,6 +23,7 @@ export async function verifyRefresh({ baseRoot, candidateDist, changedPaths, che
     cpSync(join(baseRoot, 'core'), join(temporary, 'core'), { recursive: true });
     cpSync(join(baseRoot, 'links'), join(temporary, 'links'), { recursive: true });
     cpSync(join(baseRoot, 'sources.json'), join(temporary, 'sources.json'));
+    cpSync(join(baseRoot, 'division.json'), join(temporary, 'division.json'));
     const args = ['build'];
     for (const [id, checkout] of checkoutOverrides) args.push('--checkout', `${id}=${checkout}`);
     await runCli(args, { root: temporary });

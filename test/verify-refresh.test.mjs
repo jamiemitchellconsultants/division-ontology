@@ -9,7 +9,7 @@ import { verifyRefresh } from '../src/verify-refresh.mjs';
 
 const names = ['catalog.json', 'catalog.md', 'combined.nq'];
 const sourceId = 'example/booking';
-const core = 'https://github.com/jamiemitchellconsultants/division-ontology#';
+const core = 'https://example.test/division#';
 const sourceText = (extra = '') => `@prefix : <https://example.test/booking#> . @prefix owl: <http://www.w3.org/2002/07/owl#> . @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> . :StaffId a owl:Class; rdfs:label "StaffId" . ${extra}\n`;
 function commit(checkout, text) {
   writeFileSync(join(checkout, 'docs/ontology.ttl'), text);
@@ -28,6 +28,7 @@ async function fixture() {
   commit(checkout, sourceText());
   mkdirSync(join(baseRoot, 'core')); mkdirSync(join(baseRoot, 'links'));
   writeFileSync(join(baseRoot, 'core/ontology.ttl'), `@prefix : <${core}> . @prefix owl: <http://www.w3.org/2002/07/owl#> . @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> . :StaffId a owl:Class; rdfs:label "StaffId" .\n`);
+  writeFileSync(join(baseRoot, 'division.json'), JSON.stringify({ namespace: core, stewards: ['steward-one'] }));
   writeFileSync(join(baseRoot, 'sources.json'), JSON.stringify({ sources: [{ id: sourceId, url: checkout, ref: 'main', ontologyPath: 'docs/ontology.ttl', namespace: 'https://example.test/booking#', linksPath: 'links/booking.json' }] }));
   writeFileSync(join(baseRoot, 'links/booking.json'), JSON.stringify({ source: sourceId, links: [{ local: 'https://example.test/booking#StaffId', shared: `${core}StaffId`, relation: 'exact' }] }));
   await runCli(['build', '--checkout', `${sourceId}=${checkout}`], { root: baseRoot });
@@ -40,6 +41,7 @@ async function rebuildCandidate(data) {
   const next = join(data.root, 'next');
   mkdirSync(next); cpSync(join(data.baseRoot, 'core'), join(next, 'core'), { recursive: true }); cpSync(join(data.baseRoot, 'links'), join(next, 'links'), { recursive: true });
   cpSync(join(data.baseRoot, 'sources.json'), join(next, 'sources.json'));
+  cpSync(join(data.baseRoot, 'division.json'), join(next, 'division.json'));
   await runCli(['build', '--checkout', `${sourceId}=${data.checkout}`], { root: next });
   rmSync(data.candidateDist, { recursive: true }); cpSync(join(next, 'dist'), data.candidateDist, { recursive: true });
 }
