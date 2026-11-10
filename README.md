@@ -15,6 +15,8 @@ npm ci
 npm run init-division -- --namespace https://example.com/sales-division/ontology# --steward your-login --steward deputy-login
 ```
 
+`init-division` also removes the template's own tests, `test/template.test.mjs` and `test/init-division.test.mjs`. They assert that the repository has no sources, so they would fail your required `test` check as soon as the first source joins. If you made a division before this change, delete those two files in a pull request.
+
 It writes the namespace and steward logins to [`division.json`](division.json), moves the shared core into that namespace, sets the stewards as code owners, empties the Project Narrative and removes this template's in-flight feature work and planning history. It then rebuilds `dist/`. The stewards in `division.json` are the only reviewers whose approval satisfies the `merge-policy` check. Keep the template's namespace only if every division should share one set of core IRIs. Review and commit the result, then complete the [one-time automation setup](docs/automation-setup.md). Concepts with similar names remain separate unless a reviewed link relates them. Source commits in the generated catalog identify the published snapshot.
 
 ## Minimal instructions for an agent

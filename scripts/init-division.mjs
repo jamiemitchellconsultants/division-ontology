@@ -27,6 +27,10 @@ This document records what was asked, what was decided, why, and what followed.
 
 export const templateHistory = ['docs/features/one-action-source-onboarding', 'docs/superpowers', 'docs/detailed-implementations'];
 
+// Tests that assert the template itself has no sources. A division gains sources, so keeping them would fail its required
+// test check on the first catalog refresh that adds one.
+export const templateOnlyTests = ['test/template.test.mjs', 'test/init-division.test.mjs'];
+
 function parseArguments(argv) {
   const stewards = [];
   let namespace;
@@ -69,6 +73,7 @@ export async function initDivision(argv, options = {}) {
   writeFileSync(join(root, 'Narrative.md'), emptyNarrative);
 
   for (const path of templateHistory) if (existsSync(join(root, path))) rmSync(join(root, path), { recursive: true });
+  for (const path of templateOnlyTests) if (existsSync(join(root, path))) rmSync(join(root, path));
 
   await runCli(['build'], { root });
   return division;

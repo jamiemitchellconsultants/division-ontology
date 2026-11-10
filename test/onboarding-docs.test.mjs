@@ -24,3 +24,7 @@ test('docs state the limits found in review: own account only, paired credential
   assert.match(text('docs/Add-Repo-With-Internal-Ontology-To-Division-Ontology-Three-Step-Instructions.md'), /same GitHub account or organisation/);
   assert.match(text('README.md'), /DIVISION_SOURCE_APP=enabled/);
 });
+test('the README says init-division removes the template-only tests', () => {
+  assert.match(text('README.md'), /test\/template\.test\.mjs/);
+  assert.match(text('README.md'), /test\/init-division\.test\.mjs/);
+});
