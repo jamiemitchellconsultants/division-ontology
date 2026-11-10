@@ -5,7 +5,9 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { act, catalog, checkoutArgs, classify, distBytes, head, namespaceOf, prepare, run, sourceDir, teardown } from './onboarding-walkthrough.mjs';
-import { checkDeployed } from './onboarding-deployed.mjs';
+import { spawnSync } from 'node:child_process';
+import { checkDeployed, deployedSteps } from './onboarding-deployed.mjs';
+import { steps as localSteps } from './onboarding-walkthrough.mjs';
 import { githubGrantProvider } from '../../src/grants.mjs';
 import { runCli } from '../../src/cli.mjs';
 
@@ -179,4 +181,35 @@ test('the deployed-environment checker reports each kind of discrepancy', () => 
   assert.match(checkDeployed({ catalog: good, heads, expectations: [{ source: 'o/a', status: 'invalid' }] })[0], /expected invalid, found current/);
   assert.match(checkDeployed({ catalog: good, heads, expectations: [{ source: 'o/a', status: 'absent' }] })[0], /expected absent/);
   assert.match(checkDeployed({ catalog: good, heads, expectations: [{ source: 'o/z', status: 'current' }] })[0], /no import status row/);
+});
+
+test('the deployed checker understands registered and absent sources', () => {
+  const catalog = { sources: [{ id: 'o/r', origin: 'registered', stale: false, commit: 'a'.repeat(40) }], importStatus: [] };
+  assert.deepEqual(checkDeployed({ catalog, heads: {}, expectations: [{ source: 'o/r', status: 'registered' }, { source: 'o/none', status: 'absent' }] }), []);
+  assert.match(checkDeployed({ catalog, heads: {}, expectations: [{ source: 'o/r', status: 'absent' }] })[0], /expected absent/);
+  assert.match(checkDeployed({ catalog, heads: {}, expectations: [{ source: 'o/none', status: 'registered' }] })[0], /expected one registered/);
+});
+
+test('every behaviour B1-B17 is covered by a guided local step and a guided deployed step', () => {
+  const covered = (list) => new Set(list.flatMap((step) => step.behaviours.split(',').map((item) => item.trim())));
+  const local = covered(localSteps);
+  const deployed = covered(deployedSteps({ alpha: 'o/a', beta: 'o/b', gamma: 'o/g', second: 'o/d2' }));
+  for (let n = 1; n <= 17; n++) {
+    assert.ok(local.has(`B${n}`), `local walkthrough covers B${n}`);
+    assert.ok(deployed.has(`B${n}`), `deployed walkthrough covers B${n}`);
+  }
+  for (const step of deployedSteps({ alpha: 'o/a', beta: 'o/b', gamma: 'o/g' })) assert.ok(step.expect.length && (step.expectations || step.empty || step.repeat), step.id);
+});
+
+test('the guided local run completes without prompts in rehearsal mode', () => {
+  const result = spawnSync(process.execPath, [join(import.meta.dirname, 'onboarding-walkthrough.mjs'), 'guided', '--yes', '--name', 'Rehearsal'], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /All 13 steps passed\./);
+  assert.match(result.stdout, /REHEARSAL, prompts skipped, not an acceptance result/);
+});
+
+test('the guided deployed run refuses to start without its repositories', () => {
+  const result = spawnSync(process.execPath, [join(import.meta.dirname, 'onboarding-deployed.mjs'), 'guided', 'o/division'], { encoding: 'utf8' });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /usage: onboarding-deployed\.mjs guided/);
 });

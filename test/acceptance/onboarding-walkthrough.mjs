@@ -1,5 +1,8 @@
 import { execFileSync } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { hostname, tmpdir } from 'node:os';
+import { createInterface } from 'node:readline/promises';
+import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { initDivision } from '../../scripts/init-division.mjs';
@@ -135,9 +138,97 @@ export function show(dir, division) {
 
 export function teardown(dir) { rmSync(dir, { recursive: true, force: true }); }
 
+// ---- Guided run: every walkthrough step in 05-acceptance.md, run for you, with a pass/fail prompt per step ----
+const A = 'A', B = 'B';
+const act_ = (division, ...args) => ['act', division, ...args];
+const sha = (dir, division, files) => createHash('sha256').update(files.map((file) => readFileSync(join(divisionDir(dir, division), file))).join('\n')).digest('hex');
+const divisionFiles = ['sources.json', 'division.json'];
+const sortedDist = ['dist/catalog.json', 'dist/catalog.md', 'dist/combined.nq'];
+const credentialPattern = /ghp_|ghs_|github_pat_|x-access-token/i;
+
+export const steps = [
+  { behaviours: 'B7', title: 'A new division starts empty', ops: [['build', A], ['show', A], ['fn', 'sources.json', (c) => readFileSync(join(divisionDir(c.dir, A), 'sources.json'), 'utf8').trim()]],
+    expect: ['Sources and Import status both say (none)', 'sources.json holds an empty sources array'] },
+  { behaviours: 'B1', title: 'Granting joins a source without touching the division', ops: [['fn', 'division files before', (c) => { c.before = sha(c.dir, A, divisionFiles); return c.before.slice(0, 12); }], act_(A, 'grant', 'acceptance/alpha'), ['build', A], ['show', A],
+    ['fn', 'division files after', (c) => `${sha(c.dir, A, divisionFiles).slice(0, 12)} (${sha(c.dir, A, divisionFiles) === c.before ? 'unchanged' : 'CHANGED'})`]],
+    expect: ['acceptance/alpha is listed as granted and current', 'the division files hash is unchanged'] },
+  { behaviours: 'B6', title: 'Exact head commit and every concept', ops: [['show', A], ['fn', 'alpha repository head', (c) => head(c.dir, 'acceptance/alpha').slice(0, 12)]],
+    expect: ['alpha is listed at exactly the head commit above', 'status current with the same attempted and published commit', 'concepts for acceptance/alpha: Alpha'] },
+  { behaviours: 'B4', title: 'A grant reaches exactly one division', ops: [['build', B], ['show', B]], expect: ['division B has no sources and no import status'] },
+  { behaviours: 'B5', title: 'An all-repositories installation admits only configured repositories', ops: [act_(A, 'selection', 'all'), act_(A, 'grant', 'acceptance/gamma'), ['build', A], ['show', A]],
+    expect: ['acceptance/gamma (no .division-ontology.json) appears nowhere', 'alpha is still current'] },
+  { behaviours: 'B13', title: 'A selected repository without configuration is reported', ops: [act_(A, 'selection', 'selected'), ['build', A], ['show', A]],
+    expect: ['acceptance/gamma has status not configured with reason config-missing', 'gamma is not under Sources and has no concepts'] },
+  { behaviours: 'B8, B9', title: 'A new version needs no renewed grant, and a configuration change is followed', ops: [act_(A, 'commit', 'acceptance/alpha', 'new-version'), ['build', A], ['show', A], act_(A, 'commit', 'acceptance/alpha', 'move-ontology'), ['build', A], ['show', A]],
+    expect: ['after the first build alpha is current at the new head with concepts Alpha, NewTerm', 'after the second build alpha is current with concepts Alpha, Moved'] },
+  { behaviours: 'B11', title: 'An invalid version keeps the last valid one, then recovers', ops: [['fn', 'last valid head', (c) => head(c.dir, 'acceptance/alpha').slice(0, 12)], act_(A, 'commit', 'acceptance/alpha', 'break'), ['build', A], ['show', A], act_(A, 'commit', 'acceptance/alpha', 'fix'), ['build', A], ['show', A]],
+    expect: ['after the break alpha is invalid, attempted is the new commit, published is the last valid head above, stale=true, reason ontology-invalid-turtle with a line, concepts still Alpha, Moved', 'after the fix alpha is current, stale=false, concepts Alpha, Fixed'] },
+  { behaviours: 'B12, B15, B10', title: 'An invalid first version is not published, holds nothing back, and no reason holds a credential', ops: [act_(A, 'grant', 'acceptance/beta'), act_(A, 'grant', 'acceptance/delta'), ['build', A], ['show', A],
+    ['fn', 'credential-shaped text in the published files', (c) => ['catalog.json', 'catalog.md'].map((name) => `${name}: ${credentialPattern.test(readFileSync(join(divisionDir(c.dir, A), 'dist', name), 'utf8')) ? 'FOUND' : 'none'}`).join(', ')]],
+    expect: ['beta is current and listed under Sources', 'delta is invalid with published - and is not under Sources or Concepts', 'alpha is unchanged', 'every granted source has a status row; credential-shaped text: none in both files'] },
+  { behaviours: 'B16', title: 'A conflicting namespace is rejected', ops: [act_(A, 'commit', 'acceptance/beta', 'claim-namespace', 'acceptance/alpha'), ['build', A], ['show', A]],
+    expect: ['beta is invalid with reason namespace-conflict: overlaps acceptance/alpha, stale at its previous commit', 'alpha stays current'] },
+  { behaviours: 'B14', title: 'Removed access leaves the last version stale; granting again resumes', ops: [act_(A, 'revoke', 'acceptance/alpha'), act_(A, 'revoke', 'acceptance/delta'), ['build', A], ['show', A], act_(A, 'grant', 'acceptance/alpha'), act_(A, 'commit', 'acceptance/alpha', 'new-version'), ['build', A], ['show', A]],
+    expect: ['after revoking, alpha is access removed with its last head published, stale=true, concepts Alpha, Fixed still present', 'delta has no row (never published)', 'after granting again alpha is current at the new head'] },
+  { behaviours: 'B2, B3', title: 'Granted-only refreshes are automatic; registration still needs review', ops: [['classify', A], act_(A, 'register', 'acceptance/epsilon'), act_(A, 'grant', 'acceptance/epsilon'), ['build', A], ['show', A], ['classify', A]],
+    expect: ['the first classification is automatic', 'epsilon is listed once, as registered, with no import status row', 'the second classification is review (source registration changed)'] },
+  { behaviours: 'B17', title: 'Unchanged inputs produce no refresh', ops: [['fn', 'dist hash before', (c) => { c.dist = sha(c.dir, A, sortedDist); return c.dist.slice(0, 12); }], ['build', A], ['fn', 'dist hash after', (c) => `${sha(c.dir, A, sortedDist).slice(0, 12)} (${sha(c.dir, A, sortedDist) === c.dist ? 'identical' : 'DIFFERENT'})`], ['check', A]],
+    expect: ['the two hashes are identical', 'check ok'] },
+];
+
+async function execute(op, context) {
+  const [kind, ...rest] = op;
+  if (kind === 'act') { const [division, ...args] = rest; const result = await act(context.dir, division, ...args); return `${args.join(' ')}${typeof result === 'string' ? ` -> ${result.slice(0, 12)}` : ''}`; }
+  if (kind === 'build' || kind === 'check') { const result = await run(context.dir, rest[0], kind); return `${kind} division ${rest[0]}: ${result.sources} source(s), ${result.granted} granted`; }
+  if (kind === 'show') return show(context.dir, rest[0]);
+  if (kind === 'classify') { const result = classify(context.dir, rest[0]); return `Refresh classification: ${result.mode}${result.reasons.length ? ` (${result.reasons.join('; ')})` : ''}`; }
+  if (kind === 'fn') return `${rest[0]}: ${await rest[1](context)}`;
+  throw new Error(`unknown operation ${kind}`);
+}
+
+export async function guided({ name = 'unnamed', yes = false, out } = {}) {
+  const parent = mkdtempSync(join(tmpdir(), 'division-onboarding-guided-'));
+  const dir = join(parent, 'w');
+  const context = { dir };
+  const results = [];
+  const rl = yes ? null : createInterface({ input: process.stdin, output: process.stdout });
+  try {
+    if (!yes && !process.stdin.isTTY) throw new Error('run this in a terminal so you can answer pass/fail, or pass --yes to rehearse without prompts');
+    console.log('Preparing divisions A and B and five source repositories (this takes a few seconds)...');
+    await prepare(dir);
+    for (const [index, step] of steps.entries()) {
+      console.log(`\n=== Step ${index + 1} of ${steps.length} — ${step.behaviours}: ${step.title} ===`);
+      let failure = null;
+      try { for (const op of step.ops) console.log(`\n${(await execute(op, context)).split('\n').map((line) => `  ${line}`).join('\n').trimStart()}`); }
+      catch (error) { failure = error.message; console.log(`\n  ERROR: ${failure}`); }
+      console.log('\nExpect:'); for (const line of step.expect) console.log(`  - ${line}`);
+      let answer = 'y';
+      if (failure) answer = 'n';
+      else if (!yes) { do { answer = (await rl.question('\nPass? [y]es / [n]o / [q]uit: ')).trim().toLowerCase(); } while (!['y', 'n', 'q'].includes(answer)); }
+      if (answer === 'q') { console.log('Stopped; steps not reached are not recorded.'); break; }
+      results.push({ behaviours: step.behaviours, title: step.title, pass: answer === 'y', note: failure ? `error: ${failure}` : '' });
+      if (failure) { console.log('A step failed with an error, so the story cannot continue. Raise it as pushback to the build.'); break; }
+    }
+  } finally { rl?.close(); teardown(parent); }
+  const revision = (() => { try { return git(repoRoot, 'rev-parse', '--short', 'HEAD'); } catch { return 'unavailable'; } })();
+  const dirty = (() => { try { return git(repoRoot, 'status', '--porcelain') ? ' (working tree not clean)' : ''; } catch { return ''; } })();
+  const report = [`Local walkthrough — ${name}, ${new Date().toISOString().slice(0, 10)}, ${hostname()}, Node ${process.version}, revision ${revision}${dirty}${yes ? ' — REHEARSAL, prompts skipped, not an acceptance result' : ''}`, '',
+    '| Step | Behaviours | Result |', '| --- | --- | --- |', ...results.map((item, index) => `| ${index + 1} ${item.title} | ${item.behaviours} | ${item.pass ? 'pass' : 'FAIL'}${item.note ? ` (${item.note})` : ''} |`), '',
+    results.length === steps.length && results.every((item) => item.pass) ? `All ${steps.length} steps passed.` : `Not complete: ${results.filter((item) => item.pass).length} of ${steps.length} steps passed.`].join('\n');
+  console.log(`\n${report}`);
+  if (out) writeFileSync(out, `${report}\n`);
+  return { results, complete: results.length === steps.length && results.every((item) => item.pass) };
+}
+
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const [command, dir, ...rest] = process.argv.slice(2);
-  const usage = 'usage: onboarding-walkthrough.mjs prepare|build|check|show|classify|grant|revoke|selection|register|commit|teardown <dir> [A|B] [args]';
+  const argv = process.argv.slice(2);
+  if (argv[0] === 'guided') {
+    const option = (flag) => (argv.includes(flag) ? argv[argv.indexOf(flag) + 1] : undefined);
+    const result = await guided({ name: option('--name'), yes: argv.includes('--yes'), out: option('--out') }).catch((error) => { console.error(error.message); return { complete: false }; });
+    process.exit(result.complete ? 0 : 1);
+  }
+  const [command, dir, ...rest] = argv;
+  const usage = 'usage: onboarding-walkthrough.mjs guided [--name N] [--yes] [--out file] | prepare|build|check|show|classify|grant|revoke|selection|register|commit|teardown <dir> [A|B] [args]';
   try {
     if (!command || !dir) throw new Error(usage);
     if (command === 'prepare') { await prepare(dir); console.log(`Prepared divisions A and B and ${sourceIds.length} sources in ${dir}`); }

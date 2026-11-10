@@ -11,6 +11,26 @@ Participant, architect and reviewer: the person who follows the walkthroughs and
 
 **Status: prepared, not yet accepted.** The executable local story has been run during preparation (see [Preparation run](#preparation-run)) but no walkthrough has been followed by the participant, no executable test has been approved, and the deployed environment does not exist yet. Nothing below the [Formal results](#formal-results) heading has been recorded as passed.
 
+## Quick path: two commands
+
+**Local build.** One command runs every walkthrough step below for you, shows the output, prints what to expect, asks `Pass? [y]es / [n]o / [q]uit` for each of the 13 steps, and prints a results table you can paste under [Formal results](#formal-results). Run it in a terminal:
+
+```bash
+npm ci && node test/acceptance/onboarding-walkthrough.mjs guided --name "Your Name" --out "${TMPDIR:-/tmp}/onboarding-local-results.md"
+```
+
+It takes a few minutes of reading. `--yes` rehearses without prompts and labels the report as not an acceptance result. Then run the executable layer with `npm ci && npm run --silent acceptance:onboarding`.
+
+**Deployed environment.** After the one-time setup in the [runbook](05-runbook.md#deploy) and the preconditions below, one command walks every deployed step. For each step it tells you the GitHub action to take, waits for you to do it, then dispatches the division's sync, waits for the run and for the refresh PR to merge, checks the published catalog against the live repositories, and asks for your pass or fail:
+
+```bash
+node test/acceptance/onboarding-deployed.mjs guided <owner/division> --alpha <owner/alpha> --beta <owner/beta> --gamma <owner/gamma> --name "Your Name" --out "${TMPDIR:-/tmp}/onboarding-deployed-results.md"
+```
+
+Add `--second <owner/second-division>` for B4. Optional steps (B3, B4, B5) can be skipped with `s`. It needs `gh` signed in with permission to dispatch the division's workflow and read the repositories; it never changes a source repository or an App for you, so granting, committing and removing access stay manual.
+
+The sections below are the full step-by-step reference behind both commands, for anyone who prefers to follow them by hand or must investigate a failure.
+
 ## Local build walkthrough
 
 Open Terminal at the repository root of a clean checkout (zsh or bash) and run the following. Keep this Terminal tab for the whole walkthrough, because `x` and `w` exist only in it:
@@ -115,7 +135,7 @@ Run `$x teardown "$w"`.
 
 From the repository root run `npm run --silent acceptance:onboarding`. It prints the machine, Node version and revision, runs the whole repository suite and `test/acceptance/onboarding.test.mjs`, and prints one line: `PASS — repository tests and one-action source onboarding B1–B17`. On a failure it prints the failing test names and assertions and exits nonzero.
 
-The 18 acceptance checks are named after the behaviours and run as one ordered story: B7, B1, B6, B4, B5, B13, B8, B9, B11, B12 and B15 together, B10, B16, B14, B2, B3 and B17; then B1 through the real GitHub client against a local API stand-in, and one check of the deployed-environment checker's own comparison logic. After the walkthrough has passed, the participant reads `test/acceptance/onboarding.test.mjs`, confirms it automates what they just did, and approves it.
+The acceptance file has 22 checks. Eighteen are named after the behaviours and run as one ordered story: B7, B1, B6, B4, B5, B13, B8, B9, B11, B12 and B15 together, B10, B16, B14, B2, B3 and B17; then B1 through the real GitHub client against a local API stand-in, and one check of the deployed-environment checker's own comparison logic. Four more check the tooling itself: the checker's `registered` and `absent` handling, that the guided local and deployed steps cover B1–B17, that the guided local run completes in rehearsal mode, and that the guided deployed run refuses to start without its repositories. After the walkthrough has passed, the participant reads `test/acceptance/onboarding.test.mjs`, confirms it automates what they just did, and approves it.
 
 ## Deployed environment
 
@@ -123,22 +143,24 @@ Name these before the first deployed run and record them under [Formal results](
 
 **Preconditions.** The division was made from the template and `init-division`, both Apps are installed as the [runbook](05-runbook.md#deploy) says, `Sync division catalog` has run once successfully, and an owner of a test repository who has no write access to the division repository can add that repository to the source-read App (U12). If that is not allowed, record it: B1 cannot pass.
 
-`check` below means: `node test/acceptance/onboarding-deployed.mjs <owner/division> <owner/source>=<status> …` and expect `PASS — … expectation(s) match …`. The walkthrough runs `gh workflow run "Sync division catalog"` after each action and waits for the run, then for the `automation/catalog-refresh` PR to merge where the step says so.
+The guided command above performs each step in the table. In the table, the automated check is `onboarding-deployed.mjs`'s comparison of the published catalog with the live repositories; you can also run it alone: `node test/acceptance/onboarding-deployed.mjs [--sync] <owner/division> <owner/source>=<status> …` and expect `PASS — … expectation(s) match …`. Statuses are `current`, `invalid`, `'not configured'`, `'access removed'`, `registered` (a steward-registered source with no status row) and `absent` (not in the catalog at all).
 
-| Step | Action in GitHub | Expected result | Check |
-| --- | --- | --- | --- |
-| D1 · B7 | Open `dist/catalog.json` in the new division before any grant. | `sources` and `importStatus` are empty arrays. | none |
-| D2 · B1, B6, B2 | As the owner of `alpha` (no write access to the division repository), commit `.division-ontology.json` and a valid ontology to `alpha`'s default branch, then add `alpha` to the source-read App. Run the sync. | A generated-only PR opens, is classified automatic and merges with no steward review. No commit or PR by the `alpha` owner exists in the division repository. | `alpha=current` |
-| D3 · B13 | Add `gamma` (no `.division-ontology.json`) to the App with a selected-repositories installation. Run the sync. | `gamma` has a `not configured` row and no concepts. | `alpha=current 'gamma=not configured'` |
-| D4 · B8, B9 | Commit a new term to `alpha`, then move its ontology file and update `.division-ontology.json`. Run the sync after each. | `alpha` is `current` at its new head each time, with no renewed grant. | `alpha=current` |
-| D5 · B11, B10 | Commit invalid Turtle to `alpha`. Run the sync. Then commit a fix and run it again. | `alpha` is `invalid` with the old commit still published and stale, with a coded reason that contains no credential; after the fix it is `current`. | `alpha=invalid`, then `alpha=current` |
-| D6 · B16 | Commit a `.division-ontology.json` and ontology for `beta` that claim `alpha`'s namespace, and add `beta` to the App. Run the sync. | `beta` is `invalid` with `namespace-conflict`; `alpha` is unaffected. | `alpha=current beta=absent` for a never-published `beta`, or `beta=invalid` once published |
-| D7 · B12, B15 | Add a freshly valid `beta` (own namespace) and, at the same time, a repository with invalid Turtle and a valid configuration. Run the sync. | The valid one is `current`; the invalid one is `invalid` with no published commit and is not in the catalog. | each repository with its status |
-| D8 · B14 | Remove `alpha` from the App. Run the sync. Add it back. Run the sync. | `alpha` is `access removed`, still in the catalog, stale; then `current` again. | `alpha=access removed`, then `alpha=current` |
-| D9 · B17 | Run the sync twice with no changes. | The second run is green and opens no PR; `dist/` is byte-identical. | `alpha=current` |
-| D10 · B3 | Open a `sources.json` PR registering `alpha` while it is also in the App. | The PR needs a steward approval. After merge `alpha` appears once, as `registered`, with no status row. | the row is absent: `alpha=absent` |
-| D11 · B4 | With a second division copy and its own App, check it after D2. | The second division's catalog does not contain `alpha`. | `<second division>`, `alpha=absent` |
-| D12 · B5 | Install the source-read App on all repositories of the test organisation, if that is acceptable there. Run the sync. | Only repositories that carry `.division-ontology.json` appear; others have no row. | each repository |
+| Step | Behaviours | Action in GitHub | Expected result | Automated check |
+| --- | --- | --- | --- | --- |
+| D1 | B7 | None; open `dist/catalog.json` in the new division before any grant. | `sources` and `importStatus` are empty arrays. | catalog is empty |
+| D2 | B1, B6, B2 | As the owner of `alpha` (no write access to the division repository), commit `.division-ontology.json` and a valid ontology to its default branch, then add `alpha` to the source-read App. | `alpha` is current at its head. A generated-only PR opens, is classified automatic and merges with no steward review. The `alpha` owner committed nothing in the division repository. | `alpha=current`, refresh PR merged |
+| D3 | B13 | Add `gamma` (no `.division-ontology.json`) to the App with a selected-repositories installation. | `gamma` is `not configured` with no concepts; `alpha` is still current. | `alpha=current`, `gamma=not configured` |
+| D4 | B8 | Commit a new term to `alpha`. | `alpha` is current at the new head with no renewed grant. | `alpha=current` |
+| D5 | B9 | Move `alpha`'s ontology file and update its `.division-ontology.json` in the same commit. | `alpha` is current at the new head. | `alpha=current` |
+| D6 | B11, B10 | Commit invalid Turtle to `alpha`. | `alpha` is `invalid`; the last valid version is still published, stale; the reason is a coded detail with no credential. | `alpha=invalid` |
+| D7 | B11 | Commit a fix to `alpha`. | `alpha` is current at the fixing commit. | `alpha=current` |
+| D8 | B16, B12, B15 | Commit a configuration and ontology for `beta` that use `alpha`'s namespace, and add `beta` to the App. | `beta` is `invalid` with `namespace-conflict` and is not published; `alpha` is still current in the same sync. | `alpha=current`, `beta=invalid` |
+| D9 | B14 | Remove `alpha` from the App. | `alpha` is `access removed`, still in the catalog, stale. | `alpha=access removed` |
+| D10 | B14 | Add `alpha` back to the App. | `alpha` is current again. | `alpha=current` |
+| D11 | B17 | Make no changes; the check runs the sync twice. | The second run is green, opens no PR and leaves `main` unchanged. | `alpha=current`, `main` unchanged, no open refresh PR |
+| D12 (optional) | B3 | Open a `sources.json` PR registering `alpha` while it is also in the App, get a steward to approve it, and let it merge. | `alpha` appears once, as `registered`, with no status row. | `alpha=registered` |
+| D13 (optional) | B4 | In a second division with its own App, run its sync. | `alpha` is not in the second division's catalog. | second division `alpha=absent` |
+| D14 (optional) | B5 | If acceptable in the test organisation, install the App on all repositories. | Only repositories that carry `.division-ontology.json` appear; `gamma` has no row. | `gamma=absent` |
 
 ## Preparation run
 
