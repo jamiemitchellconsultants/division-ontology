@@ -48,8 +48,6 @@ jobs:
         with:
           client-id: ${{ vars.DIVISION_SYNC_APP_CLIENT_ID }}
           private-key: ${{ secrets.DIVISION_SYNC_APP_PRIVATE_KEY }}
-          owner: ${{ github.repository_owner }}
-          repositories: division-ontology
           permission-contents: write
           permission-pull-requests: write
       - name: Build current catalog and prepare PR body
