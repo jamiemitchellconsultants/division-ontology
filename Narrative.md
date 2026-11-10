@@ -27,6 +27,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [17](#entry-start-division-ontology-templates-without-registered-sources) | 2026-11-08 | Start division ontology templates without registered sources | product | Start the template with no registered source repositories or source links. Retain the existing division-owned core. Use a disposable workspace with synthetic sources for demonstrations and persistence testing. |
 | [18](#entry-prepare-supervised-workspace-acceptance) | 2026-11-09 | Prepare supervised workspace acceptance | product | Use Order Fulfilment as the synthetic pilot and run acceptance against the existing workspace. Automate preparation, publication, browser checks, restart and guarded replay. Require search to work with the configured embedding service. |
 | [19](#entry-amend-c4-vision-to-stop-naming-the-pilot-source) | 2026-11-10 | Amend C4 vision to stop naming the pilot source | product | State the deployment-evidence rule as a per-source constraint and describe the Graphify research without naming the repository. The outcomes, scope and research findings are otherwise unchanged. |
+| [20](#entry-amend-workspace-architecture-to-stop-naming-jointbooking) | 2026-11-10 | Amend workspace architecture to stop naming JointBooking | product | Describe the engineering inputs as the division catalog plus the sources a division registers, with the synthetic fixtures for demonstration. |
 
 ---
 
@@ -435,5 +436,31 @@ The architecture's pilot-scope item that restates the Terraform-only rule (pushb
 ---
 
 AI-Fingerprint: sha256:6a04b4b3adbe
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+---
+
+<a id="entry-amend-workspace-architecture-to-stop-naming-jointbooking"></a>
+
+## Entry 20 — 2026-11-10 — Amend workspace architecture to stop naming JointBooking
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+This repository is now a source-free template that each division copies. The workspace architecture still described JointBooking as the registered source and linked to JointBooking-specific designs, so every division copy would inherit a false statement and links into a repository it does not use.
+
+## Decision
+
+Describe the engineering inputs as the division catalog plus the sources a division registers, with the synthetic fixtures for demonstration. Remove the two precedent links that name JointBooking rather than rewording them, because the remaining precedent and ADRs carry the decisions.
+
+## Consequences
+
+The runbook, user guide and acceptance record do not depend on JointBooking being registered. One developer-plan checklist item (`docs/detailed-implementations/runtime-knowledge-workspace/plan.md`) still cites LocalAI's JointBooking installation boundary; it is completed build history, and `init-division` removes that folder from division copies. The removed links remain in git history for anyone tracing the original precedent.
+
+---
+
+AI-Fingerprint: sha256:f76fdbfcd1b6
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
