@@ -6,8 +6,9 @@ import { pathToFileURL } from 'node:url';
 
 // Read-only check of a deployed division's published catalog against the live source repositories.
 // usage: node test/acceptance/onboarding-deployed.mjs <owner/division> [--ref main] [--sync] <owner/source>=<status> ...
-//    or: node test/acceptance/onboarding-deployed.mjs run <owner/division> --alpha <owner/repo> --beta <owner/repo> --gamma <owner/repo> [--installation <id>] [--dry-run] [--name N] [--out file]
-// --sync dispatches the division's sync first and waits for it and its refresh PR. run performs every deployed step through gh,
+//    or: node test/acceptance/onboarding-deployed.mjs run <owner/division> --alpha <owner/repo> --beta <owner/repo> --gamma <owner/repo> [--installation <id>] [--manual-app] [--dry-run] [--name N] [--out file]
+// --manual-app: commits and the sync are automatic, but you add or remove repositories on the source-read App yourself
+// (changing an installation through the API needs a classic personal access token). --sync dispatches the division's sync first and waits for it and its refresh PR. run performs every deployed step through gh,
 // compares the published catalog with the expected result after each, and stops at the first exception.
 // Status is current, invalid, "not configured", "access removed", registered (a steward-registered source with no row)
 // or absent (no row, not in the catalog).
@@ -108,23 +109,23 @@ const invalidTurtle = 'this is not turtle {\n';
 // Steps run in order. `actions` are what the run does for you; `manual` is what you do instead when --installation is not given.
 export function deployedSteps({ alpha, beta, gamma, installation }) {
   const a = (status) => ({ source: alpha, status });
-  const act = (describe, run) => ({ describe, run: () => run(installation) });
+  const act = (describe, run, options = {}) => ({ describe, app: Boolean(options.app), run: () => run(installation) });
   const commit = (repo, path, text) => act(`commit ${path} to ${repo}`, () => putFile(repo, path, text, 'acceptance: onboarding'));
   return [
     { id: 'D1', behaviours: 'B7', manual: 'Confirm the new division has not been given any source yet.', expect: ['dist/catalog.json has empty sources and importStatus arrays'], empty: true, actions: [] },
     { id: 'D2', behaviours: 'B1, B6, B2', manual: `As the owner of ${alpha}: commit .division-ontology.json and a valid ontology, then add ${alpha} to the source-read App.`, expect: [`${alpha} is current at its default-branch head`, 'the generated-only refresh PR merged with no review at all'], autoMerged: true,
-      actions: [commit(alpha, '.division-ontology.json', config(namespaceOf(alpha))), commit(alpha, 'docs/ontology.ttl', ontology(alpha, ['Alpha'])), act(`add ${alpha} to the source-read App`, (i) => grant(i, alpha))], expectations: [a('current')], sync: true },
+      actions: [commit(alpha, '.division-ontology.json', config(namespaceOf(alpha))), commit(alpha, 'docs/ontology.ttl', ontology(alpha, ['Alpha'])), act(`add ${alpha} to the source-read App`, (i) => grant(i, alpha), { app: true })], expectations: [a('current')], sync: true },
     { id: 'D3', behaviours: 'B13', manual: `Add ${gamma} (no .division-ontology.json) to the source-read App.`, expect: [`${gamma} is not configured`, `${alpha} is still current`],
-      actions: [act(`remove .division-ontology.json from ${gamma} if present`, () => deleteFile(gamma, '.division-ontology.json', 'acceptance: onboarding')), act(`add ${gamma} to the source-read App`, (i) => grant(i, gamma))], expectations: [a('current'), { source: gamma, status: 'not configured' }], sync: true },
+      actions: [act(`remove .division-ontology.json from ${gamma} if present`, () => deleteFile(gamma, '.division-ontology.json', 'acceptance: onboarding')), act(`add ${gamma} to the source-read App`, (i) => grant(i, gamma), { app: true })], expectations: [a('current'), { source: gamma, status: 'not configured' }], sync: true },
     { id: 'D4', behaviours: 'B8', manual: `Commit a new term to ${alpha}.`, expect: [`${alpha} is current at the new head`], actions: [commit(alpha, 'docs/ontology.ttl', ontology(alpha, ['Alpha', 'NewTerm']))], expectations: [a('current')], sync: true },
     { id: 'D5', behaviours: 'B9', manual: `Move ${alpha}'s ontology file and update its .division-ontology.json in the same commit.`, expect: [`${alpha} is current at the new head`],
       actions: [commit(alpha, 'docs/moved.ttl', ontology(alpha, ['Alpha', 'Moved'])), commit(alpha, '.division-ontology.json', config(namespaceOf(alpha), 'docs/moved.ttl')), act(`delete docs/ontology.ttl from ${alpha}`, () => deleteFile(alpha, 'docs/ontology.ttl', 'acceptance: onboarding'))], expectations: [a('current')], sync: true },
     { id: 'D6', behaviours: 'B11, B10', manual: `Commit invalid Turtle to ${alpha}'s ontology.`, expect: [`${alpha} is invalid with its last valid version still published and stale`], actions: [commit(alpha, 'docs/moved.ttl', invalidTurtle)], expectations: [a('invalid')], sync: true },
     { id: 'D7', behaviours: 'B11', manual: `Commit a fix to ${alpha}'s ontology.`, expect: [`${alpha} is current at the fixing commit`], actions: [commit(alpha, 'docs/moved.ttl', ontology(alpha, ['Alpha', 'Fixed']))], expectations: [a('current')], sync: true },
     { id: 'D8', behaviours: 'B16, B12, B15', manual: `Commit a configuration and ontology for ${beta} that use ${alpha}'s namespace, then add ${beta} to the App.`, expect: [`${beta} is invalid and not published`, `${alpha} is still current in the same sync`],
-      actions: [commit(beta, '.division-ontology.json', config(namespaceOf(alpha))), commit(beta, 'docs/ontology.ttl', `@prefix : <${namespaceOf(alpha)}> . @prefix owl: <http://www.w3.org/2002/07/owl#> . @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .\n:BetaClaim a owl:Class; rdfs:label "BetaClaim" .\n`), act(`add ${beta} to the source-read App`, (i) => grant(i, beta))], expectations: [a('current'), { source: beta, status: 'invalid' }], sync: true },
-    { id: 'D9', behaviours: 'B14', manual: `Remove ${alpha} from the source-read App.`, expect: [`${alpha} is access removed and stays in the catalog, stale`], actions: [act(`remove ${alpha} from the source-read App`, (i) => revoke(i, alpha))], expectations: [a('access removed')], sync: true },
-    { id: 'D10', behaviours: 'B14', manual: `Add ${alpha} back to the source-read App.`, expect: [`${alpha} is current again`], actions: [act(`add ${alpha} to the source-read App`, (i) => grant(i, alpha))], expectations: [a('current')], sync: true },
+      actions: [commit(beta, '.division-ontology.json', config(namespaceOf(alpha))), commit(beta, 'docs/ontology.ttl', `@prefix : <${namespaceOf(alpha)}> . @prefix owl: <http://www.w3.org/2002/07/owl#> . @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .\n:BetaClaim a owl:Class; rdfs:label "BetaClaim" .\n`), act(`add ${beta} to the source-read App`, (i) => grant(i, beta), { app: true })], expectations: [a('current'), { source: beta, status: 'invalid' }], sync: true },
+    { id: 'D9', behaviours: 'B14', manual: `Remove ${alpha} from the source-read App.`, expect: [`${alpha} is access removed and stays in the catalog, stale`], actions: [act(`remove ${alpha} from the source-read App`, (i) => revoke(i, alpha), { app: true })], expectations: [a('access removed')], sync: true },
+    { id: 'D10', behaviours: 'B14', manual: `Add ${alpha} back to the source-read App.`, expect: [`${alpha} is current again`], actions: [act(`add ${alpha} to the source-read App`, (i) => grant(i, alpha), { app: true })], expectations: [a('current')], sync: true },
     { id: 'D11', behaviours: 'B17', manual: 'Make no changes.', expect: ['two syncs in a row leave main unchanged and open no refresh PR'], actions: [], expectations: [a('current')], repeat: true },
   ];
 }
@@ -137,25 +138,32 @@ export const optionalChecks = ({ division, alpha, gamma }) => [
 ];
 
 // Runs every step, compares the published catalog with the expected result, and stops at the first exception.
-export async function runDeployed({ division, alpha, beta, gamma, installation, dryRun = false, name = 'unnamed', out, log = console.log }) {
+export async function runDeployed({ division, alpha, beta, gamma, installation, manualApp = false, dryRun = false, name = 'unnamed', out, log = console.log }) {
   const steps = deployedSteps({ alpha, beta, gamma, installation });
   const results = [];
   let failed = null;
-  const rl = !installation && !dryRun ? createInterface({ input: process.stdin, output: process.stdout }) : null;
+  const doApp = Boolean(installation) && !manualApp;
+  const rl = (!installation || manualApp) && !dryRun ? createInterface({ input: process.stdin, output: process.stdout }) : null;
   try {
-    if (rl && !process.stdin.isTTY) throw new Error('without --installation the GitHub actions are manual, so run this in a terminal');
+    if (rl && !process.stdin.isTTY) throw new Error('some GitHub actions are manual in this mode, so run this in a terminal');
     for (const step of steps) {
       log(`\n=== ${step.id} — ${step.behaviours} ===`);
       if (dryRun) {
-        for (const action of step.actions) log(`  would: ${action.describe}`);
+        for (const action of step.actions) log(`  would: ${action.app && manualApp ? 'ask you to do in your browser: ' : ''}${action.describe}`);
         if (!step.actions.length) log(`  would: nothing to change (${step.manual})`);
         log(`  would: ${step.repeat ? 'dispatch the sync twice' : step.sync ? 'dispatch the sync and wait for its refresh PR' : 'read the catalog'}, then require: ${step.expect.join('; ')}`);
         continue;
       }
       const problems = [];
       try {
-        if (installation) for (const action of step.actions) { log(`  ${action.describe}`); action.run(); }
-        else if (step.actions.length) { log(`  Do this now: ${step.manual}`); await rl.question('  Press Enter when done: '); }
+        if (step.actions.length) {
+          if (installation || manualApp) {
+            for (const action of step.actions) {
+              if (action.app && !doApp) { log(`  Do this now in your browser: ${action.describe}`); await rl.question('  Press Enter when done: '); }
+              else { log(`  ${action.describe}`); action.run(); }
+            }
+          } else { log(`  Do this now: ${step.manual}`); await rl.question('  Press Enter when done: '); }
+        }
         if (step.repeat) {
           const before = mainHead(division);
           await dispatchAndWait(division, { log }); await dispatchAndWait(division, { log });
@@ -193,17 +201,18 @@ async function main(argv) {
   if (argv[0] === 'run') {
     argv.shift();
     const dryRun = flag('--dry-run');
+    const manualApp = flag('--manual-app');
     const [alpha, beta, gamma, installation, name, out] = [option('--alpha'), option('--beta'), option('--gamma'), option('--installation'), option('--name'), option('--out')];
     const [division] = argv;
-    if (!division || !alpha || !beta || !gamma) throw new Error('usage: onboarding-deployed.mjs run <owner/division> --alpha <owner/repo> --beta <owner/repo> --gamma <owner/repo> [--installation <source-read App installation id>] [--dry-run] [--name N] [--out file]');
-    const { failed } = await runDeployed({ division, alpha, beta, gamma, installation, dryRun, name, out });
+    if (!division || !alpha || !beta || !gamma) throw new Error('usage: onboarding-deployed.mjs run <owner/division> --alpha <owner/repo> --beta <owner/repo> --gamma <owner/repo> [--installation <source-read App installation id>] [--manual-app] [--dry-run] [--name N] [--out file]');
+    const { failed } = await runDeployed({ division, alpha, beta, gamma, installation, manualApp, dryRun, name, out });
     if (failed) process.exitCode = 1;
     return;
   }
   const ref = option('--ref') ?? 'main';
   const sync = flag('--sync');
   const [division, ...pairs] = argv;
-  if (!division || !pairs.length) throw new Error('usage: onboarding-deployed.mjs [--ref main] [--sync] <owner/division> <owner/source>=<status> ... | run <owner/division> --alpha ... --beta ... --gamma ... [--installation <id>] [--dry-run]');
+  if (!division || !pairs.length) throw new Error('usage: onboarding-deployed.mjs [--ref main] [--sync] <owner/division> <owner/source>=<status> ... | run <owner/division> --alpha ... --beta ... --gamma ... [--installation <id>] [--manual-app] [--dry-run]');
   const expectations = pairs.map(parse);
   if (sync) { const result = await dispatchAndWait(division); if (result.pr) console.error(`refresh PR #${result.pr} is still open`); }
   const problems = checkDeployed({ catalog: readCatalog(division, ref), heads: liveHeads(expectations), expectations });

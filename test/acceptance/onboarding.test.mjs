@@ -216,3 +216,11 @@ test('every behaviour B1-B17 has a deployed step or a one-command check', () => 
   for (const step of steps) assert.ok(step.expect.length && (step.expectations || step.empty), step.id);
   for (const check of optional) assert.match(check.command, /onboarding-deployed\.mjs --sync/);
 });
+
+test('the manual-app dry run keeps commits automatic and leaves only App changes to you', () => {
+  const result = spawnSync(process.execPath, [join(import.meta.dirname, 'onboarding-deployed.mjs'), 'run', 'o/division', '--alpha', 'o/alpha', '--beta', 'o/beta', '--gamma', 'o/gamma', '--manual-app', '--dry-run'], { encoding: 'utf8', env: { ...process.env, PATH: '/nonexistent' } });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /would: ask you to do in your browser: add o\/gamma to the source-read App/);
+  assert.match(result.stdout, /would: commit docs\/ontology\.ttl to o\/alpha/);
+  assert.doesNotMatch(result.stdout, /would: ask you to do in your browser: commit/);
+});

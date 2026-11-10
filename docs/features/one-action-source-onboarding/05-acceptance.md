@@ -32,13 +32,15 @@ Run it on a clean checkout of the reviewed revision. It prints the machine, Node
    node test/acceptance/onboarding-deployed.mjs run <owner/division> --alpha <owner/alpha> --beta <owner/beta> --gamma <owner/gamma> --installation <id> --dry-run
    ```
 
+   (Use `--manual-app` in place of `--installation <id>` if you are not using a classic token.)
+
 3. **Run it:**
 
    ```bash
    node test/acceptance/onboarding-deployed.mjs run <owner/division> --alpha <owner/alpha> --beta <owner/beta> --gamma <owner/gamma> --installation <id> --name "Your Name" --out "${TMPDIR:-/tmp}/onboarding-deployed-results.md"
    ```
 
-   Through `gh`, as the signed-in user, it commits to the three test repositories and adds or removes them from the source-read App; it then dispatches the division's sync, waits for the run and for the refresh PR to merge, compares the published catalog with the live repositories, and moves to the next of its eleven steps. It stops at the first exception, prints the step, the expected and actual results and the steps not run, and exits nonzero. When all steps pass it prints a results table and the line `PASS — 11 steps covering …`. The `gh` token needs `repo` scope, and you must be an owner of the App installation; a permission error is reported as an exception with the `gh` message. Without `--installation` it asks you to make each GitHub change yourself (press Enter when done) and still compares automatically.
+   Through `gh`, as the signed-in user, it commits to the three test repositories and adds or removes them from the source-read App; it then dispatches the division's sync, waits for the run and for the refresh PR to merge, compares the published catalog with the live repositories, and moves to the next of its eleven steps. It stops at the first exception, prints the step, the expected and actual results and the steps not run, and exits nonzero. When all steps pass it prints a results table and the line `PASS — 11 steps covering …`. The `gh` token needs `repo` scope, and you must be an owner of the App installation; a permission error is reported as an exception with the `gh` message. Changing an App's repository list through the API only works with a classic personal access token in `GH_TOKEN` (the default `gh` login gets a 403). If you would rather not create one, use `--manual-app` instead of `--installation <id>`: the run still makes every commit and runs the sync and comparisons itself, and pauses only to ask you to add or remove a repository on the source-read App in your browser (press Enter when done). With neither flag it asks you to make every GitHub change yourself. The comparisons are automatic in all three modes.
 4. **Three behaviours need something the script cannot do for you.** The run prints one command for each when it finishes; each compares automatically after you have done the stated thing:
 
    | Behaviour | Needs | Command |
