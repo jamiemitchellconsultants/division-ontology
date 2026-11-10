@@ -22,7 +22,7 @@ It writes the namespace and steward logins to [`division.json`](division.json), 
 - **Add `owner/repo` to division ontology** — the agent checks that repository's committed Turtle ontology, proposes its registration for steward review, and scheduled sync adds all its concepts after approval.
 - **Sync division ontology now** — the agent triggers the manual sync workflow and reports its result.
 
-The normal sync runs every 30 minutes and maintains one generated catalog PR. Verified changes to unlinked source concepts can merge automatically after the [one-time setup](docs/automation-setup.md). Shared meaning and existing linked-concept changes still require a division steward.
+The normal sync runs every two hours and maintains one generated catalog PR. Verified changes to unlinked source concepts can merge automatically after the [one-time setup](docs/automation-setup.md). Shared meaning and existing linked-concept changes still require a division steward.
 
 ## See it with sample data
 
