@@ -78,3 +78,15 @@ test('a division can have any repository name: writer tokens are scoped to the c
     }
   }
 });
+
+test('the source-read token never authenticates git against the division repository', () => {
+  const steps = Object.values(workflow('sync-catalog.yml').jobs)[0].steps;
+  const finalize = steps.find((step) => step.name === 'Finalize PR fingerprint and merge mode');
+  assert.match(finalize.run, /git fetch --no-tags origin/);
+  // The source-read App is never installed on the division repository (ADR 0009), so only the writer token can fetch it.
+  assert.match(finalize.env.GH_SOURCE_TOKEN, /steps\.writer-token\.outputs\.token/);
+  assert.doesNotMatch(JSON.stringify(finalize.env), /source-token/);
+  for (const step of steps.filter((item) => /git (fetch|push)/.test(item.run ?? ''))) assert.doesNotMatch(JSON.stringify(step.env ?? {}), /source-token/, step.name);
+  // The build step reads source repositories, which is what the source token is for.
+  assert.match(steps.find((step) => step.id === 'build').env.GH_SOURCE_TOKEN, /steps\.source-token\.outputs\.token/);
+});
