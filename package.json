@@ -10,6 +10,7 @@
     "test": "node --test test/*.test.mjs",
     "acceptance:c4": "node test/acceptance/rerun.mjs",
     "build": "node src/cli.mjs build",
+    "init-division": "node scripts/init-division.mjs",
     "check": "node src/cli.mjs check",
     "c4": "node src/c4/cli.mjs"
   },

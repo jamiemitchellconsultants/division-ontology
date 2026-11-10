@@ -1,6 +1,6 @@
 # Runtime knowledge workspace on the home lab
 
-Division Ontology supplies the versioned API, worker, web, PostgreSQL and MinIO images and the Compose, Caddy and Keycloak templates in this release. LocalAI resolves the reviewed commit or release, chooses the deployment settings, creates the persistent volumes, manages the shared Caddy and Keycloak services and applies upgrades. This follows the [JointBooking installation boundary](https://github.com/jamiemitchellconsultants/LocalAI/blob/main/docs/deploy-jointbooking.md).
+Division Ontology supplies the versioned API, worker, web, PostgreSQL and MinIO images and the Compose, Caddy and Keycloak templates in this release. LocalAI resolves the reviewed commit or release, chooses the deployment settings, creates the persistent volumes, manages the shared Caddy and Keycloak services and applies upgrades.
 
 ## Release inputs
 

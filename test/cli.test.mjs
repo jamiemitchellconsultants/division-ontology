@@ -7,7 +7,7 @@ import { execFileSync } from 'node:child_process';
 import { runCli } from '../src/cli.mjs';
 
 const sourceId = 'example/booking';
-const coreNamespace = 'https://github.com/jamiemitchellconsultants/division-ontology#';
+const coreNamespace = 'https://example.test/division#';
 function pilot() {
   const root = mkdtempSync(join(tmpdir(), 'division-cli-'));
   const checkout = join(root, 'booking');
@@ -21,6 +21,7 @@ function pilot() {
   mkdirSync(join(root, 'core'));
   mkdirSync(join(root, 'links'));
   writeFileSync(join(root, 'core/ontology.ttl'), `@prefix : <${coreNamespace}> . @prefix owl: <http://www.w3.org/2002/07/owl#> . @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> . :StaffId a owl:Class; rdfs:label "StaffId" .\n`);
+  writeFileSync(join(root, 'division.json'), JSON.stringify({ namespace: coreNamespace, stewards: ['steward-one'] }));
   writeFileSync(join(root, 'sources.json'), JSON.stringify({ sources: [{ id: sourceId, url: checkout, ref: 'main', ontologyPath: 'docs/ontology.ttl', namespace: 'https://example.test/booking#', linksPath: 'links/booking.json' }] }));
   writeFileSync(join(root, 'links/booking.json'), JSON.stringify({ source: sourceId, links: [{ local: 'https://example.test/booking#StaffId', shared: `${coreNamespace}StaffId`, relation: 'exact' }] }));
   return { root, checkout, override: `${sourceId}=${checkout}` };

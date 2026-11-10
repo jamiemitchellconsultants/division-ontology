@@ -5,9 +5,8 @@ import { pathToFileURL } from 'node:url';
 import { buildCatalog, loadLinks } from './catalog.mjs';
 import { parseTurtle, readSourceOntology } from './rdf.mjs';
 import { loadSources, resolveSource } from './sources.mjs';
+import { loadDivision } from './division.mjs';
 import { checkOutputs, renderOutputs, writeOutputs } from './output.mjs';
-
-const CORE_NAMESPACE = 'https://github.com/jamiemitchellconsultants/division-ontology#';
 
 function argumentsFor(argv) {
   const [command, ...args] = argv;
@@ -28,9 +27,10 @@ function argumentsFor(argv) {
 export async function runCli(argv, options = {}) {
   const root = resolve(options.root ?? process.cwd());
   const { command, overrides } = argumentsFor(argv);
+  const { namespace } = loadDivision(root);
   const configuredSources = loadSources(join(root, 'sources.json'));
   for (const id of overrides.keys()) if (!configuredSources.some((source) => source.id === id)) throw new Error(`checkout override ${id} is not in sources.json`);
-  const coreQuads = parseTurtle(readFileSync(join(root, 'core/ontology.ttl'), 'utf8'), CORE_NAMESPACE);
+  const coreQuads = parseTurtle(readFileSync(join(root, 'core/ontology.ttl'), 'utf8'), namespace);
   const sources = [];
   const links = [];
   for (const source of configuredSources) {
@@ -44,7 +44,7 @@ export async function runCli(argv, options = {}) {
       }
     } finally { resolved.cleanup(); }
   }
-  const { catalog, quads } = buildCatalog({ coreQuads, sources, links, coreNamespace: CORE_NAMESPACE });
+  const { catalog, quads } = buildCatalog({ coreQuads, sources, links, coreNamespace: namespace });
   const outputs = await renderOutputs(catalog, quads);
   if (command === 'check') checkOutputs(root, outputs);
   else writeOutputs(root, outputs);

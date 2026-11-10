@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { evaluateMergePolicy, validatePrTarget, changedPathsFromFiles, validateFileCount } from '../src/merge-policy.mjs';
 
 const headSha = 'a'.repeat(40);
-const approval = (state = 'APPROVED', commitId = headSha, user = 'jamiemitchellconsultants', id = 1) => ({ state, commit_id: commitId, user: { login: user }, id });
-const evaluate = (changedPaths, mode, reviews = []) => evaluateMergePolicy({ changedPaths, classification: { mode, reasons: [] }, reviews, headSha, stewardLogins: ['jamiemitchellconsultants', 'james-mitchell-ba'] });
+const approval = (state = 'APPROVED', commitId = headSha, user = 'steward-one', id = 1) => ({ state, commit_id: commitId, user: { login: user }, id });
+const evaluate = (changedPaths, mode, reviews = []) => evaluateMergePolicy({ changedPaths, classification: { mode, reasons: [] }, reviews, headSha, stewardLogins: ['steward-one', 'steward-two'] });
 
 test('verified generated refresh needs no review', () => assert.equal(evaluate(['dist/catalog.json'], 'automatic').allowed, true));
 test('linked drift waits for a current steward approval', () => {
@@ -15,6 +15,11 @@ test('source registrations require current steward approval', () => {
   assert.equal(evaluate(['sources.json'], 'review').allowed, false);
   assert.equal(evaluate(['sources.json'], 'review', [approval()]).allowed, true);
 });
+test('division stewardship and namespace changes require current steward approval', () => {
+  assert.equal(evaluate(['division.json'], 'review').allowed, false);
+  assert.equal(evaluate(['division.json'], 'review', [approval('APPROVED', headSha, 'someone-else')]).allowed, false);
+  assert.equal(evaluate(['division.json'], 'review', [approval()]).allowed, true);
+});
 test('unrelated changes bypass steward approval even when a steward requested changes', () => {
   for (const path of ['README.md', 'src/merge-policy.mjs', 'core/ontology.ttl', 'links/example.json']) {
     assert.equal(evaluate([path], 'review', [approval('CHANGES_REQUESTED')]).allowed, true, path);
@@ -24,16 +29,16 @@ test('a source registration remains protected alongside unrelated changes', () =
   assert.equal(evaluate(['README.md', 'sources.json'], 'review').allowed, false);
 });
 test('alternate steward approval satisfies the policy for the current head', () => {
-  assert.equal(evaluate(['sources.json'], 'review', [approval('APPROVED', headSha, 'james-mitchell-ba')]).allowed, true);
+  assert.equal(evaluate(['sources.json'], 'review', [approval('APPROVED', headSha, 'steward-two')]).allowed, true);
 });
 test('stale and unrelated approvals do not satisfy policy', () => {
   assert.equal(evaluate(['sources.json'], 'review', [approval('APPROVED', 'b'.repeat(40))]).allowed, false);
-  assert.equal(evaluate(['sources.json'], 'review', [approval('APPROVED', 'b'.repeat(40), 'james-mitchell-ba')]).allowed, false);
+  assert.equal(evaluate(['sources.json'], 'review', [approval('APPROVED', 'b'.repeat(40), 'steward-two')]).allowed, false);
   assert.equal(evaluate(['sources.json'], 'review', [approval('APPROVED', headSha, 'someone-else')]).allowed, false);
 });
-test('later alternate steward changes requested supersedes an approval', () => assert.equal(evaluate(['sources.json'], 'review', [approval(), approval('CHANGES_REQUESTED', headSha, 'james-mitchell-ba', 2)]).allowed, false));
+test('later alternate steward changes requested supersedes an approval', () => assert.equal(evaluate(['sources.json'], 'review', [approval(), approval('CHANGES_REQUESTED', headSha, 'steward-two', 2)]).allowed, false));
 test('one steward cannot approve over another steward\'s outstanding changes request', () => {
-  assert.equal(evaluate(['sources.json'], 'review', [approval('CHANGES_REQUESTED'), approval('APPROVED', headSha, 'james-mitchell-ba', 2)]).allowed, false);
+  assert.equal(evaluate(['sources.json'], 'review', [approval('CHANGES_REQUESTED'), approval('APPROVED', headSha, 'steward-two', 2)]).allowed, false);
 });
 test('mixed generated and authored files are never silently merged', () => assert.equal(evaluate(['sources.json', 'dist/catalog.json'], 'automatic', [approval()]).allowed, false));
 test('no diff is not an automatic merge', () => assert.equal(evaluate([], 'none').allowed, false));
