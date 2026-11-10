@@ -26,6 +26,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [16](#entry-build-the-runtime-knowledge-workspace) | 2026-11-08 | Build the runtime knowledge workspace | product | Store publication and contribution events in the durable PostgreSQL journal and preserve the content-addressed bundles referenced by it. Use separate database roles for the API, publisher and indexer. |
 | [17](#entry-start-division-ontology-templates-without-registered-sources) | 2026-11-08 | Start division ontology templates without registered sources | product | Start the template with no registered source repositories or source links. Retain the existing division-owned core. Use a disposable workspace with synthetic sources for demonstrations and persistence testing. |
 | [18](#entry-prepare-supervised-workspace-acceptance) | 2026-11-09 | Prepare supervised workspace acceptance | product | Use Order Fulfilment as the synthetic pilot and run acceptance against the existing workspace. Automate preparation, publication, browser checks, restart and guarded replay. Require search to work with the configured embedding service. |
+| [19](#entry-amend-c4-vision-to-stop-naming-the-pilot-source) | 2026-11-10 | Amend C4 vision to stop naming the pilot source | product | State the deployment-evidence rule as a per-source constraint and describe the Graphify research without naming the repository. The outcomes, scope and research findings are otherwise unchanged. |
 
 ---
 
@@ -410,3 +411,29 @@ Use Order Fulfilment as the synthetic pilot and run acceptance against the exist
 Repeat runs can reuse the fixture and deployment while retaining separate evidence. The operator can reset workspace data between use cases. Merging this PR closes the acceptance phase. Issue #65 tracks the deferred evidence separately.
 
 AI-Fingerprint: sha256:e143ed4f2f82
+
+---
+
+<a id="entry-amend-c4-vision-to-stop-naming-the-pilot-source"></a>
+
+## Entry 19 — 2026-11-10 — Amend C4 vision to stop naming the pilot source
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+This repository is now a source-free template that each division copies. Shipped feature documents still named JointBooking as the pilot source, so every division copy would inherit a reference to a repository it does not register.
+
+## Decision
+
+State the deployment-evidence rule as a per-source constraint and describe the Graphify research without naming the repository. The outcomes, scope and research findings are otherwise unchanged.
+
+## Consequences
+
+The architecture's pilot-scope item that restates the Terraform-only rule (pushback #17) traces to this change and is amended separately. Upstream links to the InternalOntology vision still carry the original detail for anyone who needs it.
+
+---
+
+AI-Fingerprint: sha256:6a04b4b3adbe
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
