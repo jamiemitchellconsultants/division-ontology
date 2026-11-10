@@ -72,7 +72,7 @@ function rulesFor(quads, source) {
   return rules.sort((a, b) => byCodepoint(a.subject, b.subject));
 }
 
-export function buildCatalog({ coreQuads, sources, links, coreNamespace }) {
+export function buildCatalog({ coreQuads, sources, links, coreNamespace, importStatus = [] }) {
   const core = resources(coreQuads, coreNamespace, 'division-core');
   const concepts = [...core.concepts];
   const relations = [...core.relations];
@@ -90,7 +90,7 @@ export function buildCatalog({ coreQuads, sources, links, coreNamespace }) {
     concepts.push(...projected.concepts);
     relations.push(...projected.relations);
     rules.push(...rulesFor(source.quads, source.id));
-    sourceSummaries.push({ id: source.id, commit: source.commit, namespace: source.namespace, conceptCount: projected.concepts.length });
+    sourceSummaries.push({ id: source.id, commit: source.commit, namespace: source.namespace, conceptCount: projected.concepts.length, origin: source.origin ?? 'registered', stale: source.stale ?? false });
     const graph = namedNode(`urn:division-ontology:source:${encodeURIComponent(source.id)}:${source.commit}`);
     namedQuads.push(...source.quads.map((item) => quad(item.subject, item.predicate, item.object, graph)));
   }
@@ -98,6 +98,7 @@ export function buildCatalog({ coreQuads, sources, links, coreNamespace }) {
   const seenLinks = new Set();
   const orderedLinks = [...links].sort((a, b) => byCodepoint(`${a.source}|${a.local}`, `${b.source}|${b.local}`));
   for (const link of orderedLinks) {
+    if (sourceSummaries.find((source) => source.id === link.source)?.origin === 'granted') throw new Error(`link source ${link.source} is granted; links need steward registration`);
     if (!sourceSummaries.some((source) => source.id === link.source)) throw new Error(`link source ${link.source} is not configured`);
     const local = conceptByIri.get(link.local);
     if (!local || local.source !== link.source) throw new Error(`link local concept ${link.local} not found in ${link.source}`);
@@ -114,5 +115,5 @@ export function buildCatalog({ coreQuads, sources, links, coreNamespace }) {
   relations.sort((a, b) => byCodepoint(`${a.source}|${a.iri}`, `${b.source}|${b.iri}`));
   rules.sort((a, b) => byCodepoint(`${a.source}|${a.subject}`, `${b.source}|${b.subject}`));
   const version = coreQuads.find((item) => item.predicate.value === OWL_VERSION_INFO)?.object.value ?? null;
-  return { catalog: { schemaVersion: 1, core: { namespace: coreNamespace, version, conceptCount: core.concepts.length }, sources: sourceSummaries, concepts, relations, rules, links: orderedLinks }, quads: namedQuads };
+  return { catalog: { schemaVersion: 1, core: { namespace: coreNamespace, version, conceptCount: core.concepts.length }, sources: sourceSummaries, concepts, relations, rules, importStatus, links: orderedLinks }, quads: namedQuads };
 }

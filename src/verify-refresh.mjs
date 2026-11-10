@@ -1,4 +1,4 @@
-import { cpSync, lstatSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { cpSync, existsSync, lstatSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { runCli } from './cli.mjs';
@@ -11,7 +11,7 @@ function regular(path) {
   try { return lstatSync(path).isFile(); } catch { return false; }
 }
 
-export async function verifyRefresh({ baseRoot, candidateDist, changedPaths, checkoutOverrides = new Map() }) {
+export async function verifyRefresh({ baseRoot, candidateDist, changedPaths, checkoutOverrides = new Map(), grantProvider, urlFor }) {
   if (changedPaths.length === 0) return { mode: 'none', reasons: [] };
   const generatedChange = changedPaths.some((path) => generated.has(path));
   const otherChange = changedPaths.some((path) => !generated.has(path));
@@ -24,9 +24,14 @@ export async function verifyRefresh({ baseRoot, candidateDist, changedPaths, che
     cpSync(join(baseRoot, 'links'), join(temporary, 'links'), { recursive: true });
     cpSync(join(baseRoot, 'sources.json'), join(temporary, 'sources.json'));
     cpSync(join(baseRoot, 'division.json'), join(temporary, 'division.json'));
+    // The committed dist/ is a build input: it carries granted sources forward (ADR 0011).
+    if (existsSync(join(baseRoot, 'dist'))) cpSync(join(baseRoot, 'dist'), join(temporary, 'dist'), { recursive: true });
     const args = ['build'];
     for (const [id, checkout] of checkoutOverrides) args.push('--checkout', `${id}=${checkout}`);
-    await runCli(args, { root: temporary });
+    const options = { root: temporary };
+    if (grantProvider !== undefined) options.grantProvider = grantProvider;
+    if (urlFor !== undefined) options.urlFor = urlFor;
+    await runCli(args, options);
     for (const name of names) {
       const candidate = join(candidateDist, name);
       if (!regular(candidate)) throw new Error(`dist/${name} must be a regular file`);

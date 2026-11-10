@@ -19,6 +19,7 @@ It writes the namespace and steward logins to [`division.json`](division.json), 
 
 ## Minimal instructions for an agent
 
+- **Join `owner/repo` to division ontology** — for a source owner: the agent writes `.division-ontology.json` (ontology path and namespace) in the source repository and asks its administrator to add the repository to the division's read-only source App. Nothing is edited here and no steward approval is needed; the next sync imports it and shows its status.
 - **Add `owner/repo` to division ontology** — the agent checks that repository's committed Turtle ontology, proposes its registration for steward review, and scheduled sync adds all its concepts after approval.
 - **Sync division ontology now** — the agent triggers the manual sync workflow and reports its result.
 
@@ -53,6 +54,8 @@ The demo builds its own division repository, so it skips the real registration s
 ## Build from a local checkout
 
 Requires Node.js 20 or newer and a clean checkout of each source repository.
+
+If the committed catalog holds granted sources, `build` and `check` also list the source-read App's installation, so run them with `DIVISION_SOURCE_APP=enabled` and `GH_SOURCE_TOKEN` set to a read-only installation token for that App (never in a file or argument list). Without them the command stops rather than treating the granted sources as removed.
 
 ```bash
 npm ci

@@ -4,6 +4,13 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import YAML from 'yaml';
 
+const flag = /DIVISION_SOURCE_APP_CLIENT_ID && 'enabled' \|\| 'disabled'/;
+const readToken = (step) => {
+  assert.equal(step.with['permission-contents'], 'read');
+  assert.equal(step.with.repositories, undefined);
+  assert.match(step.with['client-id'], /vars\.DIVISION_SOURCE_APP_CLIENT_ID \|\| vars\.DIVISION_SYNC_APP_CLIENT_ID/);
+  assert.match(step.with['private-key'], /secrets\.DIVISION_SOURCE_APP_PRIVATE_KEY \|\| secrets\.DIVISION_SYNC_APP_PRIVATE_KEY/);
+};
 const workflow = (name) => YAML.parse(readFileSync(join(import.meta.dirname, '../.github/workflows', name), 'utf8'));
 test('scheduled sync is manually runnable and restricts PR updates to generated outputs', () => {
   const sync = workflow('sync-catalog.yml');
@@ -15,7 +22,9 @@ test('scheduled sync is manually runnable and restricts PR updates to generated 
   assert.equal(create.with['add-paths'], 'dist/');
   const appTokens = steps.filter((step) => step.uses?.startsWith('actions/create-github-app-token@'));
   assert.equal(appTokens.length, 2);
-  assert.equal(appTokens[0].with['permission-contents'], 'read');
+  readToken(appTokens[0]);
+  assert.match(steps.find((step) => step.id === 'build').env.DIVISION_SOURCE_APP, flag);
+  assert.match(appTokens[1].with['client-id'], /DIVISION_SYNC_APP_CLIENT_ID/);
   assert.equal(appTokens[1].with.repositories, 'division-ontology');
   assert.ok(!JSON.stringify(steps).includes('git config credential'));
 });
@@ -36,7 +45,8 @@ test('merge gate runs trusted base code and exposes source credentials only to g
   assert.match(candidate.if, /generated_only/);
   const token = steps.find((step) => step.id === 'source-token');
   assert.match(token.if, /generated_only/);
-  assert.equal(token.with['permission-contents'], 'read');
+  readToken(token);
+  assert.match(steps.find((step) => step.name === 'Evaluate trusted policy').env.DIVISION_SOURCE_APP, flag);
   assert.ok(!steps.some((step) => step.run?.includes('_candidate/src/')));
 });
 

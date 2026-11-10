@@ -15,27 +15,31 @@ export function parseTurtle(text, baseIRI) {
     const factory = { ...DataFactory, blankNode: (label) => DataFactory.blankNode(label ?? `${prefix}g${generated++}`) };
     return new Parser({ baseIRI, format: 'text/turtle', blankNodePrefix: prefix, factory }).parse(text);
   } catch (error) {
-    throw new Error(`invalid Turtle: ${error.message}`, { cause: error });
+    throw Object.assign(new Error(`invalid Turtle: ${error.message}`, { cause: error }), { code: 'ontology-invalid-turtle', detail: `line ${error.context?.line ?? 'unknown'}` });
   }
 }
 
-export function readSourceOntology(source, directory, commit) {
+const MAX_ONTOLOGY_BYTES = 32 * 1024 * 1024;
+
+export function readSourceOntology(source, directory, commit, { maxBytes = MAX_ONTOLOGY_BYTES } = {}) {
   if (!/^[0-9a-f]{40,64}$/.test(commit ?? '')) throw new Error(`${source.id}: a source commit is required`);
   const listing = execFileSync('git', ['ls-tree', commit, '--', source.ontologyPath], { cwd: directory, encoding: 'utf8' }).trimEnd();
   const [entry] = listing.split('\n');
   const match = /^([0-9]{6}) blob [0-9a-f]+\t(.+)$/.exec(entry);
   if (!match || match[2] !== source.ontologyPath || !['100644', '100755'].includes(match[1])) {
-    throw new Error(`${source.id}: ontologyPath must identify a committed regular blob, not a symlink`);
+    throw Object.assign(new Error(`${source.id}: ontologyPath must identify a committed regular blob, not a symlink`), { code: 'ontology-unreadable', detail: source.ontologyPath });
   }
-  const text = execFileSync('git', ['show', `${commit}:${source.ontologyPath}`], { cwd: directory, encoding: 'utf8' });
+  const size = Number(execFileSync('git', ['cat-file', '-s', `${commit}:${source.ontologyPath}`], { cwd: directory, encoding: 'utf8' }));
+  if (size > maxBytes) throw Object.assign(new Error(`${source.id}: ontology is larger than ${maxBytes} bytes`), { code: 'ontology-unreadable', detail: `file is larger than ${Math.floor(maxBytes / 1048576) || maxBytes} ${maxBytes >= 1048576 ? 'MiB' : 'bytes'}` });
+  const text = execFileSync('git', ['show', `${commit}:${source.ontologyPath}`], { cwd: directory, encoding: 'utf8', maxBuffer: maxBytes + 1024 });
   const quads = parseTurtle(text, source.namespace);
   for (const item of quads) {
     if (item.subject.termType === 'NamedNode' && item.predicate.value === RDF_TYPE && conceptTypes.has(item.object.value) && !item.subject.value.startsWith(source.namespace)) {
-      throw new Error(`${source.id}: concept ${item.subject.value} is outside configured namespace ${source.namespace}`);
+      throw Object.assign(new Error(`${source.id}: concept ${item.subject.value} is outside configured namespace ${source.namespace}`), { code: 'concept-outside-namespace', detail: item.subject.value });
     }
   }
   if (!quads.some((item) => item.subject.termType === 'NamedNode' && item.subject.value.startsWith(source.namespace) && !item.subject.value.slice(source.namespace.length).startsWith('_') && (item.predicate.value === RDF_TYPE || item.predicate.value === `${RDFS}label`))) {
-    throw new Error(`${source.id}: ontology has no concepts in configured namespace ${source.namespace}`);
+    throw Object.assign(new Error(`${source.id}: ontology has no concepts in configured namespace ${source.namespace}`), { code: 'no-concepts', detail: source.namespace });
   }
   return quads;
 }

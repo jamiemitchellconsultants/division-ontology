@@ -9,6 +9,11 @@ const cell = (value) => String(value ?? '').replace(/\|/g, '\\|').replace(/\r?\n
 function markdown(catalog) {
   const lines = ['# Division ontology catalog', '', `Shared core version: ${catalog.core.version ?? 'unversioned'}. Concepts: ${catalog.core.conceptCount}.`, '', '## Sources', '', '| Repository | Commit | Concepts |', '| --- | --- | ---: |'];
   for (const source of catalog.sources) lines.push(`| ${source.id} | \`${source.commit}\` | ${source.conceptCount} |`);
+  if (catalog.importStatus?.length) {
+    lines.push('', '## Import status', '', '| Repository | Status | Attempted commit | Published commit | Reason |', '| --- | --- | --- | --- | --- |');
+    const commit = (value) => value ? `\`${value}\`` : '—';
+    for (const item of catalog.importStatus) lines.push(`| ${cell(item.source)} | ${cell(item.status)} | ${commit(item.attemptedCommit)} | ${commit(item.publishedCommit)} | ${item.reason ? cell(`${item.reason.code}: ${item.reason.detail}`) : ''} |`);
+  }
   lines.push('', '## Shared vocabulary', '', '| Term | IRI | Definition |', '| --- | --- | --- |');
   for (const concept of catalog.concepts.filter((item) => item.source === 'division-core')) lines.push(`| \`${cell(concept.label)}\` | ${cell(concept.iri)} | ${cell(concept.definition)} |`);
   for (const source of catalog.sources) {
