@@ -9,7 +9,7 @@ Every behaviour B1–B17 has a scripted walkthrough and an executable acceptance
 
 Participant, architect and reviewer: the person who runs the commands in [What to run](#what-to-run) and records each result below. They read and approve the executable tests; the commands, not the participant, compare actual with expected results.
 
-**Status: local build accepted; deployed run passed for all behaviours except B3, B4 and B5, which were not run there. Organisation policy (U12) is not tested.** The local executable layer passed on a clean checkout of the PR head and the participant has approved the executable test file (see [Formal results](#formal-results)). The deployed run is recorded under [Formal results](#formal-results).
+**Status: acceptance passed (10 November 2026).** The local executable layer passed on a clean checkout and the participant approved the executable test file. The deployed run passed for every behaviour it covers; B3, B4 and B5 have no deployed result and stand on the local executable run, at the participant's decision. Organisation policy (U12) is not tested. See [Formal results](#formal-results).
 
 ## What to run
 
@@ -226,4 +226,4 @@ Record the result of the command for every behaviour in each environment, with t
 
 **Not tested at all.** Organisation policy about who may add an App (assumption U12): a personal account cannot test it, and the participant cannot create an organisation. That the source owner has no write access to the division repository could not be shown with a single account; the run shows only that joining needed no commit or PR in the division repository beyond the generated refresh. Beta was already in the App's repository list before step D8, so D8 tested the namespace conflict, the invalid-first-version case and isolation, but not a grant arriving in the same sync as its configuration.
 
-**Acceptance: not complete.** The local build is accepted and the deployed run passed for every behaviour it covers. B3, B4 and B5 have no deployed result, and the participant has not yet decided whether the acceptance stands without them.
+**Acceptance: passed.** On 10 November 2026, James Mitchell accepted the local executable results for B1–B17 and the deployed run for every behaviour it covers, and decided that B3, B4 and B5 stand on the local executable run alone, with the reasons recorded above. Organisation policy (U12) is not tested.
