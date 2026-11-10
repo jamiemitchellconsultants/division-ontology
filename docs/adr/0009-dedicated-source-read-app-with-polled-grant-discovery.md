@@ -37,3 +37,7 @@ Each division has its own **source-read App**, separate from its **division-writ
 - **Installation webhooks that dispatch the sync.** Faster than two hours, but it needs a hosted receiver and a dispatch credential. The vision asks only for the next normal sync.
 - **Webhooks and polling together.** Adds the receiver and still needs polling to recover missed events. The extra speed is not required by any behaviour.
 - **A per-source personal access token.** Moves the credential to individuals and cannot be scoped to one division.
+
+## Amendment, 2026-11-10
+
+Deployed acceptance found that the sync workflow's finalize step fetched the division repository with the source-read token, which this decision keeps off that repository, so a private division answered "Repository not found". The source-read token is for reading source repositories only: it clones sources and lists the installation, and it never authenticates git or the API against the division repository. Every step that touches the division repository uses the division-writer token or the workflow's built-in token. `test/workflow.test.mjs` asserts this for the sync workflow.
