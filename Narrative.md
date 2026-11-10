@@ -35,6 +35,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [25](#entry-docs-feature-define-one-action-source-onboarding-behaviours) | 2026-11-10 | docs(feature): define one-action source onboarding behaviours | product | A SourceAccessGrant to a division's own read-only App registers a repository that has a committed SourceImportConfiguration; `sources.json` stays for steward-registered sources and governs when a repository is both. |
 | [26](#entry-ci-run-the-catalog-sync-every-two-hours) | 2026-11-10 | ci: run the catalog sync every two hours | product | Division copies run the scheduled sync every two hours. The template keeps the sync disabled. |
 | [27](#entry-docs-feature-define-one-action-source-onboarding-architecture) | 2026-11-10 | docs(feature): define one-action source onboarding architecture | product | Each division has a dedicated read-only source App (Contents and Metadata read) that owners add repositories to, separate from the division-writer App. |
+| [28](#entry-docs-feature-plan-one-action-source-onboarding-build) | 2026-11-10 | docs(feature): plan one-action source onboarding build | product | Thirteen test-first tasks, each ending in a focused commit: reasons, import configuration, a fixture division with a fake grant provider, the granted-source importer, grant discovery, status classification, the catalog builder and… |
 
 ---
 
@@ -643,5 +644,29 @@ Each division has a dedicated read-only source App (Contents and Metadata read) 
 Divisions need two Apps and two sets of credentials, and a new grant can take up to two hours to appear. Granted sources can publish their own definitions in their own namespace without review, limited by the namespace checks and by links staying steward-only. `verifyRefresh` must include the base `dist/`, and readers of `catalog.sources` such as the C4 loader and the workspace importer will see granted and stale sources. The developer must confirm how to read the installation's `repository_selection` and the Contents API volume. Offering to write `.division-ontology.json` in InternalOntology's installer is a separate change in that repository.
 
 AI-Fingerprint: sha256:b2eeb0b6eb7c
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+---
+
+<a id="entry-docs-feature-plan-one-action-source-onboarding-build"></a>
+
+## Entry 28 — 2026-11-10 — docs(feature): plan one-action source onboarding build
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The accepted architecture (ADRs 0009–0012) leaves the build open: how the importer, classifier and builder fit the existing `src/` code, and five points the architect passed on. Those were the installation's `repository_selection`, the Contents API volume, the consumers of `catalog.sources`, the fixture division, and how a granted source behaves when later registered. Today `buildCatalog` throws on the first concept collision and `classifyRefresh` treats any source change as steward-reviewed, so both must change without altering registered-source behaviour.
+
+## Decision
+
+Thirteen test-first tasks, each ending in a focused commit: reasons, import configuration, a fixture division with a fake grant provider, the granted-source importer, grant discovery, status classification, the catalog builder and renderer, CLI orchestration with the B1–B17 behaviour tests, refresh classification, the verifier, the C4 reader, the workflows and the documentation. `repository_selection` is read from the first page of `GET /installation/repositories`, so no fallback is needed (confirmed in GitHub's published API description). Namespaces overlap when either is a prefix of the other, so two sources cannot collide on a concept IRI. Only `src/c4/snapshot.mjs` compares `catalog.sources` with `sources.json`, and the workspace bundle reads through it. A granted source later registered is rebuilt strictly and its carried graph dropped. Registered sources keep today's messages and strictness. The build PR does not stage `dist/`; the scheduled sync regenerates it.
+
+## Consequences
+
+The build gains new modules, `origin`, `stale` and `importStatus` fields in every catalog, and two workflow changes. Until the scheduled sync regenerates `dist/`, `npm run check` reports it stale for those fields only. Granted sources are limited to GitHub.com hosts through a derived clone URL. Each sync costs one Contents API request per installed repository, which `docs/automation-setup.md` will state. Real-organisation acceptance (B1, B4, B6, B14 and the policy assumption U12) belongs to the user phase. Writing `.division-ontology.json` from InternalOntology's installer remains a separate change in that repository.
+
+AI-Fingerprint: sha256:f7f33d79564c
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
