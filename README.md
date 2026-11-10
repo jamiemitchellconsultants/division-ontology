@@ -24,6 +24,32 @@ It writes the namespace and steward logins to [`division.json`](division.json), 
 
 The normal sync runs every 30 minutes and maintains one generated catalog PR. Verified changes to unlinked source concepts can merge automatically after the [one-time setup](docs/automation-setup.md). Shared meaning and existing linked-concept changes still require a division steward.
 
+## See it with sample data
+
+The template starts empty. To see what ingesting repositories produces, use three synthetic repositories (Ecommerce, Warehouse and Accounting) with committed ontologies and source knowledge graphs. Everything is created outside this checkout; `sources.json`, the registries and `dist/` are not touched. The content is invented and is not evidence about any real system.
+
+Catalog and C4 commands only (Node.js 20+, Git):
+
+```bash
+npm ci
+npm run demo:setup      # creates the repositories and a division catalog in $TMPDIR/division-demo
+npm run demo:teardown   # deletes that directory, including anything saved in it
+```
+
+Set `DEMO_DIR` to an absolute path to use another location. See [the fixture guide](test/fixtures/representative/README.md) for commands to run against it.
+
+Workspace UI (Docker and jq as well):
+
+```bash
+npm run demo:up       # starts the workspace and publishes the sample snapshot
+npm run demo:status   # shows the URL and where the sign-in passwords are
+npm run demo:down     # removes the containers, data volumes and generated passwords
+```
+
+`demo:up` prints the address (default `http://workspace.localhost:8087`; set `WORKSPACE_PORT` to change it) and the file holding the generated passwords for `workspace-manager` and `workspace-reader`. It stays running until `demo:down`.
+
+The demo builds its own division repository, so it skips the real registration step: a reviewed `sources.json` entry followed by the scheduled sync and catalog pull request. See [Contribute](#contribute) for that path.
+
 ## Build from a local checkout
 
 Requires Node.js 20 or newer and a clean checkout of each source repository.
