@@ -9,7 +9,7 @@ Every behaviour B1–B17 has a scripted walkthrough and an executable acceptance
 
 Participant, architect and reviewer: the person who runs the commands in [What to run](#what-to-run) and records each result below. They read and approve the executable tests; the commands, not the participant, compare actual with expected results.
 
-**Status: local build accepted; deployed environment not yet run.** The local executable layer passed on a clean checkout of the PR head and the participant has approved the executable test file (see [Formal results](#formal-results)). The deployed environment does not exist yet, so the deployed layer has not been run.
+**Status: local build accepted; deployed environment not yet run. Organisation policy (U12) is not tested.** The local executable layer passed on a clean checkout of the PR head and the participant has approved the executable test file (see [Formal results](#formal-results)). The deployed environment does not exist yet, so the deployed layer has not been run.
 
 ## What to run
 
@@ -25,7 +25,7 @@ Run it on a clean checkout of the reviewed revision. It prints the machine, Node
 
 ### Deployed environment
 
-1. **One-time setup, by hand (it cannot be scripted):** follow the [runbook](05-runbook.md#deploy) to create the division copy, the two Apps, the Actions variables and the merge policy; create three test repositories (`alpha` and `beta` with no required content, `gamma` empty of `.division-ontology.json`) in the same organisation; and note the **installation id** of the source-read App, which is the number at the end of its settings URL (`…/settings/installations/<id>`). Do this on a fresh division, because step D1 expects an empty catalog.
+1. **One-time setup, by hand (it cannot be scripted):** follow the [runbook](05-runbook.md#deploy) to create the division copy, the two Apps, the Actions variables and the merge policy; create three test repositories (`alpha` and `beta` with no required content, `gamma` empty of `.division-ontology.json`) under the same personal account; and note the **installation id** of the source-read App, which is the number at the end of its settings URL (`…/settings/installations/<id>`). Do this on a fresh division, because step D1 expects an empty catalog.
 2. **Review what the run will do, changing nothing** (this makes no calls to GitHub):
 
    ```bash
@@ -45,7 +45,7 @@ Run it on a clean checkout of the reviewed revision. It prints the machine, Node
    | --- | --- | --- |
    | B3 | A steward-approved, merged `sources.json` PR registering `alpha` while it is also in the App | `node test/acceptance/onboarding-deployed.mjs --sync <owner/division> <owner/alpha>=registered` |
    | B4 | A second division with its own App that was never given `alpha` | `node test/acceptance/onboarding-deployed.mjs --sync <owner/second-division> <owner/alpha>=absent` |
-   | B5 | The App installed on all repositories of the test organisation (only if acceptable there) | `node test/acceptance/onboarding-deployed.mjs --sync <owner/division> <owner/gamma>=absent` |
+   | B5 | The App installed on all repositories of the test account (only if acceptable there) | `node test/acceptance/onboarding-deployed.mjs --sync <owner/division> <owner/gamma>=absent` |
 
 The deployed run has not yet been run against GitHub. The comparisons, the step list and the dry run are tested; dispatching the workflow, the `gh` calls and the PR polling are not, so the first real run may report an exception that is a tooling or permission problem rather than a product defect.
 
@@ -155,16 +155,16 @@ Run `$x teardown "$w"`.
 
 ## Deployed environment
 
-Name these before the first deployed run and record them under [Formal results](#formal-results): the division repository, the source-read App and division-writer App, the organisation, and three test source repositories (`alpha` and `beta` with a valid ontology, `gamma` without `.division-ontology.json`) in the same organisation. A second division copy with its own App is needed only for B4.
+Name these before the first deployed run and record them under [Formal results](#formal-results): the division repository, the source-read App and division-writer App, the account that owns them, and three test source repositories (`alpha` and `beta` with a valid ontology, `gamma` without `.division-ontology.json`) under the same personal account. A second division copy with its own App is needed only for B4.
 
-**Preconditions.** The division was made from the template and `init-division`, both Apps are installed as the [runbook](05-runbook.md#deploy) says, `Sync division catalog` has run once successfully, and an owner of a test repository who has no write access to the division repository can add that repository to the source-read App (U12). If that is not allowed, record it: B1 cannot pass.
+**Preconditions.** The division was made from the template and `init-division`, both Apps are installed as the [runbook](05-runbook.md#deploy) says, `Sync division catalog` has run once successfully, and the account that owns the test repositories can add them to the source-read App. Organisation policy about who may add an App (assumption U12) is **out of scope** for this acceptance: the environment is a personal account, which cannot test it, so U12 is recorded as not tested. Before relying on grants in a real organisation, confirm that source owners there may add the source-read App. Likewise, "the source owner has no write access to the division repository" cannot be shown with a single personal account; the run shows only that joining needs no commit or PR in the division repository (the only change there is the generated refresh).
 
 The `run` command above performs steps D1–D11 in the table and compares each result automatically; D12–D14 are the three separate commands in step 4. The automated check is `onboarding-deployed.mjs`'s comparison of the published catalog with the live repositories; you can also run it alone: `node test/acceptance/onboarding-deployed.mjs [--sync] <owner/division> <owner/source>=<status> …` and expect `PASS — … expectation(s) match …`. Statuses are `current`, `invalid`, `'not configured'`, `'access removed'`, `registered` (a steward-registered source with no status row) and `absent` (not in the catalog at all).
 
 | Step | Behaviours | Action in GitHub | Expected result | Automated check |
 | --- | --- | --- | --- | --- |
 | D1 | B7 | None; open `dist/catalog.json` in the new division before any grant. | `sources` and `importStatus` are empty arrays. | catalog is empty |
-| D2 | B1, B6, B2 | As the owner of `alpha` (no write access to the division repository), commit `.division-ontology.json` and a valid ontology to its default branch, then add `alpha` to the source-read App. | `alpha` is current at its head. A generated-only PR opens, is classified automatic and merges with no steward review. The `alpha` owner committed nothing in the division repository. | `alpha=current`, refresh PR merged |
+| D2 | B1, B6, B2 | Commit `.division-ontology.json` and a valid ontology to its default branch, then add `alpha` to the source-read App. | `alpha` is current at its head. A generated-only PR opens, is classified automatic and merges with no steward review. Nothing is committed to the division repository by hand. | `alpha=current`, refresh PR merged |
 | D3 | B13 | Add `gamma` (no `.division-ontology.json`) to the App with a selected-repositories installation. | `gamma` is `not configured` with no concepts; `alpha` is still current. | `alpha=current`, `gamma=not configured` |
 | D4 | B8 | Commit a new term to `alpha`. | `alpha` is current at the new head with no renewed grant. | `alpha=current` |
 | D5 | B9 | Move `alpha`'s ontology file and update its `.division-ontology.json` in the same commit. | `alpha` is current at the new head. | `alpha=current` |
@@ -176,7 +176,7 @@ The `run` command above performs steps D1–D11 in the table and compares each r
 | D11 | B17 | Make no changes; the check runs the sync twice. | The second run is green, opens no PR and leaves `main` unchanged. | `alpha=current`, `main` unchanged, no open refresh PR |
 | D12 (separate command) | B3 | Open a `sources.json` PR registering `alpha` while it is also in the App, get a steward to approve it, and let it merge. | `alpha` appears once, as `registered`, with no status row. | `alpha=registered` |
 | D13 (separate command) | B4 | In a second division with its own App, run its sync. | `alpha` is not in the second division's catalog. | second division `alpha=absent` |
-| D14 (separate command) | B5 | If acceptable in the test organisation, install the App on all repositories. | Only repositories that carry `.division-ontology.json` appear; `gamma` has no row. | `gamma=absent` |
+| D14 (separate command) | B5 | If acceptable on the test account, install the App on all repositories. | Only repositories that carry `.division-ontology.json` appear; `gamma` has no row. | `gamma=absent` |
 
 ## Preparation run
 
