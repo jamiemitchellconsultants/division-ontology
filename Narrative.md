@@ -28,6 +28,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [18](#entry-prepare-supervised-workspace-acceptance) | 2026-11-09 | Prepare supervised workspace acceptance | product | Use Order Fulfilment as the synthetic pilot and run acceptance against the existing workspace. Automate preparation, publication, browser checks, restart and guarded replay. Require search to work with the configured embedding service. |
 | [19](#entry-amend-c4-vision-to-stop-naming-the-pilot-source) | 2026-11-10 | Amend C4 vision to stop naming the pilot source | product | State the deployment-evidence rule as a per-source constraint and describe the Graphify research without naming the repository. The outcomes, scope and research findings are otherwise unchanged. |
 | [20](#entry-amend-workspace-architecture-to-stop-naming-jointbooking) | 2026-11-10 | Amend workspace architecture to stop naming JointBooking | product | Describe the engineering inputs as the division catalog plus the sources a division registers, with the synthetic fixtures for demonstration. |
+| [21](#entry-amend-c4-architecture-to-state-deployment-evidence-per-source) | 2026-11-10 | Amend C4 architecture to state deployment evidence per source | product | Express the Terraform-only rule as a per-source deployment-evidence constraint, matching the implemented selector configuration, and describe the no-graph case without naming a repository. |
 
 ---
 
@@ -462,5 +463,31 @@ The runbook, user guide and acceptance record do not depend on JointBooking bein
 ---
 
 AI-Fingerprint: sha256:f76fdbfcd1b6
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+---
+
+<a id="entry-amend-c4-architecture-to-state-deployment-evidence-per-source"></a>
+
+## Entry 21 — 2026-11-10 — Amend C4 architecture to state deployment evidence per source
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+This repository is now a source-free template that each division copies. The C4 architecture still named JointBooking as the pilot source and as an example checkout, so every division copy would inherit references to a repository it does not register. The vision was amended first in #67.
+
+## Decision
+
+Express the Terraform-only rule as a per-source deployment-evidence constraint, matching the implemented selector configuration, and describe the no-graph case without naming a repository.
+
+## Consequences
+
+No plan or code change is needed: the implementation already reads deployment selectors per source. Completed developer plans under `docs/superpowers/plans/` and `docs/detailed-implementations/` still mention JointBooking as build history; `init-division` removes them from division copies.
+
+---
+
+AI-Fingerprint: sha256:70d38003fa70
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
