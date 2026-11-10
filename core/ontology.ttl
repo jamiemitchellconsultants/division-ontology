@@ -4,7 +4,7 @@
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
 :_meta a owl:Ontology ;
-    owl:versionInfo "0.3.0" .
+    owl:versionInfo "0.4.0" .
 
 :StaffId a owl:Class ;
     rdfs:subClassOf kit:ValueObject ;
@@ -49,3 +49,21 @@
 :ImpactAssessment a owl:Class ;
     rdfs:label "ImpactAssessment" ;
     rdfs:comment "An architect-authored, reviewable account of the likely effects of a change request across participating sources, identifying assessed elements, reasons, evidence, source revisions and unresolved gaps. It does not approve the request." .
+
+# Scope and source evidence for the following shared source-onboarding concepts:
+# docs/features/one-action-source-onboarding/01-vision.md, outcomes 1–4;
+# docs/features/one-action-source-onboarding/02-behaviours.md, B1–B17 and
+# Terms. These definitions add no equivalence links and change no existing
+# term meaning.
+
+:SourceAccessGrant a owl:Class ;
+    rdfs:label "SourceAccessGrant" ;
+    rdfs:comment "A source repository administrator's grant of read-only access to one division's App, which is that owner's consent to import the repository's whole committed ontology into that division's catalog and registers the repository as a source without steward approval." .
+
+:SourceImportConfiguration a owl:Class ;
+    rdfs:label "SourceImportConfiguration" ;
+    rdfs:comment "Repository-owned committed configuration in a source repository that identifies its ontology path and namespace for import." .
+
+:SourceImportStatus a owl:Class ;
+    rdfs:label "SourceImportStatus" ;
+    rdfs:comment "The catalog's per-source record of a granted source's state (current, invalid, not configured or access removed), last attempted commit, last published commit and any actionable failure reason." .
