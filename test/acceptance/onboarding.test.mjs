@@ -224,3 +224,14 @@ test('the manual-app dry run keeps commits automatic and leaves only App changes
   assert.match(result.stdout, /would: commit docs\/ontology\.ttl to o\/alpha/);
   assert.doesNotMatch(result.stdout, /would: ask you to do in your browser: commit/);
 });
+
+test('the deployed run can start from a later step and rejects an unknown one', () => {
+  const run = (...extra) => spawnSync(process.execPath, [join(import.meta.dirname, 'onboarding-deployed.mjs'), 'run', 'o/division', '--alpha', 'o/alpha', '--beta', 'o/beta', '--gamma', 'o/gamma', '--manual-app', '--dry-run', ...extra], { encoding: 'utf8', env: { ...process.env, PATH: '/nonexistent' } });
+  const later = run('--from', 'D2');
+  assert.equal(later.status, 0, later.stderr);
+  assert.doesNotMatch(later.stdout, /=== D1 /);
+  assert.match(later.stdout, /=== D2 /);
+  const unknown = run('--from', 'D99');
+  assert.equal(unknown.status, 1);
+  assert.match(unknown.stderr, /--from D99 is not a step/);
+});

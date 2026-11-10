@@ -138,8 +138,10 @@ export const optionalChecks = ({ division, alpha, gamma }) => [
 ];
 
 // Runs every step, compares the published catalog with the expected result, and stops at the first exception.
-export async function runDeployed({ division, alpha, beta, gamma, installation, manualApp = false, dryRun = false, name = 'unnamed', out, log = console.log }) {
-  const steps = deployedSteps({ alpha, beta, gamma, installation });
+export async function runDeployed({ division, alpha, beta, gamma, installation, manualApp = false, dryRun = false, from, name = 'unnamed', out, log = console.log }) {
+  const all = deployedSteps({ alpha, beta, gamma, installation });
+  if (from && !all.some((step) => step.id === from)) throw new Error(`--from ${from} is not a step; use one of ${all.map((step) => step.id).join(', ')}`);
+  const steps = from ? all.slice(all.findIndex((step) => step.id === from)) : all;
   const results = [];
   let failed = null;
   const doApp = Boolean(installation) && !manualApp;
@@ -189,6 +191,7 @@ export async function runDeployed({ division, alpha, beta, gamma, installation, 
   } finally { rl?.close(); }
   const report = dryRun ? null : [`Deployed run — ${name}, ${new Date().toISOString().slice(0, 10)}, ${hostname()}, division ${division}, alpha ${alpha}, beta ${beta}, gamma ${gamma}`, '',
     '| Step | Behaviours | Result |', '| --- | --- | --- |', ...results.map((item) => `| ${item.id} | ${item.behaviours} | ${item.pass ? 'pass' : 'FAIL'} |`), '',
+    ...(from ? [`Started from ${from}: ${all.slice(0, all.findIndex((step) => step.id === from)).map((step) => step.id).join(', ')} were not run in this run and must be recorded from an earlier run.`, ''] : []),
     failed ? 'Not complete: see the exception above.' : `PASS — ${results.length} steps covering ${[...new Set(steps.flatMap((step) => step.behaviours.split(',').map((item) => item.trim())))].join(', ')}.`,
     '', 'Still to check separately (one comparing command each):', ...optionalChecks({ division, alpha, gamma }).map((check) => `- ${check.behaviours}, once you have ${check.needs}: ${check.command}`)].join('\n');
   if (report) { log(`\n${report}`); if (out) writeFileSync(out, `${report}\n`); }
@@ -202,17 +205,18 @@ async function main(argv) {
     argv.shift();
     const dryRun = flag('--dry-run');
     const manualApp = flag('--manual-app');
+    const from = option('--from');
     const [alpha, beta, gamma, installation, name, out] = [option('--alpha'), option('--beta'), option('--gamma'), option('--installation'), option('--name'), option('--out')];
     const [division] = argv;
-    if (!division || !alpha || !beta || !gamma) throw new Error('usage: onboarding-deployed.mjs run <owner/division> --alpha <owner/repo> --beta <owner/repo> --gamma <owner/repo> [--installation <source-read App installation id>] [--manual-app] [--dry-run] [--name N] [--out file]');
-    const { failed } = await runDeployed({ division, alpha, beta, gamma, installation, manualApp, dryRun, name, out });
+    if (!division || !alpha || !beta || !gamma) throw new Error('usage: onboarding-deployed.mjs run <owner/division> --alpha <owner/repo> --beta <owner/repo> --gamma <owner/repo> [--installation <source-read App installation id>] [--manual-app] [--from D2] [--dry-run] [--name N] [--out file]');
+    const { failed } = await runDeployed({ division, alpha, beta, gamma, installation, manualApp, dryRun, from, name, out });
     if (failed) process.exitCode = 1;
     return;
   }
   const ref = option('--ref') ?? 'main';
   const sync = flag('--sync');
   const [division, ...pairs] = argv;
-  if (!division || !pairs.length) throw new Error('usage: onboarding-deployed.mjs [--ref main] [--sync] <owner/division> <owner/source>=<status> ... | run <owner/division> --alpha ... --beta ... --gamma ... [--installation <id>] [--manual-app] [--dry-run]');
+  if (!division || !pairs.length) throw new Error('usage: onboarding-deployed.mjs [--ref main] [--sync] <owner/division> <owner/source>=<status> ... | run <owner/division> --alpha ... --beta ... --gamma ... [--installation <id>] [--manual-app] [--from D2] [--dry-run]');
   const expectations = pairs.map(parse);
   if (sync) { const result = await dispatchAndWait(division); if (result.pr) console.error(`refresh PR #${result.pr} is still open`); }
   const problems = checkDeployed({ catalog: readCatalog(division, ref), heads: liveHeads(expectations), expectations });
