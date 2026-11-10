@@ -47,6 +47,7 @@ export async function setup(directory) {
     }
     init(divisionRoot,'https://github.com/fixture/division.git');
     put(divisionRoot,'core/ontology.ttl','@prefix : <https://github.com/jamiemitchellconsultants/division-ontology#> .\n@prefix owl: <http://www.w3.org/2002/07/owl#> .\n@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .\n:BusinessOrder a owl:Class; rdfs:label "BusinessOrder"; rdfs:comment "A request for goods made by a customer." .\n');
+    put(divisionRoot,'division.json',JSON.stringify({namespace:'https://github.com/jamiemitchellconsultants/division-ontology#',stewards:['steward-one']},null,2)+'\n');
     put(divisionRoot,'sources.json',JSON.stringify({sources},null,2)+'\n');
     const mappings=[], bindings=[];
     for(const d of data) {

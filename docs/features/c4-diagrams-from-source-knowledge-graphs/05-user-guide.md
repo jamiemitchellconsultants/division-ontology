@@ -1,6 +1,6 @@
 # C4 impact pilot user guide
 
-For the synthetic pilot, follow [the numbered acceptance walkthroughs](05-acceptance.md). For a published catalog, set up the pinned catalog, reviewed registries, source checkouts and output directory as described in [the runbook](05-runbook.md). Every command requires `--catalog-commit`, `--registry-commit`, one `--checkout owner/repo=/absolute/path` per catalog source, and `--output /absolute/output`.
+For the synthetic pilot, follow [the automated acceptance checks](05-acceptance.md#automated-reruns). For a published catalog, set up the pinned catalog, reviewed registries, source checkouts and output directory as described in [the runbook](05-runbook.md). Every command requires `--catalog-commit`, `--registry-commit`, one `--checkout owner/repo=/absolute/path` per catalog source, and `--output /absolute/output`.
 
 ## Start an assessment (B1)
 

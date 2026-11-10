@@ -1,0 +1,33 @@
+<p>
+    <a href="@WorkspaceLinks.Entity(Step.From)">@(Step.FromEndpoint?.Label ?? Step.From.Identifier)</a>
+    (@Step.From.SourceId)
+    → <a href="@WorkspaceLinks.Relationship(Step)">@Step.Label</a> (@Step.Origin, @Step.Direction) →
+    <a href="@WorkspaceLinks.Entity(Step.To)">@(Step.ToEndpoint?.Label ?? Step.To.Identifier)</a>
+    (@Step.To.SourceId)
+</p>
+@if (Step.EndpointUnavailable)
+{
+    <p>Endpoint unavailable · Last known snapshot <code>@Step.LastKnownSnapshotId</code></p>
+}
+<OriginEvidence Origin="Step.Provenance" />
+<OriginEvidence Label="From entity" Origin="Step.FromEndpoint?.Provenance" />
+<OriginEvidence Label="To entity" Origin="Step.ToEndpoint?.Provenance" />
+@if (Step.Context is { } context)
+{
+    <details><summary>Relationship context</summary><pre>@context</pre></details>
+}
+@if (Step.Contribution is { } contribution)
+{
+    <ContributionRecord Record="contribution" />
+}
+@foreach (var runtime in Step.CodifyingContributions ?? [])
+{
+    <section aria-label="Associated runtime contribution">
+        <a href="@($"relationship/runtime/{runtime.Id:D}")">Open associated runtime relationship</a>
+        <ContributionRecord Record="runtime" />
+    </section>
+}
+
+@code {
+    [Parameter, EditorRequired] public TraversalStep Step { get; set; } = default!;
+}

@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { teardown } from '../fixtures/representative/setup.mjs';
 import { accounting, address, api, bank, git, key, order, shop, store, unresolved, warehouse } from './c4-fixture.mjs';
-import { generateWalkthrough, impactReason, question, rejectionReason, requestId } from './c4-walkthrough.mjs';
+import { description, generateWalkthrough, impactReason, question, rejectionReason, requestId } from './c4-walkthrough.mjs';
 
 const parent = mkdtempSync(join(tmpdir(), 'division-c4-acceptance-'));
 const root = join(parent, 'fixture');
@@ -18,6 +18,16 @@ const gap = (result, code) => assert.ok(result.gaps.some(gap => gap.code === cod
 const sourceCommit = (result, sourceId) => result.snapshotId.sources.find(source => source.id === sourceId).commit;
 const labels = result => result.items.map(item => item.label).sort();
 const assessmentText = () => bytes('B03-assessment/assessment.md').toString('utf8');
+
+function assertPinnedEvidence(report, sourceId, claim) {
+  assert.equal(claim.commit, sourceCommit(report, sourceId));
+  assert.ok(claim.assertionIri);
+  assert.ok(claim.evidence.length);
+  const repo = fixture.checkouts.get(sourceId);
+  for (const evidence of claim.evidence) {
+    assert.equal(evidence.blobId, git(repo, 'rev-parse', claim.commit + ':' + evidence.path));
+  }
+}
 
 before(async () => { fixture = await generateWalkthrough(root); });
 after(() => {
@@ -37,6 +47,7 @@ test('B1 finds a description lead and exact IRI and exposes an unmatched query',
   gap(unmatched, 'unknown-search');
   const exact = read('B01-exact/candidates.json');
   assert.deepEqual(exact.leads.map(lead => [lead.key, lead.matchKind]), [[order, 'exact-iri']]);
+  assert.equal(exact.leads[0].sourceCommit, fixture.oldSource);
 });
 
 test('B2 traces the three systems through separate directed assertions and bindings', () => {
@@ -50,6 +61,7 @@ test('B2 traces the three systems through separate directed assertions and bindi
     assert.equal(assertion.direction, 'outgoing');
     assert.equal(assertion.commit, sourceCommit(report, assertion.subject.sourceId));
     assert.equal(binding.registryCommit, fixture.baseline);
+    assert.ok(assertion.evidence.length);
     for (const e of [...assertion.evidence, binding.identityEvidence]) {
       const repo = fixture.checkouts.get(assertion.subject.sourceId);
       assert.equal(e.blobId, git(repo, 'rev-parse', assertion.commit + ':' + e.path));
@@ -62,6 +74,7 @@ test('B2 traces the three systems through separate directed assertions and bindi
 test('B3 renders a reviewable assessment with the request, evidence, rejection and question', () => {
   const text = assessmentText();
   assert.ok(text.includes(requestId));
+  assert.ok(text.includes(description));
   assert.ok(text.includes(fixture.baseline));
   for (const value of [shop.nodeIri, bank.nodeIri, accounting.nodeIri, impactReason, rejectionReason, question]) {
     assert.ok(text.includes(value), value);
@@ -80,6 +93,13 @@ test('B4 renders qualitative feedback linked to the assessment digest', () => {
     'false Leads', 'examples', 'open Questions', question]) {
     assert.ok(text.includes(line), line);
   }
+  const input = JSON.parse(readFileSync(join(root, 'feedback.json'), 'utf8'));
+  for (const [field, value] of Object.entries(input)) {
+    if (field === 'schemaVersion') continue;
+    for (const entry of Array.isArray(value) ? value : [value]) {
+      assert.ok(text.includes(entry), field + ' was omitted from the report');
+    }
+  }
 });
 
 test('B5 context shows the system, shopper and Warehouse within supported relationships', () => {
@@ -88,21 +108,28 @@ test('B5 context shows the system, shopper and Warehouse within supported relati
   assert.deepEqual(labels(context), ['Ecommerce', 'Shopper', 'Warehouse fulfilment']);
   assert.ok(find(context, shop).insideBoundary);
   assert.equal(find(context, key('ecommerce', 'shopper')).role, 'person');
+  assert.equal(find(context, key('ecommerce', 'shopper')).insideBoundary, false);
+  assert.equal(find(context, key('ecommerce', 'external')).insideBoundary, false);
   assert.deepEqual(context.edges.map(edge => [edge.from.nodeIri, edge.to.nodeIri]).sort(), [
     [key('ecommerce', 'shopper').nodeIri, shop.nodeIri],
     [shop.nodeIri, key('ecommerce', 'external').nodeIri]
   ]);
+  for (const edge of context.edges) assertPinnedEvidence(context, edge.from.sourceId, edge);
 });
 
 test('B6 container view includes Storefront API, Order store and their evidenced communication', () => {
   const containers = view('B06-container', 'container');
   assert.deepEqual(containers.boundary, shop);
-  for (const key of [api, store]) {
+  for (const [key, label] of [[api, 'Storefront API'], [store, 'Order store']]) {
     const item = find(containers, key);
+    assert.equal(item.label, label);
     assert.equal(item.role, 'container');
-    assert.ok(item.insideBoundary && item.evidence.length);
+    assert.ok(item.insideBoundary);
+    assertPinnedEvidence(containers, key.sourceId, item);
   }
-  assert.ok(containers.edges.some(edge => edge.from.nodeIri === api.nodeIri && edge.to.nodeIri === store.nodeIri));
+  const writes = containers.edges.find(edge => edge.from.nodeIri === api.nodeIri && edge.to.nodeIri === store.nodeIri);
+  assert.ok(writes);
+  assertPinnedEvidence(containers, api.sourceId, writes);
 });
 
 test('B7 component view keeps the connected Order store outside the API boundary', () => {
@@ -111,7 +138,9 @@ test('B7 component view keeps the connected Order store outside the API boundary
   assert.deepEqual(components.items.filter(item => item.insideBoundary).map(item => item.label).sort(),
     ['Address validation', 'Order processing']);
   assert.equal(find(components, store).insideBoundary, false);
-  assert.ok(components.edges.some(edge => edge.from.nodeIri === address.nodeIri && edge.to.nodeIri === store.nodeIri));
+  const reads = components.edges.find(edge => edge.from.nodeIri === address.nodeIri && edge.to.nodeIri === store.nodeIri);
+  assert.ok(reads);
+  assertPinnedEvidence(components, address.sourceId, reads);
 });
 
 test('B8 links graph-backed and inspected code to the pinned source and shows unavailable code', () => {
@@ -121,6 +150,7 @@ test('B8 links graph-backed and inspected code to the pinned source and shows un
   assert.equal(graphItem.commit, source.commit);
   assert.equal(graphItem.evidence[0].path, source.path);
   assert.equal(graphItem.evidence[0].blobId, source.blobId);
+  assert.deepEqual([graphItem.evidence[0].startLine, graphItem.evidence[0].endLine], [1, 1]);
   assert.equal(source.content, 'export const api = 1;');
   const inspected = view('B08-code', 'code').items.find(item => item.basis === 'architect-inspected');
   assert.equal(inspected.commit, source.commit);
@@ -139,7 +169,10 @@ test('B9 moves down supported levels with the same snapshot and reports the miss
   const missing = view('B08-code-gap', 'code');
   assert.ok(context.nextFocus.some(next => next.level === 'container' && next.focus.nodeIri === shop.nodeIri));
   assert.ok(containers.nextFocus.some(next => next.level === 'component' && next.focus.nodeIri === api.nodeIri));
-  for (const result of [containers, components, missing]) assert.deepEqual(result.snapshotId, context.snapshotId);
+  for (const result of [containers, components, missing]) {
+    assert.deepEqual(result.snapshotId, context.snapshotId);
+    assert.equal(result.registryCommit, context.registryCommit);
+  }
   assert.deepEqual(missing.focus, order);
   gap(missing, 'empty-level');
 });
@@ -151,10 +184,12 @@ test('B10 exposes pinned evidence, tentative inference and unsupported mapping',
   assert.equal(item.commit, fixture.oldSource);
   assert.equal(item.assertionIri, key('ecommerce', 'contains-container').nodeIri);
   assert.equal(item.evidence[0].path, 'docs/architecture.md');
+  assertPinnedEvidence(components, order.sourceId, item);
   const inferred = components.edges.find(edge => edge.assertionIri === key('ecommerce', 'validates').nodeIri);
   assert.equal(inferred.basis, 'inferred');
   assert.equal(inferred.commit, fixture.oldSource);
   assert.equal(inferred.evidence[0].path, 'docs/acceptance-architecture.md');
+  assertPinnedEvidence(components, order.sourceId, inferred);
   assert.match(bytes('B07-component/view-component.md').toString(), /dashed relationships are inferred and tentative/);
   assert.ok(components.gaps.some(gap => gap.code === 'stale-mapping' && gap.nodeIri === unresolved.nodeIri));
   assert.equal(find(components, unresolved), undefined);
@@ -184,7 +219,9 @@ test('B12 reproduces an older catalog byte for byte and reads the revised label 
 });
 
 test('B13 retains available facts and reports an empty path and unknown and excluded scopes', () => {
-  assert.ok(view('B07-component', 'component').items.length);
+  const components = view('B07-component', 'component');
+  assert.ok(components.items.length);
+  for (const code of ['coverage-unknown', 'coverage-excluded']) gap(components, code);
   const result = read('B13-empty-path/paths.json');
   assert.deepEqual(result.paths, []);
   for (const code of ['unknown-paths', 'coverage-unknown', 'coverage-excluded']) gap(result, code);
@@ -195,6 +232,9 @@ test('B14 shows External bank as context and excludes it from inventory and cove
   const context = view('B14-bank', 'context');
   assert.equal(find(context, bank).label, 'External bank');
   assert.equal(find(context, bank).insideBoundary, false);
+  const payment = context.edges.find(edge => edge.from.nodeIri === accounting.nodeIri && edge.to.nodeIri === bank.nodeIri);
+  assert.ok(payment);
+  assertPinnedEvidence(context, accounting.sourceId, payment);
   const participants = [accounting.sourceId, shop.sourceId, warehouse.sourceId];
   assert.deepEqual(read('catalog.json').sources.map(source => source.id).sort(), participants);
   assert.deepEqual([...new Set(context.coverage.map(coverage => coverage.sourceId))].sort(), participants);

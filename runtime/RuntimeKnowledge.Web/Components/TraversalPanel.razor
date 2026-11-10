@@ -1,0 +1,71 @@
+@inject WorkspaceClient Api
+
+<section aria-label="Directed traversal">
+    <h2>Traverse from this entity</h2>
+    <form @onsubmit="Traverse" @onsubmit:preventDefault>
+        <label>Direction
+            <select @bind="direction">
+                <option value="outgoing">Outgoing</option>
+                <option value="incoming">Incoming</option>
+                <option value="both">Both</option>
+            </select>
+        </label>
+        <label>Maximum depth <input type="number" min="1" max="8" required @bind="depth" /></label>
+        <label><input type="checkbox" @bind="includeUnavailable" /> Include unavailable endpoints</label>
+        <button type="submit" disabled="@loading">Traverse</button>
+    </form>
+    <ApiError Error="error" />
+    @if (result is not null)
+    {
+        <p>Snapshot <code>@result.SnapshotId</code></p>
+        @if (result.Truncated) { <p>Path limit reached. Reduce the depth to narrow the results.</p> }
+        @if (result.Paths.Count == 0) { <p>No paths found for this selection.</p> }
+        <CoverageGaps Gaps="result.Gaps" />
+        <ol aria-label="Paths">
+            @foreach (var path in result.Paths)
+            {
+                <li><ol>
+                    @foreach (var step in path.Steps)
+                    {
+                        <li><RelationshipStep Step="step" /></li>
+                    }
+                </ol></li>
+            }
+        </ol>
+        <section aria-label="Entities on these paths">
+            <h3>Entity context</h3>
+            @foreach (var entity in result.Entities)
+            {
+                <article>
+                    <h4><a href="@WorkspaceLinks.Entity(entity.Key)">@entity.Label</a></h4>
+                    @if (!entity.Available) { <p>Unavailable in the active snapshot</p> }
+                    <OriginEvidence Origin="entity.Provenance" />
+                    @foreach (var note in entity.Annotations)
+                    {
+                        <ContributionRecord Record="note" />
+                    }
+                </article>
+            }
+        </section>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public PublishedKey Start { get; set; } = default!;
+    private string direction = "outgoing";
+    private int depth = 2;
+    private bool includeUnavailable, loading;
+    private TraversalResult? result;
+    private WorkspaceApiException? error;
+
+    private async Task Traverse()
+    {
+        if (loading) return;
+        loading = true;
+        result = null;
+        error = null;
+        try { result = await Api.Traverse(new TraversalRequest(Start, direction, depth, includeUnavailable)); }
+        catch (WorkspaceApiException problem) { error = problem; }
+        finally { loading = false; }
+    }
+}

@@ -7,7 +7,7 @@ import { execFileSync } from 'node:child_process';
 import { runCli } from '../src/cli.mjs';
 
 const sourceId = 'example/booking';
-const coreNamespace = 'https://github.com/jamiemitchellconsultants/division-ontology#';
+const coreNamespace = 'https://example.test/division#';
 function pilot() {
   const root = mkdtempSync(join(tmpdir(), 'division-cli-'));
   const checkout = join(root, 'booking');
@@ -21,6 +21,7 @@ function pilot() {
   mkdirSync(join(root, 'core'));
   mkdirSync(join(root, 'links'));
   writeFileSync(join(root, 'core/ontology.ttl'), `@prefix : <${coreNamespace}> . @prefix owl: <http://www.w3.org/2002/07/owl#> . @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> . :StaffId a owl:Class; rdfs:label "StaffId" .\n`);
+  writeFileSync(join(root, 'division.json'), JSON.stringify({ namespace: coreNamespace, stewards: ['steward-one'] }));
   writeFileSync(join(root, 'sources.json'), JSON.stringify({ sources: [{ id: sourceId, url: checkout, ref: 'main', ontologyPath: 'docs/ontology.ttl', namespace: 'https://example.test/booking#', linksPath: 'links/booking.json' }] }));
   writeFileSync(join(root, 'links/booking.json'), JSON.stringify({ source: sourceId, links: [{ local: 'https://example.test/booking#StaffId', shared: `${coreNamespace}StaffId`, relation: 'exact' }] }));
   return { root, checkout, override: `${sourceId}=${checkout}` };
@@ -39,6 +40,22 @@ test('build and check produce stable complete outputs with provenance', async ()
     await runCli(['check', '--checkout', data.override], { root: data.root });
     await runCli(['build', '--checkout', data.override], { root: data.root });
     assert.deepEqual(['catalog.json', 'catalog.md', 'combined.nq'].map((name) => readFileSync(join(data.root, 'dist', name), 'utf8')), before);
+  } finally { rmSync(data.root, { recursive: true, force: true }); }
+});
+
+test('build and check publish only the core when no source repositories are registered', async () => {
+  const data = pilot();
+  try {
+    await runCli(['build', '--checkout', data.override], { root: data.root });
+    writeFileSync(join(data.root, 'sources.json'), '{"sources":[]}');
+    await runCli(['build'], { root: data.root });
+    await runCli(['check'], { root: data.root });
+
+    const catalog = JSON.parse(readFileSync(join(data.root, 'dist/catalog.json'), 'utf8'));
+    assert.deepEqual(catalog.sources, []);
+    assert.deepEqual(catalog.links, []);
+    assert.deepEqual(catalog.concepts.map(({ iri }) => iri), [coreNamespace + 'StaffId']);
+    assert.doesNotMatch(readFileSync(join(data.root, 'dist/combined.nq'), 'utf8'), /urn:division-ontology:source:/);
   } finally { rmSync(data.root, { recursive: true, force: true }); }
 });
 

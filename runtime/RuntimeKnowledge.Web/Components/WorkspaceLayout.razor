@@ -1,0 +1,22 @@
+@inherits LayoutComponentBase
+@inject DraftState Drafts
+@inject NavigationManager Navigation
+
+<header>
+    <nav aria-label="Workspace navigation">
+        <a href="">Explore</a>
+        <a href="history">History</a>
+        <AuthorizeView><Authorized>
+            <button type="button" @onclick="SignOut">Sign out</button>
+        </Authorized></AuthorizeView>
+    </nav>
+</header>
+<main>@Body</main>
+
+@code {
+    private async Task SignOut()
+    {
+        await Drafts.Clear();
+        Navigation.NavigateToLogout("authentication/logout");
+    }
+}

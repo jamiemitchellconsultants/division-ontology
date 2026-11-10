@@ -20,6 +20,20 @@ This document records what was asked, what was decided, why, and what followed.
 | [10](#entry-add-feature-lifecycle-workflow) | 2026-11-04 | Add feature lifecycle workflow | product | Add the feature lifecycle CLI, persona skills, and PR gate workflow. |
 | [11](#entry-plan-c4-impact-assessment-pilot) | 2026-11-04 | Plan C4 impact assessment pilot | product | Plan the pilot as ten test-first tasks: pinned catalog and source loading, source graph and coverage parsing, reviewed C4 mappings and cross-source bindings, candidate search, directed impact paths, four-level projection, pinned code… |
 | [12](#entry-build-c4-impact-assessment-pilot) | 2026-11-04 | Build C4 impact assessment pilot | product | Implement the local C4 pilot: pinned snapshot and graph readers, reviewed mapping and binding registries, candidate search, directed paths, four-level projections, inspected-code evidence, deterministic reports, and editable assessment… |
+| [13](#entry-add-c4-pilot-acceptance-fixtures-and-automated-checks) | 2026-11-06 | Add C4 pilot acceptance fixtures and automated checks | product | For this pilot, use the automated B1–B15 comparisons as the acceptance record. Run acceptance on one M4 Mini and waive the duplicate second-machine run. Capture the participant's scope judgment separately as B4 feedback. |
+| [14](#entry-define-runtime-knowledge-workspace-architecture) | 2026-11-07 | Define runtime knowledge workspace architecture | product | - [ADR 0004](https://github.com/jamiemitchellconsultants/division-ontology/blob/b2e8ed75d151865ebaa2e608bc85f0abdb97e82e/docs/adr/0004-import-and-activate-pinned-knowledge-snapshots.md) packages pinned source artefacts and activates a… |
+| [15](#entry-plan-runtime-knowledge-workspace-implementation) | 2026-11-07 | Plan runtime knowledge workspace implementation | product | Use 12 test-first tasks. Prove the PostgreSQL and AGE transaction boundary, deterministic snapshot import, atomic contribution writes and ordered replay before connecting the API, identity providers, semantic search and Blazor UI. |
+| [16](#entry-build-the-runtime-knowledge-workspace) | 2026-11-08 | Build the runtime knowledge workspace | product | Store publication and contribution events in the durable PostgreSQL journal and preserve the content-addressed bundles referenced by it. Use separate database roles for the API, publisher and indexer. |
+| [17](#entry-start-division-ontology-templates-without-registered-sources) | 2026-11-08 | Start division ontology templates without registered sources | product | Start the template with no registered source repositories or source links. Retain the existing division-owned core. Use a disposable workspace with synthetic sources for demonstrations and persistence testing. |
+| [18](#entry-prepare-supervised-workspace-acceptance) | 2026-11-09 | Prepare supervised workspace acceptance | product | Use Order Fulfilment as the synthetic pilot and run acceptance against the existing workspace. Automate preparation, publication, browser checks, restart and guarded replay. Require search to work with the configured embedding service. |
+| [19](#entry-amend-c4-vision-to-stop-naming-the-pilot-source) | 2026-11-10 | Amend C4 vision to stop naming the pilot source | product | State the deployment-evidence rule as a per-source constraint and describe the Graphify research without naming the repository. The outcomes, scope and research findings are otherwise unchanged. |
+| [20](#entry-amend-workspace-architecture-to-stop-naming-jointbooking) | 2026-11-10 | Amend workspace architecture to stop naming JointBooking | product | Describe the engineering inputs as the division catalog plus the sources a division registers, with the synthetic fixtures for demonstration. |
+| [21](#entry-amend-c4-architecture-to-state-deployment-evidence-per-source) | 2026-11-10 | Amend C4 architecture to state deployment evidence per source | product | Express the Terraform-only rule as a per-source deployment-evidence constraint, matching the implemented selector configuration, and describe the no-graph case without naming a repository. |
+| [22](#entry-make-the-repository-usable-as-a-division-template) | 2026-11-10 | Make the repository usable as a division template | product | Move the namespace and steward logins into a steward-governed `division.json` read by the build and the trusted merge policy, and provide a one-time `init-division` script that requires each division to choose its namespace explicitly. |
+| [23](#entry-add-demo-commands-for-the-synthetic-three-repo-ingestion) | 2026-11-10 | Add demo commands for the synthetic three-repo ingestion | product | Make the existing fixture available through `npm run demo:*` scripts and add a demo script that keeps the local workspace running until `demo:down` is run. All demo data lives outside the checkout so it is fully removable. |
+| [24](#entry-docs-amend-one-action-onboarding-vision-for-division-templates) | 2026-11-10 | docs: amend one-action onboarding vision for division templates | product | An owner joins one particular division by granting that division's own read-only App access. Joining must need no steward approval of the steward-governed source registration or division settings. |
+| [25](#entry-docs-feature-define-one-action-source-onboarding-behaviours) | 2026-11-10 | docs(feature): define one-action source onboarding behaviours | product | A SourceAccessGrant to a division's own read-only App registers a repository that has a committed SourceImportConfiguration; `sources.json` stays for steward-registered sources and governs when a repository is both. |
+| [26](#entry-ci-run-the-catalog-sync-every-two-hours) | 2026-11-10 | ci: run the catalog sync every two hours | product | Division copies run the scheduled sync every two hours. The template keeps the sync disabled. |
 
 ---
 
@@ -270,3 +284,339 @@ Implement the local C4 pilot: pinned snapshot and graph readers, reviewed mappin
 ## Consequences
 
 Architects can review evidence and record their own conclusions without an approval command. Source graphs remain optional and source-owned; JointBooking cannot supply graph-backed C4 paths until its source publishes a graph at a catalog-pinned revision. Generated catalog files are unchanged.
+
+---
+
+<a id="entry-add-c4-pilot-acceptance-fixtures-and-automated-checks"></a>
+
+## Entry 13 — 2026-11-06 — Add C4 pilot acceptance fixtures and automated checks
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The pilot needed repeatable acceptance evidence for cross-system paths, pinned source evidence, incomplete coverage and assessment reporting. The original checklist called for manual output comparisons and a separate deployed run. The pilot runs as a CLI on a Mac with disposable sources.
+
+## Decision
+
+For this pilot, use the automated B1–B15 comparisons as the acceptance record. Run acceptance on one M4 Mini and waive the duplicate second-machine run. Capture the participant's scope judgment separately as B4 feedback.
+
+## Consequences
+
+Reruns produce one pass result or the discrepancies. The numbered scenarios and reports remain available for investigating failures. The reported evidence covers the synthetic pilot on one acceptance machine. The B4 rendering check uses sample data and the acceptance record separately preserves James's feedback.
+
+AI-Fingerprint: sha256:cfad895d3329
+
+---
+
+<a id="entry-define-runtime-knowledge-workspace-architecture"></a>
+
+## Entry 14 — 2026-11-07 — Define runtime knowledge workspace architecture
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The workspace combines a baseline published from pinned source repositories with persistent runtime contributions. It needs reproducible graph imports, immediate traversal after a contribution is saved, and the same application contract on Mac, the home lab and AWS.
+
+## Decision
+
+- [ADR 0004](https://github.com/jamiemitchellconsultants/division-ontology/blob/b2e8ed75d151865ebaa2e608bc85f0abdb97e82e/docs/adr/0004-import-and-activate-pinned-knowledge-snapshots.md) packages pinned source artefacts and activates a validated baseline atomically.
+- [ADR 0005](https://github.com/jamiemitchellconsultants/division-ontology/blob/b2e8ed75d151865ebaa2e608bc85f0abdb97e82e/docs/adr/0005-keep-graph-history-and-vectors-in-postgresql.md) keeps graph traversal, journal writes and vector search in PostgreSQL with Apache AGE and pgvector.
+- [ADR 0006](https://github.com/jamiemitchellconsultants/division-ontology/blob/b2e8ed75d151865ebaa2e608bc85f0abdb97e82e/docs/adr/0006-configure-identity-and-embeddings-by-environment.md) selects Keycloak or Entra ID and Qwen3 or Bedrock Titan by environment.
+- [ADR 0007](https://github.com/jamiemitchellconsultants/division-ontology/blob/b2e8ed75d151865ebaa2e608bc85f0abdb97e82e/docs/adr/0007-deploy-workspace-on-mac-home-lab-and-aws.md) defines full Docker Compose on Mac, LocalAI-operated home-lab deployment and Terraform on AWS with a Docker PostgreSQL instance.
+- [ADR 0008](https://github.com/jamiemitchellconsultants/division-ontology/blob/b2e8ed75d151865ebaa2e608bc85f0abdb97e82e/docs/adr/0008-rebuild-workspace-from-snapshots-and-events.md) makes the contribution journal authoritative and rebuilds projections by replaying events and snapshot activations.
+
+## Consequences
+
+Development planning must prove that journal and AGE writes commit together, that replay preserves provenance and unavailable endpoints, and that search works with the selected model in each environment. AWS verification is simulation only. Backup and disaster recovery are tracked separately in #53.
+
+---
+
+<a id="entry-plan-runtime-knowledge-workspace-implementation"></a>
+
+## Entry 15 — 2026-11-07 — Plan runtime knowledge workspace implementation
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+PR #54 approved a workspace that combines pinned feeder snapshots with a PostgreSQL contribution journal, AGE traversal and pgvector search. The build needs a reviewed sequence that proves those contracts before the UI and three deployment patterns depend on them.
+
+## Decision
+
+Use 12 test-first tasks. Prove the PostgreSQL and AGE transaction boundary, deterministic snapshot import, atomic contribution writes and ordered replay before connecting the API, identity providers, semantic search and Blazor UI. Then assemble Mac Docker Compose, LocalAI deployment artefacts and a Terraform AWS simulation. The detailed plan specifies interfaces, fixtures, failure cases, commands and commit boundaries.
+
+## Consequences
+
+Development can verify the first 13 and last 11 behaviours with engineering fixtures. B14 remains a human acceptance measure with the nominated data product owner and wider-business reviewer. AWS verification remains credential-free simulation. Backup and disaster recovery remain in #53.
+
+---
+
+<a id="entry-build-the-runtime-knowledge-workspace"></a>
+
+## Entry 16 — 2026-11-08 — Build the runtime knowledge workspace
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The workspace combines pinned feeder publications with business contributions that need to survive an application redeploy. The approved deployment patterns share one graph and contribution model while their identity, object storage and embedding providers differ.
+
+## Decision
+
+Store publication and contribution events in the durable PostgreSQL journal and preserve the content-addressed bundles referenced by it. Use separate database roles for the API, publisher and indexer. In the AWS design, separate staging and activation of a manifest across bounded publisher runs while the indexer prepares the baseline.
+
+## Consequences
+
+A guarded cutover compares the rebuilt and active state at the same journal head before switching generations. The checked-in deployment artefacts support Mac Docker and LocalAI installation, and the AWS target has simulation evidence. Recovery procedures for damaged state and the inputs to replay remain with #53. The user phase records the live home-lab and business acceptance evidence.
+
+---
+
+AI-Fingerprint: sha256:416d04d25d3c
+
+---
+
+<a id="entry-start-division-ontology-templates-without-registered-sources"></a>
+
+## Entry 17 — 2026-11-08 — Start division ontology templates without registered sources
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+Each corporate division needs its own copy of this repository with a source inventory that it can steward. The existing default registration and link would carry JointBooking into every new copy, and the catalog builder currently rejects a source inventory with no entries.
+
+## Decision
+
+Start the template with no registered source repositories or source links. Retain the existing division-owned core. Use a disposable workspace with synthetic sources for demonstrations and persistence testing.
+
+## Consequences
+
+Each division registers its own sources. The catalog refresh follows this authored PR in a separate generated-only PR. Enable GitHub's template setting after the refreshed catalog is on main.
+
+AI-Fingerprint: sha256:0b3e04f1226b
+
+---
+
+<a id="entry-prepare-supervised-workspace-acceptance"></a>
+
+## Entry 18 — 2026-11-09 — Prepare supervised workspace acceptance
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The workspace needed a repeatable acceptance procedure with evidence for review. The home lab reuses one deployment across use cases.
+
+## Decision
+
+Use Order Fulfilment as the synthetic pilot and run acceptance against the existing workspace. Automate preparation, publication, browser checks, restart and guarded replay. Require search to work with the configured embedding service. Accept the recorded local and home-lab evidence and defer the remaining steps to #65.
+
+## Consequences
+
+Repeat runs can reuse the fixture and deployment while retaining separate evidence. The operator can reset workspace data between use cases. Merging this PR closes the acceptance phase. Issue #65 tracks the deferred evidence separately.
+
+AI-Fingerprint: sha256:e143ed4f2f82
+
+---
+
+<a id="entry-amend-c4-vision-to-stop-naming-the-pilot-source"></a>
+
+## Entry 19 — 2026-11-10 — Amend C4 vision to stop naming the pilot source
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+This repository is now a source-free template that each division copies. Shipped feature documents still named JointBooking as the pilot source, so every division copy would inherit a reference to a repository it does not register.
+
+## Decision
+
+State the deployment-evidence rule as a per-source constraint and describe the Graphify research without naming the repository. The outcomes, scope and research findings are otherwise unchanged.
+
+## Consequences
+
+The architecture's pilot-scope item that restates the Terraform-only rule (pushback #17) traces to this change and is amended separately. Upstream links to the InternalOntology vision still carry the original detail for anyone who needs it.
+
+---
+
+AI-Fingerprint: sha256:6a04b4b3adbe
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+---
+
+<a id="entry-amend-workspace-architecture-to-stop-naming-jointbooking"></a>
+
+## Entry 20 — 2026-11-10 — Amend workspace architecture to stop naming JointBooking
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+This repository is now a source-free template that each division copies. The workspace architecture still described JointBooking as the registered source and linked to JointBooking-specific designs, so every division copy would inherit a false statement and links into a repository it does not use.
+
+## Decision
+
+Describe the engineering inputs as the division catalog plus the sources a division registers, with the synthetic fixtures for demonstration. Remove the two precedent links that name JointBooking rather than rewording them, because the remaining precedent and ADRs carry the decisions.
+
+## Consequences
+
+The runbook, user guide and acceptance record do not depend on JointBooking being registered. One developer-plan checklist item (`docs/detailed-implementations/runtime-knowledge-workspace/plan.md`) still cites LocalAI's JointBooking installation boundary; it is completed build history, and `init-division` removes that folder from division copies. The removed links remain in git history for anyone tracing the original precedent.
+
+---
+
+AI-Fingerprint: sha256:f76fdbfcd1b6
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+---
+
+<a id="entry-amend-c4-architecture-to-state-deployment-evidence-per-source"></a>
+
+## Entry 21 — 2026-11-10 — Amend C4 architecture to state deployment evidence per source
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+This repository is now a source-free template that each division copies. The C4 architecture still named JointBooking as the pilot source and as an example checkout, so every division copy would inherit references to a repository it does not register. The vision was amended first in #67.
+
+## Decision
+
+Express the Terraform-only rule as a per-source deployment-evidence constraint, matching the implemented selector configuration, and describe the no-graph case without naming a repository.
+
+## Consequences
+
+No plan or code change is needed: the implementation already reads deployment selectors per source. Completed developer plans under `docs/superpowers/plans/` and `docs/detailed-implementations/` still mention JointBooking as build history; `init-division` removes them from division copies.
+
+---
+
+AI-Fingerprint: sha256:70d38003fa70
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+---
+
+<a id="entry-make-the-repository-usable-as-a-division-template"></a>
+
+## Entry 22 — 2026-11-10 — Make the repository usable as a division template
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The repository is a template that each corporate division copies to steward its own catalog. Copies inherited this repository's steward logins in the merge policy, so a division could never approve its own first source registration. They also inherited this repository's core namespace, its Project Narrative and in-flight feature work, and references to JointBooking, a source the template no longer registers.
+
+## Decision
+
+Move the namespace and steward logins into a steward-governed `division.json` read by the build and the trusted merge policy, and provide a one-time `init-division` script that requires each division to choose its namespace explicitly. Keep the shipped C4 and workspace feature documentation in copies, because the deploy runbook and core ontology cite it, and remove only this repository's narrative, in-flight feature and planning history. Rejected: deriving stewards from CODEOWNERS (a PR could edit both together) and leaving the namespace shared by default (divisions could mint conflicting terms under one IRI).
+
+## Consequences
+
+A division can start from the template, run one command and onboard sources under its own stewards. Changing stewards or the namespace becomes a steward-approved change. The template itself can no longer register sources without removing the template guard test. Keeping the template's namespace in a copy remains possible, but only by passing it explicitly.
+
+---
+
+AI-Fingerprint: sha256:1d58baf5699b
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+---
+
+<a id="entry-add-demo-commands-for-the-synthetic-three-repo-ingestion"></a>
+
+## Entry 23 — 2026-11-10 — Add demo commands for the synthetic three-repo ingestion
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+A team that creates a division repository from this template starts with no registered sources and empty C4 registries, so it has nothing to look at until a real repository has been onboarded. A synthetic three-system fixture and a workspace smoke test already existed, but the fixture was documented only under `test/fixtures/`, and the smoke test tears the workspace down as soon as its checks finish.
+
+## Decision
+
+Make the existing fixture available through `npm run demo:*` scripts and add a demo script that keeps the local workspace running until `demo:down` is run. All demo data lives outside the checkout so it is fully removable. Registering the synthetic repositories in this repository's real `sources.json` was rejected because it would pollute the template and its generated catalog.
+
+## Consequences
+
+New teams can explore the catalog, C4 paths and the workspace UI with one command and remove everything afterwards. Because the demo builds its own division repository, it does not demonstrate the reviewed registration, scheduled sync and catalog PR flow; the README points to Contribute for that. The workspace demo requires Docker and jq.
+
+---
+
+AI-Fingerprint: sha256:ac5c525b1bd7
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+---
+
+<a id="entry-docs-amend-one-action-onboarding-vision-for-division-templates"></a>
+
+## Entry 24 — 2026-11-10 — docs: amend one-action onboarding vision for division templates
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The one-action source onboarding vision assumed a single division catalog with one preapproved read-only App. #73 made the repository a template: each division copy sets its own namespace and stewards in `division.json`, the merge policy requires steward approval for changes to `sources.json` and `division.json`, the template must ship with no registered sources, and each division creates its own App.
+
+## Decision
+
+An owner joins one particular division by granting that division's own read-only App access. Joining must need no steward approval of the steward-governed source registration or division settings. First visibility is demonstrated in a division created from the template, not in the template. The capability ships in the template. One App serving several divisions, and registering sources in the template itself, are out of scope.
+
+## Consequences
+
+The analyst works from a vision that matches the template model. Behaviours and acceptance must target a division copy, and admission must avoid the steward-gated files. Multi-division routing from a single grant is not designed for.
+
+AI-Fingerprint: sha256:73f4718393ff
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+---
+
+<a id="entry-docs-feature-define-one-action-source-onboarding-behaviours"></a>
+
+## Entry 25 — 2026-11-10 — docs(feature): define one-action source onboarding behaviours
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The vision requires one owner action to join a division catalog, no steward admission approval, prompt visibility, unattended updates and source-specific import status. Today a source joins only through a steward-approved `sources.json` change, and any catalog refresh that changes source registration needs steward review. The repository is also now a template that must ship with no sources.
+
+## Decision
+
+A SourceAccessGrant to a division's own read-only App registers a repository that has a committed SourceImportConfiguration; `sources.json` stays for steward-registered sources and governs when a repository is both. Refreshes that only add, update or change the status of granted sources merge automatically; links and core terms keep review. Import status lives in the generated catalog. Removed access and invalid later versions keep the last published version, marked stale. All-repositories installations admit only configured repositories. The default branch head is imported, and namespace conflicts reject the new claimant. Acceptance runs in a division created with `init-division`. SourceAccessGrant, SourceImportConfiguration and SourceImportStatus are added to the core ontology.
+
+## Consequences
+
+The architect must design discovery of grants and removals, the SourceImportConfiguration contract with InternalOntology, a refresh classification that treats granted-source changes as automatic, and a catalog status table without time-based churn. Organisation policy for per-division Apps must be confirmed during acceptance planning. Renamed, transferred and archived repositories are out of scope. The generated catalog change for the new core terms follows in the scheduled-sync PR.
+
+AI-Fingerprint: sha256:f853655fff7a
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+---
+
+<a id="entry-ci-run-the-catalog-sync-every-two-hours"></a>
+
+## Entry 26 — 2026-11-10 — ci: run the catalog sync every two hours
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+Division repositories created from this template inherit a catalog sync scheduled every 30 minutes. The template itself has no sources or App credentials, so the sync has no work to do here and its workflow is disabled.
+
+## Decision
+
+Division copies run the scheduled sync every two hours. The template keeps the sync disabled.
+
+## Consequences
+
+In a division, a new source version reaches the generated catalog PR up to two hours after commit rather than 30 minutes, which still meets "the next normal sync" in the one-action onboarding vision; manual dispatch remains for an immediate run. In the template, generated `dist/` changes, such as those following new core terms, are made by a separate generated-only PR rather than by the sync.
+
+AI-Fingerprint: sha256:0db922f6f455
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)

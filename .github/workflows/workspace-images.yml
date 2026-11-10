@@ -1,0 +1,51 @@
+name: Publish workspace images
+on:
+  push:
+    tags: ["workspace-v*"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  images:
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/workspace-v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        include:
+          - component: api
+            context: runtime
+            dockerfile: deploy/workspace/app/Dockerfile
+            target: api
+          - component: worker
+            context: runtime
+            dockerfile: deploy/workspace/app/Dockerfile
+            target: worker
+          - component: web
+            context: runtime
+            dockerfile: deploy/workspace/web/Dockerfile
+          - component: db
+            context: deploy/workspace/database
+            dockerfile: deploy/workspace/database/Dockerfile
+          - component: minio
+            context: deploy/workspace/minio
+            dockerfile: deploy/workspace/minio/Dockerfile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          target: ${{ matrix.target }}
+          platforms: linux/amd64
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/division-ontology-workspace-${{ matrix.component }}:sha-${{ github.sha }}
+          labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}

@@ -1,0 +1,39 @@
+<div>
+    <p><strong>Runtime @Record.Kind</strong> · Revision @Record.Version · <code>@Record.Id</code>
+        @if (Record.Removed) { <span> · Removed</span> }
+    </p>
+    <p>Author @Record.Author.Subject (@Record.Author.Issuer) · @Record.CreatedAt.ToString("u") · Snapshot <code>@Record.CreatedSnapshotId</code></p>
+    @if (Record.Annotation is { } note)
+    {
+        <p><strong>@CategoryName(note.Category)</strong></p>
+        <p>@note.Text</p>
+        <OriginEvidence Label="Annotation target" Origin="note.TargetProvenance" />
+    }
+    @if (Record.Relationship is { } relation)
+    {
+        <p>@relation.Label @relation.Meaning.Explanation</p>
+        <OriginEvidence Label="From entity" Origin="relation.FromProvenance" />
+        <OriginEvidence Label="To entity" Origin="relation.ToProvenance" />
+        <OriginEvidence Label="Published relationship type" Origin="relation.MeaningProvenance" />
+    }
+    @foreach (var association in Record.Associations)
+    {
+        <section aria-label="Published codification">
+            <a href="@($"relationship/published/{WorkspaceLinks.Encode(association.PublishedRelationship)}")">Open published codification</a>
+            <p>Associated by @association.Actor.Subject (@association.Actor.Issuer) · @association.OccurredAt.ToString("u")</p>
+            <OriginEvidence Label="Published codification" Origin="association.PublishedProvenance" />
+        </section>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public RuntimeContribution Record { get; set; } = default!;
+
+    private static string CategoryName(string category) => category switch
+    {
+        "businessExplanation" => "Business explanation",
+        "wayOfWorking" => "Way of working",
+        "businessRbac" => "Business roles and access context",
+        _ => category
+    };
+}

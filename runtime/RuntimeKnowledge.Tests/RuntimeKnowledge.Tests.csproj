@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../RuntimeKnowledge.Store/RuntimeKnowledge.Store.csproj" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="Npgsql" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" PrivateAssets="all" />
+    <ProjectReference Include="../RuntimeKnowledge.Api/RuntimeKnowledge.Api.csproj" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../RuntimeKnowledge.Contracts/RuntimeKnowledge.Contracts.csproj" />
+    <ProjectReference Include="../RuntimeKnowledge.Providers/RuntimeKnowledge.Providers.csproj" />
+    <ProjectReference Include="../RuntimeKnowledge.Worker/RuntimeKnowledge.Worker.csproj" />
+    <ProjectReference Include="../RuntimeKnowledge.Web/RuntimeKnowledge.Web.csproj" />
+    <PackageReference Include="bunit" />
+  </ItemGroup>
+</Project>

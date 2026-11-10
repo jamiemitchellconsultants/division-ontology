@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+dnf install -y docker jq
+systemctl enable --now docker
+
+cat > /usr/local/sbin/workspace-postgres <<'SCRIPT'
+#!/usr/bin/env bash
+set -euo pipefail
+umask 077
+runtime=/run/workspace-postgres
+install -d -m 0700 "$runtime"
+export AWS_DEFAULT_REGION='${region}'
+
+device="/dev/disk/by-id/nvme-Amazon_Elastic_Block_Store_${replace(volume_id, "-", "")}"
+for ((attempt=1; attempt<=120; attempt++)); do
+    if [[ -b "$device" ]]; then break; fi
+    sleep 2
+done
+[[ -b "$device" ]]
+install -d /var/lib/workspace-postgres
+if ! mountpoint -q /var/lib/workspace-postgres; then
+    filesystem="$(blkid -p -s TYPE -o value "$device" || true)"
+    if [[ -z "$filesystem" ]]; then
+        [[ -z "$(wipefs --noheadings "$device")" ]]
+        mkfs.ext4 "$device"
+        filesystem=ext4
+    fi
+    [[ "$filesystem" == ext4 ]]
+    mount "$device" /var/lib/workspace-postgres
+fi
+[[ "$(findmnt -n -o SOURCE --mountpoint /var/lib/workspace-postgres)" == "$(readlink -f "$device")" ]]
+
+password() {
+    aws secretsmanager get-secret-value --secret-id "$1" --query SecretString --output text |
+        jq -er --arg username "$2" 'select(.username == $username) | .password | select(test("^[A-Za-z0-9_-]{24,}$"))'
+}
+admin="$(password '${admin_secret}' workspace_admin)"
+printf '%s\n' "$admin" > "$runtime/password"
+printf 'POSTGRES_PASSWORD_FILE=/run/workspace-password\nPOSTGRES_USER=workspace_admin\nPOSTGRES_DB=workspace\nPGDATA=/var/lib/postgresql/data/workspace\n' > "$runtime/postgres.env"
+{
+    printf 'ConnectionStrings__Workspace=Host=127.0.0.1;Database=workspace;GSS Encryption Mode=Disable;Username=workspace_admin;Password=%s\n' "$admin"
+    printf 'Workspace__Database__ApiPassword=%s\n' "$(password '${api_secret}' workspace_api_user)"
+    printf 'Workspace__Database__PublisherPassword=%s\n' "$(password '${publisher_secret}' workspace_publisher_user)"
+    printf 'Workspace__Database__IndexerPassword=%s\n' "$(password '${indexer_secret}' workspace_indexer_user)"
+} > "$runtime/migrate.env"
+
+export DOCKER_CONFIG="$runtime/docker"
+for image in '${database_image}' '${worker_image}'; do
+    registry="$${image%%/*}"
+    aws ecr get-login-password | docker login --username AWS --password-stdin "$registry"
+    docker pull "$image"
+done
+rm -rf "$DOCKER_CONFIG"
+
+docker rm -f runtime-workspace-postgres >/dev/null 2>&1 || true
+docker run -d --name runtime-workspace-postgres --publish 5432:5432 \
+    --env-file "$runtime/postgres.env" \
+    --mount type=bind,source="$runtime/password",target=/run/workspace-password,readonly \
+    --mount type=bind,source=/var/lib/workspace-postgres,target=/var/lib/postgresql/data \
+    '${database_image}'
+cleanup() {
+    docker stop runtime-workspace-postgres >/dev/null 2>&1 || true
+    rm -f "$runtime/migrate.env" "$runtime/password" "$runtime/postgres.env"
+}
+trap cleanup EXIT
+
+for ((attempt=1; attempt<=60; attempt++)); do
+    if docker exec runtime-workspace-postgres pg_isready -h 127.0.0.1 -U workspace_admin -d workspace; then break; fi
+    sleep 2
+done
+docker exec runtime-workspace-postgres pg_isready -h 127.0.0.1 -U workspace_admin -d workspace
+docker run --rm --network host --env-file "$runtime/migrate.env" '${worker_image}' provision-database
+rm -f "$runtime/migrate.env" "$runtime/password" "$runtime/postgres.env"
+exit_code="$(docker wait runtime-workspace-postgres)"
+exit "$exit_code"
+SCRIPT
+chmod 0700 /usr/local/sbin/workspace-postgres
+
+cat > /etc/systemd/system/workspace-postgres.service <<'UNIT'
+[Unit]
+Description=Runtime Knowledge Workspace PostgreSQL
+After=docker.service network-online.target
+Requires=docker.service
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/local/sbin/workspace-postgres
+ExecStop=-/usr/bin/docker stop runtime-workspace-postgres
+Restart=always
+RestartSec=15
+TimeoutStopSec=45
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+systemctl daemon-reload
+systemctl enable --now workspace-postgres.service

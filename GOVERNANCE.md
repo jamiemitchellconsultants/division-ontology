@@ -2,7 +2,7 @@
 
 ## Shared terms
 
-A division steward approves changes to `core/ontology.ttl`. A proposal identifies the concept's intended scope, canonical label, definition, source evidence, and consequences for existing links. The first approved concept is `StaffId`, based on JointBooking's description of the enterprise-wide staff number. A term can be added with one source when its definition is genuinely wider than that repository; a second repository is not invented to justify it.
+Division stewards are the GitHub logins listed in `division.json`; changing that list or the core namespace needs a current steward's approval. A division steward approves changes to `core/ontology.ttl`. A proposal identifies the concept's intended scope, canonical label, definition, source evidence, and consequences for existing links. The first approved concept is `StaffId`, the enterprise-wide staff number. A term can be added with one source when its definition is genuinely wider than that repository; a second repository is not invented to justify it.
 
 A shared IRI is stable. Renaming a label does not silently change its meaning. A material change to meaning needs a new term or an explicit correction in the pull request. The `owl:versionInfo` value changes with a reviewed core release; consumers should pin the release when local checks are integrated.
 

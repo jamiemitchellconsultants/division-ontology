@@ -2,18 +2,101 @@
   "schemaVersion": 1,
   "core": {
     "namespace": "https://github.com/jamiemitchellconsultants/division-ontology#",
-    "version": "0.1.0",
-    "conceptCount": 1
+    "version": "0.4.0",
+    "conceptCount": 11
   },
-  "sources": [
-    {
-      "id": "jamiemitchellconsultants/JointBooking",
-      "commit": "6957928a6c9054372dda915b359f63b73969ebee",
-      "namespace": "https://jointbooking.internal/ontology#",
-      "conceptCount": 73
-    }
-  ],
+  "sources": [],
   "concepts": [
+    {
+      "iri": "https://github.com/jamiemitchellconsultants/division-ontology#C4Diagram",
+      "label": "C4Diagram",
+      "types": [
+        "http://www.w3.org/2002/07/owl#Class"
+      ],
+      "definition": "A source-backed architectural view of a selected focus at system-context, container, component or code level, tied to a PublishedKnowledgeSnapshot and showing the evidence and gaps relevant to that view.",
+      "source": "division-core"
+    },
+    {
+      "iri": "https://github.com/jamiemitchellconsultants/division-ontology#CodificationAssociation",
+      "label": "CodificationAssociation",
+      "types": [
+        "http://www.w3.org/2002/07/owl#Class"
+      ],
+      "definition": "An explicitly recorded association identifying a published relationship as a codification of a runtime relationship while preserving both records and their provenance. It is not an equivalence assertion between endpoint entities.",
+      "source": "division-core"
+    },
+    {
+      "iri": "https://github.com/jamiemitchellconsultants/division-ontology#ImpactAssessment",
+      "label": "ImpactAssessment",
+      "types": [
+        "http://www.w3.org/2002/07/owl#Class"
+      ],
+      "definition": "An architect-authored, reviewable account of the likely effects of a change request across participating sources, identifying assessed elements, reasons, evidence, source revisions and unresolved gaps. It does not approve the request.",
+      "source": "division-core"
+    },
+    {
+      "iri": "https://github.com/jamiemitchellconsultants/division-ontology#KnowledgeAnnotation",
+      "label": "KnowledgeAnnotation",
+      "types": [
+        "http://www.w3.org/2002/07/owl#Class"
+      ],
+      "definition": "Persistent human-authored context attached to an identified published entity, such as a business explanation, way of working or descriptive business RBAC information; it retains runtime provenance.",
+      "source": "division-core"
+    },
+    {
+      "iri": "https://github.com/jamiemitchellconsultants/division-ontology#KnowledgeContributionChange",
+      "label": "KnowledgeContributionChange",
+      "types": [
+        "http://www.w3.org/2002/07/owl#Class"
+      ],
+      "definition": "A retained record of a successful creation, edit or removal of a runtime annotation or relationship, preserving its identity, acting user, time and affected content and provenance.",
+      "source": "division-core"
+    },
+    {
+      "iri": "https://github.com/jamiemitchellconsultants/division-ontology#PublishedKnowledgeSnapshot",
+      "label": "PublishedKnowledgeSnapshot",
+      "types": [
+        "http://www.w3.org/2002/07/owl#Class"
+      ],
+      "definition": "An identifiable published baseline of source-owned knowledge, recording the participating source revisions against which entities and relationships are resolved.",
+      "source": "division-core"
+    },
+    {
+      "iri": "https://github.com/jamiemitchellconsultants/division-ontology#RuntimeRelationship",
+      "label": "RuntimeRelationship",
+      "types": [
+        "http://www.w3.org/2002/07/owl#Class"
+      ],
+      "definition": "A persistent human-authored relationship between identified published entities, with stated meaning and runtime provenance, usable independently of repository codification.",
+      "source": "division-core"
+    },
+    {
+      "iri": "https://github.com/jamiemitchellconsultants/division-ontology#SourceAccessGrant",
+      "label": "SourceAccessGrant",
+      "types": [
+        "http://www.w3.org/2002/07/owl#Class"
+      ],
+      "definition": "A source repository administrator's grant of read-only access to one division's App, which is that owner's consent to import the repository's whole committed ontology into that division's catalog and registers the repository as a source without steward approval.",
+      "source": "division-core"
+    },
+    {
+      "iri": "https://github.com/jamiemitchellconsultants/division-ontology#SourceImportConfiguration",
+      "label": "SourceImportConfiguration",
+      "types": [
+        "http://www.w3.org/2002/07/owl#Class"
+      ],
+      "definition": "Repository-owned committed configuration in a source repository that identifies its ontology path and namespace for import.",
+      "source": "division-core"
+    },
+    {
+      "iri": "https://github.com/jamiemitchellconsultants/division-ontology#SourceImportStatus",
+      "label": "SourceImportStatus",
+      "types": [
+        "http://www.w3.org/2002/07/owl#Class"
+      ],
+      "definition": "The catalog's per-source record of a granted source's state (current, invalid, not configured or access removed), last attempted commit, last published commit and any actionable failure reason.",
+      "source": "division-core"
+    },
     {
       "iri": "https://github.com/jamiemitchellconsultants/division-ontology#StaffId",
       "label": "StaffId",
@@ -22,951 +105,9 @@
       ],
       "definition": "The enterprise-wide staff number issued by the HR system and used as the internal primary key by older enterprise systems. Exactly 7 characters: U or N followed by 6 digits, case-insensitive and normalised to uppercase. Unique per member of staff, never reissued and never changed. The identity provider is its source of truth; applications read it from a token claim and do not edit it.",
       "source": "division-core"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#AcceptProposal",
-      "label": "AcceptProposal",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "Creates or updates the calling Manager's own `ProposalAcceptance`; on the 3rd acceptance, atomically creates the `ConfirmedSlot` and its `SlotCapacity` rows.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#ActorType",
-      "label": "ActorType",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "Who caused an audited change: an Entra ID staff identity, a candidate acting through a tokenised link, or a background job.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#AdjustConfirmedSlotCapacity",
-      "label": "AdjustConfirmedSlotCapacity",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "Lets a Manager replace `totalHeadcount` on the `SlotCapacity` for their current `AppointmentType`, changing `remainingCapacity` by the same delta while holding the same row lock used by `AdjustSlotCapacity`.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#AdjustSlotCapacity",
-      "label": "AdjustSlotCapacity",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "The row-locked read-check-write path for booking-driven changes to `SlotCapacity.remainingCapacity`.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#AppointmentType",
-      "label": "AppointmentType",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "One of the 3 fixed appointment types (Drug & Alcohol Testing, Medical Check-up, Uniform Fitting). `code` is the short form (`DAT`, `MED`, `UNI`) used as the `ConfirmedSlot` CSV import column headers; a `Candidate`'s required `AppointmentType`s are derived from `EmployeeGroupRequirement` via the `Candidate`'s `EmployeeGroup` and are no longer selected directly by candidate CSV upload. Under the scoped multi-role design, its current Manager is derived from the unique Manager `StaffAccessProfile` rather than duplicated on this entity.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#AuditAction",
-      "label": "AuditAction",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "The complete set of state changes recorded in `AuditLog`, including candidate Employee Group assignments, recovery lifecycle actions, access-profile actions, and appointment-delivery actions. `StaffRolesSynced` records an identity-provider-driven role change with `ActorType.System`, distinct from the Admin-driven `StaffAccessChanged`/`StaffAccessRemoved` scope actions. Candidate and appointment details contain identifiers, canonical codes, and old/new statuses only, never names, email addresses, clinical data, or arbitrary free text.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#AuditLog",
-      "label": "AuditLog",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "An append-only record of a state change to `SlotProposal`, `ConfirmedSlot`, `Candidate`, `Invite`, `Booking`, `StaffAccessProfile`, or `BookingAppointment`. Candidate group changes and recovery actions store fixed identifiers, canonical codes, and statuses only. A candidate-scoped history covers the entries recorded against the `Candidate` record itself and against their `Invite`, `Booking`, and `BookingAppointment` records.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#Booking",
-      "label": "Booking",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "Created when a `Candidate` confirms one `InviteOption`. `inviteId` records which `Invite` it came from. `recoveryOfBookingId` is null for the original shared-slot Booking and identifies that original Booking for a later missed-appointment recovery. A recovery Booking may become `Concluded`; cancellation sets `status` rather than deleting the row so history survives.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#BookingAppointment",
-      "label": "BookingAppointment",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "The operational instance of one required `AppointmentType` within one `Booking`. It progresses independently through check-in and outcome states, records the latest staff changer, and is unique per (`Booking`, `AppointmentType`) pair.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#BookingAppointmentStatus",
-      "label": "BookingAppointmentStatus",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "Independent operational progress for one `BookingAppointment`. Normal progress is `Expected` → `CheckedIn` → `Completed`, with `Expected` → `NoShow` as the alternative outcome and bounded one-step corrections back toward `Expected`.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#BookingStatus",
-      "label": "BookingStatus",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "An `Active` original Booking is the Candidate's appointment journey root. An active recovery Booking holds its own `SlotCapacity`; it becomes `Concluded` once every one of its Booking Appointments has reached `Completed` or `NoShow`, preserving history while allowing another recovery after a no-show.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#Candidate",
-      "label": "Candidate",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "A person invited to attend appointments, entered via CSV upload or CRUD API. `employeeGroupId` is nullable only during the staged legacy reconciliation window and required for every new Candidate. `statusChangedAt` is stamped by the persistence layer whenever `status` is written, and is what the coordinator dashboards mean by \"waiting since\".",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#CandidateReadiness",
-      "label": "CandidateReadiness",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "A calculated, non-persisted view of whether the current derived requirements are satisfied across the active original Booking and its non-cancelled recovery Bookings. It contains only a stable reason code plus outstanding Appointment Type codes and names.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#CandidateReadinessCode",
-      "label": "CandidateReadinessCode",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "Stable internal reason describing the Candidate's appointment readiness. Only `Ready` means every current derived requirement has a Completed Booking Appointment in the non-cancelled booking journey.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#CandidateRequirement",
-      "label": "CandidateRequirement",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "One materialized `AppointmentType` a given `Candidate` currently requires, derived only from that Candidate's active `EmployeeGroup`. Legacy rows remain unchanged until explicit reconciliation.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#CandidateStatus",
-      "label": "CandidateStatus",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "Where a `Candidate` sits in the invite/booking lifecycle. Surfaced verbatim (with friendlier wording) on the coordinator dashboards.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#ConfirmedSlot",
-      "label": "ConfirmedSlot",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "A `SlotProposal` accepted by all 3 managers, or a slot an Admin or Coordinator bulk-imported directly; bookable by candidates either way. `proposalId` is null for an imported slot — that nullability is its provenance marker, no separate field needed. `date` and `startTime` are carried as one `SlotWindow`.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#ConfirmedSlotStatus",
-      "label": "ConfirmedSlotStatus",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "`Active` slots are the only ones an `Invite` may offer.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#EmailLog",
-      "label": "EmailLog",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "A durable record of one candidate email delivery attempt. Identity, template, and safe context identifiers are immutable; claim and outcome fields transition from `Pending` to `Sent`, `Failed`, or `Resolved`. The nullable context identifiers regenerate a message without storing raw tokens, URLs, or bodies.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#EmailStatus",
-      "label": "EmailStatus",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "Outcome of one `EmailLog` delivery attempt. `Pending` means the business transaction committed and dispatch has not yet reached a terminal provider outcome; `Failed` remains the failed-email count; `Resolved` means a later durable retry superseded an outstanding attempt.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#EmailTemplate",
-      "label": "EmailTemplate",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "The 4 candidate-facing emails.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#EmployeeGroup",
-      "label": "EmployeeGroup",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "Change-controlled reference data describing one employment category. Its immutable canonical `code` identifies it at import and MCP boundaries; its mappings determine the current `CandidateRequirement` set. The first release contains Cabin Crew (`CABIN_CREW`), Pilots (`PILOTS`), Ground Operations Agent (`GROUND_OPERATIONS_AGENT`), Engineering (`ENGINEERING`), and Ground Transport Services (`GROUND_TRANSPORT_SERVICES`) only.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#EmployeeGroupRequirement",
-      "label": "EmployeeGroupRequirement",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "One fixed `AppointmentType` required by an `EmployeeGroup`. The complete mapping is seeded once as reviewed reference data rather than duplicated in handlers or clients.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#ImportConfirmedSlots",
-      "label": "ImportConfirmedSlots",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "Validates a CSV of already-agreed slots for an Admin or Coordinator and, all-or-nothing, creates each row's `ConfirmedSlot` and its 3 `SlotCapacity` rows directly — bypassing `ProposeSlot`/`AcceptProposal` entirely.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#Invite",
-      "label": "Invite",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "An offer to a `Candidate` of 3 `ConfirmedSlot` options, carrying a single-use signed token and a snapshotted requirement set. `recoveryOfBookingId` is null for an initial booking invitation and identifies the active original `Booking` for missed-appointment recovery.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#InviteOption",
-      "label": "InviteOption",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "One of the 3 `ConfirmedSlot` options offered within an `Invite`.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#InviteRequirement",
-      "label": "InviteRequirement",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "One `AppointmentType` snapshotted when an `Invite` is issued. An initial Invite snapshots all current derived `CandidateRequirement` rows; a recovery Invite snapshots only still-outstanding no-show types.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#InviteStatus",
-      "label": "InviteStatus",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "`Used` once a `Booking` is made against it; `Expired` once the sweep passes its `expiresAt`; `Superseded` when a newer Invite or a changed Employee Group replaces it; `Cancelled` when a Coordinator explicitly ends a recovery Invite.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#OutstandingAppointmentType",
-      "label": "OutstandingAppointmentType",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "Minimum-data readiness detail for one current Candidate Requirement that has no Completed Booking Appointment in the non-cancelled booking journey. `isRecoverable` is true only when its latest non-cancelled attempt is No-show.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#ProposalAcceptance",
-      "label": "ProposalAcceptance",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "One manager's acceptance of a `SlotProposal`, carrying their own headcount. The same manager may revise `headcount` in place while the proposal remains `Open`; another manager may not read or change it.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#ProposeSlot",
-      "label": "ProposeSlot",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "Creates a `SlotProposal` with status Open.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#ReassignAppointmentTypeManager",
-      "label": "ReassignAppointmentTypeManager",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "Atomically changes which `StaffAccessProfile` holds Manager for an `AppointmentType`, preserving the former profile's other roles.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#ReplaceStaffAccessProfile",
-      "label": "ReplaceStaffAccessProfile",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "Superseded by `ReplaceStaffAccessProfileScope`. Previously created or atomically replaced one identity's complete role set, shared appointment-type scope, and concurrency version while enforcing Admin exclusivity and Manager uniqueness; role assignment is no longer an Admin-driven operation. The name remains canonical only so the Issue #71 design and narrative continue to describe the implementation they recorded accurately.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#ReplaceStaffAccessProfileScope",
-      "label": "ReplaceStaffAccessProfileScope",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "Atomically replaces an existing `StaffAccessProfile`'s `appointmentTypeId` scope and concurrency version, enforcing Manager uniqueness per `AppointmentType`. Cannot create a profile or change `roles`; targets only a `staffUserId` that already has a profile from its own role sync.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#RetryEmail",
-      "label": "RetryEmail",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "Locks the newest unresolved `EmailLog` for a `Candidate`, derives its `EmailTemplate` and safe context server-side, rotates any token hash, and stages a fresh attempt before post-commit dispatch.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#Role",
-      "label": "Role",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "The identity-provider-assigned staff roles (Entra App Roles in production, Keycloak realm roles in local/dev), mirrored onto `StaffAccessProfile` rather than administered by JointBooking. Admin is exclusive; Coordinator is unscoped and may combine with Manager and/or AppointmentStaff; Manager and AppointmentStaff use the profile's single `AppointmentType` scope. `Candidate` is deliberately not a `Role` value — candidates are token-authenticated, not staff identities.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#SlotCapacity",
-      "label": "SlotCapacity",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "Remaining bookable headcount for one `AppointmentType` on one `ConfirmedSlot`. While the slot is `Active`, its current Manager may replace `totalHeadcount` with a positive total that covers every active booking requiring that type; `remainingCapacity` changes by the same delta.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#SlotProposal",
-      "label": "SlotProposal",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "A candidate-facing 4-hour window proposed by one manager; other managers accept it independently. `date` and `startTime` are carried as one `SlotWindow`.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#SlotProposalStatus",
-      "label": "SlotProposalStatus",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "`Open` until every `AppointmentType` has a `ProposalAcceptance`; `Confirmed` once a `ConfirmedSlot` has been derived from it; `Withdrawn` if a scoped `Manager` or `Admin` pulls it before that.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#SlotWindow",
-      "label": "SlotWindow",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "The 4-hour candidate-facing window shared by `SlotProposal` and `ConfirmedSlot`. Duration is fixed at 4 hours, so the end time is derived, never stored. Persisted into the owning row's own `date` and `startTime` columns rather than a table of its own.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#StaffAccessProfile",
-      "label": "StaffAccessProfile",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "The application's mirror of one authenticated staff identity's access: `roles` is written only by JointBooking's own identity-provider-claims sync and is never administered directly, while `appointmentTypeId` and `version` remain fully Admin-owned. Admin is exclusive and unscoped; Coordinator may combine with Manager and/or AppointmentStaff; Manager and AppointmentStaff share one `AppointmentType` scope, which may briefly be null immediately after a scoped role is synced and before an Admin assigns it — that transitional shape grants no capabilities. Absence of a profile means the authenticated identity is unassigned.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#StaffCapability",
-      "label": "StaffCapability",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "The named permissions `StaffAccessAuthorizer` checks a `StaffAccessProfile`'s `roles` against, pinning down the \"capability\" vocabulary the Issue #71 design describes only in prose (its role/capability table). Every staff-facing handler requests one of these rather than checking `Role` directly, so a newly added role gains only the capabilities its role mapping grants.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#StaffId",
-      "label": "StaffId",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "The enterprise-wide staff number issued by the HR system and used as the internal primary key by older enterprise systems. Exactly 7 characters: `U` or `N` followed by 6 digits, case-insensitive — always normalised to uppercase, so two values differing only in case are the same `StaffId`. Unique per member of staff, never reissued and never changed, which is what makes it safe for JointBooking to mirror. The identity provider is its source of truth; JointBooking only ever reads it from a token claim and never edits it.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#StaffIdentity",
-      "label": "StaffIdentity",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "The application's mirror of one authenticated staff identity: the provider-assigned `staffUserId` paired with the `StaffId` that identity's token carries, learned from the token itself. It exists so an Admin can address a colleague by `StaffId` instead of by opaque identifier, and so `StaffId` can be shown wherever a staff identity is displayed. `displayName` is the same idea applied to a human-readable name rather than the staff number, mirrored from the token's own name claim when the identity provider is configured to emit one; it is null when no such claim has ever been observed for that identity. It is a cache of identity-provider-owned data and is never the source of truth for any field. A row appears the first time an identity calls the API, which may be before any `StaffAccessProfile` assigns it a role.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#SyncStaffAccessProfileRoles",
-      "label": "SyncStaffAccessProfileRoles",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "Reads the caller's identity-provider `roles` claim during `GET /api/me`, upserts `StaffAccessProfile.roles` only when it differs from the persisted value, clears dependent `appointmentTypeId` scope when no scoped role remains, and rejects (without overwriting) a syntactically valid but semantically invalid role combination. Not reachable through any Admin-facing route.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#SystemSettings",
-      "label": "SystemSettings",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "Single-row Admin-configurable settings.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#UpdateSystemSettings",
-      "label": "UpdateSystemSettings",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "Validates and persists `SystemSettings` (invite expiry window, max auto-retry count).",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#UserRoleAssignment",
-      "label": "UserRoleAssignment",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "Removed legacy single-role entity superseded by `StaffAccessProfile` in Issue #71. The name remains canonical only so accepted historical plans and narrative continue to describe the implementation they recorded accurately.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#VoidBooking",
-      "label": "VoidBooking",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "Increments `SlotCapacity` (via `AdjustSlotCapacity`), voids a `Booking`, and resets the `Candidate`'s status to \"Not yet invited\". Shared by both cancellation paths.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#WithdrawAcceptance",
-      "label": "WithdrawAcceptance",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "Removes a Manager's own `ProposalAcceptance`, only while the `SlotProposal` has fewer than 3 acceptances.",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#WithdrawProposal",
-      "label": "WithdrawProposal",
-      "types": [
-        "http://www.w3.org/2002/07/owl#Class"
-      ],
-      "definition": "Sets a `SlotProposal`'s status to Withdrawn (creator only, pre-confirmation).",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#assigned_to",
-      "label": "assigned to",
-      "types": [
-        "http://www.w3.org/2002/07/owl#ObjectProperty"
-      ],
-      "definition": "",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#becomes",
-      "label": "becomes",
-      "types": [
-        "http://www.w3.org/2002/07/owl#ObjectProperty"
-      ],
-      "definition": "",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#contains_required",
-      "label": "contains required",
-      "types": [
-        "http://www.w3.org/2002/07/owl#ObjectProperty"
-      ],
-      "definition": "",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#has",
-      "label": "has",
-      "types": [
-        "http://www.w3.org/2002/07/owl#ObjectProperty"
-      ],
-      "definition": "",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#holds",
-      "label": "holds",
-      "types": [
-        "http://www.w3.org/2002/07/owl#ObjectProperty"
-      ],
-      "definition": "",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#is_delivered_as",
-      "label": "is delivered as",
-      "types": [
-        "http://www.w3.org/2002/07/owl#ObjectProperty"
-      ],
-      "definition": "",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#is_the_provider_identity_behind",
-      "label": "is the provider identity behind",
-      "types": [
-        "http://www.w3.org/2002/07/owl#ObjectProperty"
-      ],
-      "definition": "",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#makes",
-      "label": "makes",
-      "types": [
-        "http://www.w3.org/2002/07/owl#ObjectProperty"
-      ],
-      "definition": "",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#maps_through",
-      "label": "maps through",
-      "types": [
-        "http://www.w3.org/2002/07/owl#ObjectProperty"
-      ],
-      "definition": "",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#offered_as",
-      "label": "offered as",
-      "types": [
-        "http://www.w3.org/2002/07/owl#ObjectProperty"
-      ],
-      "definition": "",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#offers_3",
-      "label": "offers 3",
-      "types": [
-        "http://www.w3.org/2002/07/owl#ObjectProperty"
-      ],
-      "definition": "",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#owns_proposals_for",
-      "label": "owns proposals for",
-      "types": [
-        "http://www.w3.org/2002/07/owl#ObjectProperty"
-      ],
-      "definition": "",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#receives",
-      "label": "receives",
-      "types": [
-        "http://www.w3.org/2002/07/owl#ObjectProperty"
-      ],
-      "definition": "",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#receives_2",
-      "label": "receives",
-      "types": [
-        "http://www.w3.org/2002/07/owl#ObjectProperty"
-      ],
-      "definition": "",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#recovered_by",
-      "label": "recovered by",
-      "types": [
-        "http://www.w3.org/2002/07/owl#ObjectProperty"
-      ],
-      "definition": "",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#required_by",
-      "label": "required by",
-      "types": [
-        "http://www.w3.org/2002/07/owl#ObjectProperty"
-      ],
-      "definition": "",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#required_by_group_through",
-      "label": "required by group through",
-      "types": [
-        "http://www.w3.org/2002/07/owl#ObjectProperty"
-      ],
-      "definition": "",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#requires",
-      "label": "requires",
-      "types": [
-        "http://www.w3.org/2002/07/owl#ObjectProperty"
-      ],
-      "definition": "",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#results_in",
-      "label": "results in",
-      "types": [
-        "http://www.w3.org/2002/07/owl#ObjectProperty"
-      ],
-      "definition": "",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#scopes_Manager_and_AppointmentStaff_roles_for",
-      "label": "scopes Manager and AppointmentStaff roles for",
-      "types": [
-        "http://www.w3.org/2002/07/owl#ObjectProperty"
-      ],
-      "definition": "",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#scopes_legacy_manager_role_for",
-      "label": "scopes legacy manager role for",
-      "types": [
-        "http://www.w3.org/2002/07/owl#ObjectProperty"
-      ],
-      "definition": "",
-      "source": "jamiemitchellconsultants/JointBooking"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#snapshots",
-      "label": "snapshots",
-      "types": [
-        "http://www.w3.org/2002/07/owl#ObjectProperty"
-      ],
-      "definition": "",
-      "source": "jamiemitchellconsultants/JointBooking"
     }
   ],
-  "relations": [
-    {
-      "iri": "https://jointbooking.internal/ontology#assigned_to",
-      "label": "assigned to",
-      "source": "jamiemitchellconsultants/JointBooking",
-      "domain": null,
-      "range": null,
-      "from": "EmployeeGroup",
-      "to": "`Candidate`"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#becomes",
-      "label": "becomes",
-      "source": "jamiemitchellconsultants/JointBooking",
-      "domain": null,
-      "range": null,
-      "from": "SlotProposal",
-      "to": "`ConfirmedSlot`"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#contains_required",
-      "label": "contains required",
-      "source": "jamiemitchellconsultants/JointBooking",
-      "domain": null,
-      "range": null,
-      "from": "Booking",
-      "to": "`BookingAppointment`"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#has",
-      "label": "has",
-      "source": "jamiemitchellconsultants/JointBooking",
-      "domain": null,
-      "range": null,
-      "from": "ConfirmedSlot",
-      "to": "`SlotCapacity`"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#holds",
-      "label": "holds",
-      "source": "jamiemitchellconsultants/JointBooking",
-      "domain": null,
-      "range": null,
-      "from": "ConfirmedSlot",
-      "to": "`Booking`"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#is_delivered_as",
-      "label": "is delivered as",
-      "source": "jamiemitchellconsultants/JointBooking",
-      "domain": null,
-      "range": null,
-      "from": "AppointmentType",
-      "to": "`BookingAppointment`"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#is_the_provider_identity_behind",
-      "label": "is the provider identity behind",
-      "source": "jamiemitchellconsultants/JointBooking",
-      "domain": null,
-      "range": null,
-      "from": "StaffIdentity",
-      "to": "`StaffAccessProfile`"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#makes",
-      "label": "makes",
-      "source": "jamiemitchellconsultants/JointBooking",
-      "domain": null,
-      "range": null,
-      "from": "Candidate",
-      "to": "`Booking`"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#maps_through",
-      "label": "maps through",
-      "source": "jamiemitchellconsultants/JointBooking",
-      "domain": null,
-      "range": null,
-      "from": "EmployeeGroup",
-      "to": "`EmployeeGroupRequirement`"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#offered_as",
-      "label": "offered as",
-      "source": "jamiemitchellconsultants/JointBooking",
-      "domain": null,
-      "range": null,
-      "from": "ConfirmedSlot",
-      "to": "`InviteOption`"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#offers_3",
-      "label": "offers 3",
-      "source": "jamiemitchellconsultants/JointBooking",
-      "domain": null,
-      "range": null,
-      "from": "Invite",
-      "to": "`InviteOption`"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#owns_proposals_for",
-      "label": "owns proposals for",
-      "source": "jamiemitchellconsultants/JointBooking",
-      "domain": null,
-      "range": null,
-      "from": "AppointmentType",
-      "to": "`SlotProposal`"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#receives",
-      "label": "receives",
-      "source": "jamiemitchellconsultants/JointBooking",
-      "domain": null,
-      "range": null,
-      "from": "SlotProposal",
-      "to": "`ProposalAcceptance`"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#receives_2",
-      "label": "receives",
-      "source": "jamiemitchellconsultants/JointBooking",
-      "domain": null,
-      "range": null,
-      "from": "Candidate",
-      "to": "`Invite`"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#recovered_by",
-      "label": "recovered by",
-      "source": "jamiemitchellconsultants/JointBooking",
-      "domain": null,
-      "range": null,
-      "from": "Booking",
-      "to": "`Booking`"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#required_by",
-      "label": "required by",
-      "source": "jamiemitchellconsultants/JointBooking",
-      "domain": null,
-      "range": null,
-      "from": "AppointmentType",
-      "to": "`CandidateRequirement`"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#required_by_group_through",
-      "label": "required by group through",
-      "source": "jamiemitchellconsultants/JointBooking",
-      "domain": null,
-      "range": null,
-      "from": "AppointmentType",
-      "to": "`EmployeeGroupRequirement`"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#requires",
-      "label": "requires",
-      "source": "jamiemitchellconsultants/JointBooking",
-      "domain": null,
-      "range": null,
-      "from": "Candidate",
-      "to": "`CandidateRequirement`"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#results_in",
-      "label": "results in",
-      "source": "jamiemitchellconsultants/JointBooking",
-      "domain": null,
-      "range": null,
-      "from": "Invite",
-      "to": "`Booking`"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#scopes_Manager_and_AppointmentStaff_roles_for",
-      "label": "scopes Manager and AppointmentStaff roles for",
-      "source": "jamiemitchellconsultants/JointBooking",
-      "domain": null,
-      "range": null,
-      "from": "AppointmentType",
-      "to": "`StaffAccessProfile`"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#scopes_legacy_manager_role_for",
-      "label": "scopes legacy manager role for",
-      "source": "jamiemitchellconsultants/JointBooking",
-      "domain": null,
-      "range": null,
-      "from": "AppointmentType",
-      "to": "`UserRoleAssignment`"
-    },
-    {
-      "iri": "https://jointbooking.internal/ontology#snapshots",
-      "label": "snapshots",
-      "source": "jamiemitchellconsultants/JointBooking",
-      "domain": null,
-      "range": null,
-      "from": "Invite",
-      "to": "`InviteRequirement`"
-    }
-  ],
-  "rules": [
-    {
-      "source": "jamiemitchellconsultants/JointBooking",
-      "subject": "https://jointbooking.internal/ontology#_invariant_1",
-      "label": "`StaffAccessProfile`",
-      "text": "Admin is exclusive and has no `AppointmentType`; Coordinator may combine with Manager and/or AppointmentStaff but never Admin; Manager and AppointmentStaff share the profile's one `AppointmentType` scope. Admin receives no candidate data. Each `AppointmentType` has at most one current Manager profile, while any number of AppointmentStaff profiles may share it. Manager or AppointmentStaff may transiently carry a null scope immediately after an identity-provider role sync and before an Admin assigns the appointment type; that shape is valid but grants no capabilities until scope is set. See [Issue #71 design](superpowers/specs/2026-09-06-scoped-multi-role-authorization-design.md) and [IdP-sourced roles design](superpowers/specs/2026-09-10-idp-sourced-staff-roles-design.md)."
-    },
-    {
-      "source": "jamiemitchellconsultants/JointBooking",
-      "subject": "https://jointbooking.internal/ontology#_invariant_10",
-      "label": "`CandidateReadiness`",
-      "text": "`Ready` requires an active original Booking and one Completed Booking Appointment for every current derived Candidate Requirement across that original Booking and its non-cancelled recovery Bookings. Expected, Checked in, and No-show are outstanding; cancelled Booking Appointments and non-required Appointment Types are excluded. No active original Booking, a temporarily unassigned Employee Group, or a requirement snapshot mismatch is explicitly not ready. See [Issue #91 design](superpowers/specs/2026-09-09-employee-group-requirements-design.md)."
-    },
-    {
-      "source": "jamiemitchellconsultants/JointBooking",
-      "subject": "https://jointbooking.internal/ontology#_invariant_11",
-      "label": "Recovery Booking",
-      "text": "A recovery Invite and Booking cover only current requirements whose latest non-cancelled Booking Appointment is No-show and for which no Completed attempt exists. Completed appointments are never recreated or charged capacity again. A recovery Booking becomes Concluded when all its appointments are Completed or No-show; repeated No-show can then create another recovery. A No-show correction is rejected while a later pending or non-cancelled recovery exists. See [Issue #91 design](superpowers/specs/2026-09-09-employee-group-requirements-design.md)."
-    },
-    {
-      "source": "jamiemitchellconsultants/JointBooking",
-      "subject": "https://jointbooking.internal/ontology#_invariant_12",
-      "label": "`SlotWindow`",
-      "text": "Every window is exactly 4 hours; only its `date` and `startTime` are stored, so a proposal and the `ConfirmedSlot` derived from it can never disagree about duration. See [Plan 02](detailed-implementations/2026-09-03-joint-booking/02-domain-appointment-types.md)."
-    },
-    {
-      "source": "jamiemitchellconsultants/JointBooking",
-      "subject": "https://jointbooking.internal/ontology#_invariant_13",
-      "label": "`StaffIdentity`",
-      "text": "Exactly one row per authenticated staff identity, keyed by `staffUserId`, with `staffId` unique across the table. Both fields are immutable in practice: the provider never reissues `staffUserId` for the same person and HR never changes a `StaffId`. An authenticated request whose pair is not already cached upserts it, so the mirror converges from tokens alone, without a directory query; `lastSeenAt` is refreshed on those writes only and is therefore approximate. `displayName` refreshes on the same cache-miss cadence as `lastSeenAt` and carries the same approximateness — it can lag a rename in the identity provider until the next sign-in — and, unlike `staffId`, its absence never blocks anything: a null `displayName` falls back to `staffId` or an opaque identifier wherever a staff identity is shown. A token with no `StaffId` claim, or one carrying a malformed value, records no row and is refused by every staff-authorized endpoint even where a `StaffAccessProfile` exists, since a staff identity JointBooking cannot name must not appear in an `AuditLog`. See [StaffId claim design](superpowers/specs/2026-09-07-staff-id-claim-design.md) and [Staff identity display name design](superpowers/specs/2026-09-15-staff-identity-display-name-design.md)."
-    },
-    {
-      "source": "jamiemitchellconsultants/JointBooking",
-      "subject": "https://jointbooking.internal/ontology#_invariant_2",
-      "label": "`ConfirmedSlot`",
-      "text": "A `SlotProposal` becomes a `ConfirmedSlot` only once all 3 Managers (one per `AppointmentType`) have accepted it, each supplying their own headcount. An Admin or Coordinator may instead bulk-import a `ConfirmedSlot` directly, with `proposalId` left null; either way, once created it behaves identically for every later operation. See [Area B](superpowers/plans/2026-09-03-joint-booking/b-slot-negotiation.md)."
-    },
-    {
-      "source": "jamiemitchellconsultants/JointBooking",
-      "subject": "https://jointbooking.internal/ontology#_invariant_3",
-      "label": "`ProposalAcceptance`",
-      "text": "While its `SlotProposal` remains `Open`, the manager recorded in `managerUserId` may replace their own positive `headcount` without withdrawing the acceptance. A different manager cannot read or change that value. See [Area B](superpowers/plans/2026-09-03-joint-booking/b-slot-negotiation.md)."
-    },
-    {
-      "source": "jamiemitchellconsultants/JointBooking",
-      "subject": "https://jointbooking.internal/ontology#_invariant_4",
-      "label": "`SlotCapacity`",
-      "text": "`remainingCapacity` must never go below 0 or above the current `totalHeadcount` for that `AppointmentType` on that `ConfirmedSlot`. While the slot remains `Active`, its current Manager may replace `totalHeadcount` with a positive total no lower than the active-booking count, changing `remainingCapacity` by the same delta. Every read-check-write is one atomic, row-locked transaction. This is the mechanism behind \"no overbooking.\" See [Area G](superpowers/plans/2026-09-03-joint-booking/g-capacity-concurrency-rules.md)."
-    },
-    {
-      "source": "jamiemitchellconsultants/JointBooking",
-      "subject": "https://jointbooking.internal/ontology#_invariant_5",
-      "label": "`Invite`",
-      "text": "Every `Invite` offers exactly 3 `InviteOption`s, each a `ConfirmedSlot` with spare `SlotCapacity` in every snapshotted `InviteRequirement`. An initial Invite snapshots every current derived `CandidateRequirement`; a recovery Invite snapshots only recoverable outstanding no-show types and identifies the active original Booking. A group-changing edit supersedes a pending initial Invite, while a Coordinator may explicitly cancel a recovery Invite. See [Area D](superpowers/plans/2026-09-03-joint-booking/d-invite-engine.md) and [Issue #91 design](superpowers/specs/2026-09-09-employee-group-requirements-design.md)."
-    },
-    {
-      "source": "jamiemitchellconsultants/JointBooking",
-      "subject": "https://jointbooking.internal/ontology#_invariant_6",
-      "label": "`Booking`",
-      "text": "Cancelling a `ConfirmedSlot` voids every `Booking` against it, frees its `SlotCapacity`, and triggers a fresh `Invite` for each affected `Candidate`. See [Area F](superpowers/plans/2026-09-03-joint-booking/f-cancellation-reschedule.md)."
-    },
-    {
-      "source": "jamiemitchellconsultants/JointBooking",
-      "subject": "https://jointbooking.internal/ontology#_invariant_7",
-      "label": "`BookingAppointment`",
-      "text": "A booking creates exactly one per candidate requirement in the same transaction, unique by (`Booking`, `AppointmentType`). Its normal lifecycle is `Expected` → `CheckedIn` → `Completed` or `Expected` → `NoShow`; only the bounded corrections `CheckedIn` → `Expected`, `Completed` → `CheckedIn`, and `NoShow` → `Expected` are permitted. A same-status submission is idempotent. Check-in is limited to the slot's head-office date, no-show is permitted only after its four-hour window, and every real transition is versioned and audited. Active bookings and active slots are required for mutation. See [Issue #26 design](superpowers/specs/2026-09-07-booking-appointment-workspace-design.md)."
-    },
-    {
-      "source": "jamiemitchellconsultants/JointBooking",
-      "subject": "https://jointbooking.internal/ontology#_invariant_8",
-      "label": "`CandidateRequirement`",
-      "text": "The requirement set cannot change while the candidate has an active original `Booking`; name and email corrections and set-equivalent Employee Group changes remain permitted. Outside a legacy reconciliation window, requirements are derived only from the Candidate's active `EmployeeGroup` and are never caller-selected. Cancellation makes old `BookingAppointment` records read-only and a replacement initial booking snapshots the then-current set. See [Issue #26 design](superpowers/specs/2026-09-07-booking-appointment-workspace-design.md) and [Issue #91 design](superpowers/specs/2026-09-09-employee-group-requirements-design.md)."
-    },
-    {
-      "source": "jamiemitchellconsultants/JointBooking",
-      "subject": "https://jointbooking.internal/ontology#_invariant_9",
-      "label": "`EmployeeGroup`",
-      "text": "The initial five groups and their mappings to the existing three fixed Appointment Types are deterministic, change-controlled reference data. Every active group has at least one known, non-duplicated mapping. Group codes are immutable, unique, canonical uppercase snake case, and accepted case-insensitively at input boundaries. Runtime editing and dynamic Appointment Types are outside Issue #91. See [Issue #91 design](superpowers/specs/2026-09-09-employee-group-requirements-design.md)."
-    }
-  ],
-  "links": [
-    {
-      "source": "jamiemitchellconsultants/JointBooking",
-      "local": "https://jointbooking.internal/ontology#StaffId",
-      "shared": "https://github.com/jamiemitchellconsultants/division-ontology#StaffId",
-      "relation": "exact"
-    }
-  ]
+  "relations": [],
+  "rules": [],
+  "links": []
 }

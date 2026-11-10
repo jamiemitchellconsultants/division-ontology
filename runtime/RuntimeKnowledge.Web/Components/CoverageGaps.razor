@@ -1,0 +1,16 @@
+@if (Gaps.Count > 0)
+{
+    <details>
+        <summary>Coverage gaps (@Gaps.Count)</summary>
+        <ul>
+            @foreach (var gap in Gaps)
+            {
+                <li>@gap.SourceId @gap.NodeIri · @gap.Code · @gap.Reason</li>
+            }
+        </ul>
+    </details>
+}
+
+@code {
+    [Parameter] public IReadOnlyList<CoverageGap> Gaps { get; set; } = [];
+}
