@@ -37,6 +37,9 @@ This document records what was asked, what was decided, why, and what followed.
 | [27](#entry-docs-feature-define-one-action-source-onboarding-architecture) | 2026-11-10 | docs(feature): define one-action source onboarding architecture | product | Each division has a dedicated read-only source App (Contents and Metadata read) that owners add repositories to, separate from the division-writer App. |
 | [28](#entry-docs-feature-plan-one-action-source-onboarding-build) | 2026-11-10 | docs(feature): plan one-action source onboarding build | product | Thirteen test-first tasks, each ending in a focused commit: reasons, import configuration, a fixture division with a fake grant provider, the granted-source importer, grant discovery, status classification, the catalog builder and… |
 | [29](#entry-feat-one-action-source-onboarding) | 2026-11-10 | feat: one-action source onboarding | product | Granted sources are built beside the strict registered path. |
+| [30](#entry-fix-let-a-division-copy-use-any-repository-name) | 2026-11-10 | fix: let a division copy use any repository name | product | Remove `owner` and `repositories` from the writer-token step in both workflows. |
+| [31](#entry-fix-fetch-the-division-repository-with-the-writer-token-not-the-source-t) | 2026-11-10 | fix: fetch the division repository with the writer token, not the source token | product | The finalize step authenticates its git fetch with the division-writer token, which is installed on the division repository. The source-read token is for reading source repositories only: it clones sources and lists the installation. |
+| [32](#entry-fix-remove-the-template-only-tests-from-a-new-division-copy) | 2026-11-10 | fix: remove the template-only tests from a new division copy | product | `init-division` removes `test/template.test.mjs` and `test/init-division.test.mjs` from a division copy, next to the template history it already removes. |
 
 ---
 
@@ -693,5 +696,77 @@ Granted sources are built beside the strict registered path. A grant provider li
 Every catalog gains `origin`, `stale` and `importStatus`, so `npm run check` reports `dist/catalog.json` stale for `importStatus` only until the scheduled sync PR merges. Divisions need two Apps to take grants, and a grant can take up to two hours to appear. Granted sources are GitHub.com only. The GitHub client is tested against stubs only; the first live run, and acceptance of B1, B4, B6 and B14 with the organisation-policy assumption U12, belong to the user phase. A local build of a division that holds granted sources needs `DIVISION_SOURCE_APP` and `GH_SOURCE_TOKEN`. Writing `.division-ontology.json` from InternalOntology's installer is a separate change in that repository. An independent review found and this PR fixes: blank-node relabelling in carried-forward sources, published namespaces displaced by another source or a steward registration, ontologies over 1 MiB, granted statements about terms outside the namespace, case-sensitive registered ids, and unescaped reasons in the refresh body. Still open: C4 snapshots need a checkout of every source including stale ones.
 
 AI-Fingerprint: sha256:0899d6e39504
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+---
+
+<a id="entry-fix-let-a-division-copy-use-any-repository-name"></a>
+
+## Entry 30 — 2026-11-10 — fix: let a division copy use any repository name
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+Deployed acceptance of one-action source onboarding ran in a throwaway division named `onboarding-acceptance-division`. The sync run (https://github.com/jamiemitchellconsultants/onboarding-acceptance-division/actions/runs/42859953184) failed at "Create division-writer token" with `404 Not Found` because `.github/workflows/sync-catalog.yml` and `.github/workflows/review-recheck.yml` asked the token action for a repository literally named `division-ontology`. This has been so since 2026-09-26 (37e76ec), but the feature's outcome is that every division created from the template can onboard sources. The source-read token, the App setup check and the installation all worked in the same run.
+
+## Decision
+
+Remove `owner` and `repositories` from the writer-token step in both workflows. The token action then scopes the token to only the current repository (its documented behaviour when both are empty), which works for any repository name and is as narrow as before. The source-read token, which deliberately covers the whole installation, is unchanged. `test/workflow.test.mjs` now asserts the writer tokens carry no owner or repositories value, and that no workflow names a literal repository when minting a token.
+
+## Consequences
+
+Divisions may use any repository name. A division copy that already exists picks the fix up by taking these two workflow files. The acceptance run can proceed: it is repeated in the throwaway division once this merges. No behaviour, architecture or catalog output changes. `workspace-images.yml` still names its container image after the template, which is harmless and left alone.
+
+AI-Fingerprint: sha256:29388d63dcba
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+---
+
+<a id="entry-fix-fetch-the-division-repository-with-the-writer-token-not-the-source-t"></a>
+
+## Entry 31 — 2026-11-10 — fix: fetch the division repository with the writer token, not the source token
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+Rerunning deployed acceptance after the first fix, sync run 42862969971 (https://github.com/jamiemitchellconsultants/onboarding-acceptance-division/actions/runs/42862969971) got through both token steps, the catalog build and the creation of refresh PR #3, with `REFRESH_MODE: automatic`. It then failed in "Finalize PR fingerprint and merge mode": `git fetch origin` on the division repository used the source-read token and got `Repository not found`. ADR 0009 keeps the source-read App off the division repository. Under the earlier single-App setup the same token happened to cover it, so splitting the Apps introduced this regression, and nothing in the local tests exercises a step that only runs in GitHub Actions. The refresh PR was left open with the placeholder fingerprint.
+
+## Decision
+
+The finalize step authenticates its git fetch with the division-writer token, which is installed on the division repository. The source-read token is for reading source repositories only: it clones sources and lists the installation. I traced every step of the three workflows by which token it uses; this was the only mismatch. `test/workflow.test.mjs` now asserts that the finalize step's git credential is the writer token and that no step running git fetch or push uses the source token, while the build step keeps the source token. ADR 0009 gets a dated amendment stating the rule instead of being rewritten.
+
+## Consequences
+
+Private divisions can finalize their refresh PR and request auto-merge. An existing division takes this by copying `.github/workflows/sync-catalog.yml` and `test/workflow.test.mjs`. The acceptance run is repeated in the throwaway division once this merges. The environment variable that git-askpass.sh reads is still called `GH_SOURCE_TOKEN` even where it carries the writer token, which a comment now explains; renaming it would touch the askpass script and its test and is left for later. Nothing else about behaviour, the catalog or the architecture changes.
+
+AI-Fingerprint: sha256:c33c34200909
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+---
+
+<a id="entry-fix-remove-the-template-only-tests-from-a-new-division-copy"></a>
+
+## Entry 32 — 2026-11-10 — fix: remove the template-only tests from a new division copy
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+In the deployed acceptance, sync run 42865502599 succeeded, refresh PR #3 was finalized with a real fingerprint, auto-merge was requested and `merge-policy` passed. Its `test` check then failed (run 42865572813, https://github.com/jamiemitchellconsultants/onboarding-acceptance-division/actions/runs/42865572813) on `test/template.test.mjs` and `test/init-division.test.mjs`, which assert the repository has no sources. A division inherits them, and `init-division` removed the template's history and narrative but not these tests. Because `test` is a required check, the refresh PR stayed blocked. The same flaw already existed for steward-registered sources, but this feature makes a division with granted sources the normal case.
+
+## Decision
+
+`init-division` removes `test/template.test.mjs` and `test/init-division.test.mjs` from a division copy, next to the template history it already removes. The `init-division` test now copies both into its fresh copy and asserts they are gone, and the README says what is removed and what to do for a division made earlier. The alternatives were making the tests skip outside the template, which leaves dead tests in every division, or relaxing them, which stops them guarding the template.
+
+## Consequences
+
+A new division's required `test` check no longer fails when a source joins. An existing division deletes the two files in a pull request, as the README now says. The template keeps both tests and still enforces that it ships empty. Any future test that asserts template-only facts must be added to `templateOnlyTests` in `scripts/init-division.mjs`. Nothing else about behaviour, the catalog or the architecture changes.
+
+AI-Fingerprint: sha256:50ca021c6ca6
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)

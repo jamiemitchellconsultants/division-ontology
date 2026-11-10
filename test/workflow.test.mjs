@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import YAML from 'yaml';
 
@@ -25,7 +25,8 @@ test('scheduled sync is manually runnable and restricts PR updates to generated 
   readToken(appTokens[0]);
   assert.match(steps.find((step) => step.id === 'build').env.DIVISION_SOURCE_APP, flag);
   assert.match(appTokens[1].with['client-id'], /DIVISION_SYNC_APP_CLIENT_ID/);
-  assert.equal(appTokens[1].with.repositories, 'division-ontology');
+  assert.equal(appTokens[1].with.owner, undefined);
+  assert.equal(appTokens[1].with.repositories, undefined);
   assert.ok(!JSON.stringify(steps).includes('git config credential'));
 });
 
@@ -58,4 +59,34 @@ test('trusted default-branch controller polls review state and retriggers policy
   assert.equal(steps[0].with.ref, '${{ github.event.repository.default_branch }}');
   assert.ok(steps.some((step) => step.uses?.startsWith('actions/create-github-app-token@')));
   assert.ok(steps.some((step) => step.run?.includes('src/review-recheck.mjs')));
+});
+
+test('a division can have any repository name: writer tokens are scoped to the current repository, never to a literal name', () => {
+  const tokenSteps = (file) => Object.values(workflow(file).jobs).flatMap((job) => job.steps).filter((step) => step.uses?.startsWith('actions/create-github-app-token@'));
+  for (const file of ['sync-catalog.yml', 'review-recheck.yml']) {
+    const writers = tokenSteps(file).filter((step) => step.with['permission-pull-requests']);
+    assert.ok(writers.length, `${file} mints a pull-request token`);
+    for (const step of writers) {
+      assert.equal(step.with.owner, undefined, `${file}: no owner, so the action scopes the token to the current repository`);
+      assert.equal(step.with.repositories, undefined, `${file}: no repositories list`);
+    }
+  }
+  for (const file of readdirSync(join(import.meta.dirname, '../.github/workflows')).filter((name) => name.endsWith('.yml'))) {
+    for (const step of tokenSteps(file)) {
+      const repositories = step.with.repositories;
+      assert.ok(repositories === undefined || String(repositories).includes('${{'), `${file}: repositories must not be a literal repository name`);
+    }
+  }
+});
+
+test('the source-read token never authenticates git against the division repository', () => {
+  const steps = Object.values(workflow('sync-catalog.yml').jobs)[0].steps;
+  const finalize = steps.find((step) => step.name === 'Finalize PR fingerprint and merge mode');
+  assert.match(finalize.run, /git fetch --no-tags origin/);
+  // The source-read App is never installed on the division repository (ADR 0009), so only the writer token can fetch it.
+  assert.match(finalize.env.GH_SOURCE_TOKEN, /steps\.writer-token\.outputs\.token/);
+  assert.doesNotMatch(JSON.stringify(finalize.env), /source-token/);
+  for (const step of steps.filter((item) => /git (fetch|push)/.test(item.run ?? ''))) assert.doesNotMatch(JSON.stringify(step.env ?? {}), /source-token/, step.name);
+  // The build step reads source repositories, which is what the source token is for.
+  assert.match(steps.find((step) => step.id === 'build').env.GH_SOURCE_TOKEN, /steps\.source-token\.outputs\.token/);
 });

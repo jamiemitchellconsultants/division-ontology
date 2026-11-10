@@ -48,8 +48,6 @@ jobs:
         with:
           client-id: ${{ vars.DIVISION_SYNC_APP_CLIENT_ID }}
           private-key: ${{ secrets.DIVISION_SYNC_APP_PRIVATE_KEY }}
-          owner: ${{ github.repository_owner }}
-          repositories: division-ontology
           permission-contents: write
           permission-pull-requests: write
       - name: Build current catalog and prepare PR body
@@ -80,7 +78,9 @@ jobs:
         if: steps.create.outputs.pull-request-number != ''
         env:
           GH_TOKEN: ${{ steps.writer-token.outputs.token }}
-          GH_SOURCE_TOKEN: ${{ steps.source-token.outputs.token }}
+          # git-askpass.sh reads this name. Here git talks to the division repository itself, which the read-only
+          # source App is never installed on (ADR 0009), so the credential is the division-writer token.
+          GH_SOURCE_TOKEN: ${{ steps.writer-token.outputs.token }}
           GIT_ASKPASS: ${{ github.workspace }}/scripts/git-askpass.sh
           GIT_TERMINAL_PROMPT: '0'
           PR_NUMBER: ${{ steps.create.outputs.pull-request-number }}
