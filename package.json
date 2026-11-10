@@ -11,7 +11,12 @@
     "acceptance:c4": "node test/acceptance/rerun.mjs",
     "build": "node src/cli.mjs build",
     "check": "node src/cli.mjs check",
-    "c4": "node src/c4/cli.mjs"
+    "c4": "node src/c4/cli.mjs",
+    "demo:setup": "node test/fixtures/representative/setup.mjs setup \"${DEMO_DIR:-${TMPDIR:-/tmp}/division-demo}\"",
+    "demo:teardown": "node test/fixtures/representative/setup.mjs teardown \"${DEMO_DIR:-${TMPDIR:-/tmp}/division-demo}\"",
+    "demo:up": "bash deploy/workspace/local/demo.sh up",
+    "demo:status": "bash deploy/workspace/local/demo.sh status",
+    "demo:down": "bash deploy/workspace/local/demo.sh down"
   },
   "dependencies": {
     "n3": "2.7.12"
