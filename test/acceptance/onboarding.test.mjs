@@ -6,8 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { act, catalog, checkoutArgs, classify, distBytes, head, namespaceOf, prepare, run, sourceDir, teardown } from './onboarding-walkthrough.mjs';
 import { spawnSync } from 'node:child_process';
-import { checkDeployed, deployedSteps } from './onboarding-deployed.mjs';
-import { steps as localSteps } from './onboarding-walkthrough.mjs';
+import { checkDeployed, deployedSteps, optionalChecks } from './onboarding-deployed.mjs';
 import { githubGrantProvider } from '../../src/grants.mjs';
 import { runCli } from '../../src/cli.mjs';
 
@@ -190,26 +189,30 @@ test('the deployed checker understands registered and absent sources', () => {
   assert.match(checkDeployed({ catalog, heads: {}, expectations: [{ source: 'o/none', status: 'registered' }] })[0], /expected one registered/);
 });
 
-test('every behaviour B1-B17 is covered by a guided local step and a guided deployed step', () => {
-  const covered = (list) => new Set(list.flatMap((step) => step.behaviours.split(',').map((item) => item.trim())));
-  const local = covered(localSteps);
-  const deployed = covered(deployedSteps({ alpha: 'o/a', beta: 'o/b', gamma: 'o/g', second: 'o/d2' }));
-  for (let n = 1; n <= 17; n++) {
-    assert.ok(local.has(`B${n}`), `local walkthrough covers B${n}`);
-    assert.ok(deployed.has(`B${n}`), `deployed walkthrough covers B${n}`);
-  }
-  for (const step of deployedSteps({ alpha: 'o/a', beta: 'o/b', gamma: 'o/g' })) assert.ok(step.expect.length && (step.expectations || step.empty || step.repeat), step.id);
+test('every behaviour B1-B17 has an executable check in this file', () => {
+  const titles = [...readFileSync(new URL(import.meta.url), 'utf8').matchAll(/^test\('([^']*)'/gm)].map((match) => match[1]);
+  for (let n = 1; n <= 17; n++) assert.ok(titles.some((title) => new RegExp(`\\bB${n}\\b`).test(title)), `an executable check names B${n}`);
 });
 
-test('the guided local run completes without prompts in rehearsal mode', () => {
-  const result = spawnSync(process.execPath, [join(import.meta.dirname, 'onboarding-walkthrough.mjs'), 'guided', '--yes', '--name', 'Rehearsal'], { encoding: 'utf8' });
-  assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /All 13 steps passed\./);
-  assert.match(result.stdout, /REHEARSAL, prompts skipped, not an acceptance result/);
-});
-
-test('the guided deployed run refuses to start without its repositories', () => {
-  const result = spawnSync(process.execPath, [join(import.meta.dirname, 'onboarding-deployed.mjs'), 'guided', 'o/division'], { encoding: 'utf8' });
+test('the deployed run refuses to start without its repositories', () => {
+  const result = spawnSync(process.execPath, [join(import.meta.dirname, 'onboarding-deployed.mjs'), 'run', 'o/division'], { encoding: 'utf8' });
   assert.equal(result.status, 1);
-  assert.match(result.stderr, /usage: onboarding-deployed\.mjs guided/);
+  assert.match(result.stderr, /usage: onboarding-deployed\.mjs run/);
+});
+
+test('the deployed dry run lists every action and expected result without touching GitHub', () => {
+  const result = spawnSync(process.execPath, [join(import.meta.dirname, 'onboarding-deployed.mjs'), 'run', 'o/division', '--alpha', 'o/alpha', '--beta', 'o/beta', '--gamma', 'o/gamma', '--installation', '123', '--dry-run'], { encoding: 'utf8', env: { ...process.env, PATH: '/nonexistent' } });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /D2 — B1, B6, B2[\s\S]*would: add o\/alpha to the source-read App/);
+  assert.match(result.stdout, /D11 — B17[\s\S]*dispatch the sync twice/);
+  assert.doesNotMatch(result.stdout, /EXCEPTION/);
+});
+
+test('every behaviour B1-B17 has a deployed step or a one-command check', () => {
+  const steps = deployedSteps({ alpha: 'o/a', beta: 'o/b', gamma: 'o/g' });
+  const optional = optionalChecks({ division: 'o/d', alpha: 'o/a', gamma: 'o/g' });
+  const covered = new Set([...steps, ...optional].flatMap((item) => item.behaviours.split(',').map((id) => id.trim())));
+  for (let n = 1; n <= 17; n++) assert.ok(covered.has(`B${n}`), `B${n} is covered`);
+  for (const step of steps) assert.ok(step.expect.length && (step.expectations || step.empty), step.id);
+  for (const check of optional) assert.match(check.command, /onboarding-deployed\.mjs --sync/);
 });

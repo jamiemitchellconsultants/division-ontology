@@ -6,8 +6,9 @@ import { pathToFileURL } from 'node:url';
 
 // Read-only check of a deployed division's published catalog against the live source repositories.
 // usage: node test/acceptance/onboarding-deployed.mjs <owner/division> [--ref main] [--sync] <owner/source>=<status> ...
-//    or: node test/acceptance/onboarding-deployed.mjs guided <owner/division> --alpha <owner/repo> --beta <owner/repo> --gamma <owner/repo> [--second <owner/division>] [--name N] [--out file]
-// --sync dispatches the division's sync first and waits for it and its refresh PR. guided walks every deployed step.
+//    or: node test/acceptance/onboarding-deployed.mjs run <owner/division> --alpha <owner/repo> --beta <owner/repo> --gamma <owner/repo> [--installation <id>] [--dry-run] [--name N] [--out file]
+// --sync dispatches the division's sync first and waits for it and its refresh PR. run performs every deployed step through gh,
+// compares the published catalog with the expected result after each, and stops at the first exception.
 // Status is current, invalid, "not configured", "access removed", registered (a steward-registered source with no row)
 // or absent (no row, not in the catalog).
 // Quote a status with spaces, for example 'owner/source=not configured'.
@@ -54,6 +55,12 @@ export function liveHeads(expectations) {
 }
 
 const openRefreshPr = (division) => JSON.parse(gh('pr', 'list', '--repo', division, '--head', 'automation/catalog-refresh', '--state', 'open', '--json', 'number'))[0]?.number ?? null;
+// The latest merged refresh PR must have merged with no review at all, which is what an automatic classification means.
+const lastRefreshMergedWithoutReview = (division) => {
+  const [pr] = JSON.parse(gh('pr', 'list', '--repo', division, '--head', 'automation/catalog-refresh', '--state', 'merged', '--limit', '1', '--json', 'number,reviews'));
+  if (!pr) return 'no merged refresh PR found';
+  return pr.reviews.length ? `refresh PR #${pr.number} has ${pr.reviews.length} review(s), so it was not merged automatically` : null;
+};
 const mainHead = (division) => gh('api', `repos/${division}/commits/main`, '--jq', '.sha').trim();
 
 // Dispatch the division's sync, wait for the run, then wait for its generated refresh PR to merge.
@@ -75,82 +82,128 @@ export async function dispatchAndWait(division, { log = console.log, prTimeoutMs
   return { runId, pr: openRefreshPr(division), timedOut: true };
 }
 
-export function deployedSteps({ alpha, beta, gamma, second }) {
+// ---- GitHub actions the run performs itself when given --installation (all through gh, as the signed-in user) ----
+const enc = encodeURIComponent;
+const defaultBranch = (repo) => gh('api', `repos/${repo}`, '--jq', '.default_branch').trim();
+const repoId = (repo) => gh('api', `repos/${repo}`, '--jq', '.id').trim();
+const fileSha = (repo, branch, path) => { try { return JSON.parse(gh('api', `repos/${repo}/contents/${path}?ref=${enc(branch)}`)).sha; } catch { return null; } };
+function putFile(repo, path, text, message) {
+  const branch = defaultBranch(repo);
+  const sha = fileSha(repo, branch, path);
+  gh('api', '-X', 'PUT', `repos/${repo}/contents/${path}`, '-f', `message=${message}`, '-f', `content=${Buffer.from(text).toString('base64')}`, '-f', `branch=${branch}`, ...(sha ? ['-f', `sha=${sha}`] : []));
+}
+function deleteFile(repo, path, message) {
+  const branch = defaultBranch(repo);
+  const sha = fileSha(repo, branch, path);
+  if (sha) gh('api', '-X', 'DELETE', `repos/${repo}/contents/${path}`, '-f', `message=${message}`, '-f', `sha=${sha}`, '-f', `branch=${branch}`);
+}
+const grant = (installation, repo) => gh('api', '-X', 'PUT', `user/installations/${installation}/repositories/${repoId(repo)}`);
+const revoke = (installation, repo) => gh('api', '-X', 'DELETE', `user/installations/${installation}/repositories/${repoId(repo)}`);
+
+const namespaceOf = (repo) => `https://acceptance.test/${repo.split('/')[1]}#`;
+const ontology = (repo, terms) => `@prefix : <${namespaceOf(repo)}> . @prefix owl: <http://www.w3.org/2002/07/owl#> . @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .\n${terms.map((term) => `:${term} a owl:Class; rdfs:label "${term}" .`).join('\n')}\n`;
+const config = (namespace, ontologyPath = 'docs/ontology.ttl') => JSON.stringify({ schemaVersion: 1, ontologyPath, namespace });
+const invalidTurtle = 'this is not turtle {\n';
+
+// Steps run in order. `actions` are what the run does for you; `manual` is what you do instead when --installation is not given.
+export function deployedSteps({ alpha, beta, gamma, installation }) {
   const a = (status) => ({ source: alpha, status });
+  const act = (describe, run) => ({ describe, run: () => run(installation) });
+  const commit = (repo, path, text) => act(`commit ${path} to ${repo}`, () => putFile(repo, path, text, 'acceptance: onboarding'));
   return [
-    { id: 'D1', behaviours: 'B7', instruction: 'Before any grant, the new division has no sources and no import status.', expect: ['dist/catalog.json has empty sources and importStatus arrays'], empty: true },
-    { id: 'D2', behaviours: 'B1, B6, B2', instruction: `As the owner of ${alpha} (a user with no write access to the division repository): commit .division-ontology.json and a valid ontology to its default branch, then add ${alpha} to the division's source-read App.`, expect: [`${alpha} is current at its default-branch head`, 'a generated-only PR opened and merged with no steward review', 'nothing was committed to the division repository by the alpha owner'], expectations: [a('current')], sync: true },
-    { id: 'D3', behaviours: 'B13', instruction: `Add ${gamma} (no .division-ontology.json) to the source-read App, using a selected-repositories installation.`, expect: [`${gamma} has status not configured and no concepts`, `${alpha} is still current`], expectations: [a('current'), { source: gamma, status: 'not configured' }], sync: true },
-    { id: 'D4', behaviours: 'B8', instruction: `Commit a new term to ${alpha}'s ontology on its default branch.`, expect: [`${alpha} is current at the new head, with no renewed grant`], expectations: [a('current')], sync: true },
-    { id: 'D5', behaviours: 'B9', instruction: `Move ${alpha}'s ontology file and update its .division-ontology.json to the new path in the same commit.`, expect: [`${alpha} is current at the new head and its concepts are still published`], expectations: [a('current')], sync: true },
-    { id: 'D6', behaviours: 'B11, B10', instruction: `Commit invalid Turtle to ${alpha}'s ontology.`, expect: [`${alpha} is invalid; its last valid version is still published and stale`, 'the reason is a code with a short detail and no credential'], expectations: [a('invalid')], sync: true },
-    { id: 'D7', behaviours: 'B11', instruction: `Commit a fix to ${alpha}'s ontology.`, expect: [`${alpha} is current at the fixing commit`], expectations: [a('current')], sync: true },
-    { id: 'D8', behaviours: 'B16, B12, B15', instruction: `Commit a .division-ontology.json and ontology for ${beta} that use ${alpha}'s namespace, then add ${beta} to the source-read App.`, expect: [`${beta} is invalid with reason namespace-conflict and is not published`, `${alpha} is still current in the same sync`], expectations: [a('current'), { source: beta, status: 'invalid' }], sync: true },
-    { id: 'D9', behaviours: 'B14', instruction: `Remove ${alpha} from the source-read App.`, expect: [`${alpha} is access removed and its last version stays in the catalog, stale`], expectations: [a('access removed')], sync: true },
-    { id: 'D10', behaviours: 'B14', instruction: `Add ${alpha} back to the source-read App.`, expect: [`${alpha} is current again at its head`], expectations: [a('current')], sync: true },
-    { id: 'D11', behaviours: 'B17', instruction: 'Make no changes. The check runs the sync twice.', expect: ['the second run is green, opens no PR, and leaves main unchanged'], expectations: [a('current')], repeat: true },
-    { id: 'D12', behaviours: 'B3', optional: true, instruction: `Open a PR that registers ${alpha} in sources.json while it is also in the App, get a steward to approve it, and let it merge.`, expect: [`${alpha} appears once, as registered, with no import status row`], expectations: [a('registered')], sync: true },
-    ...(second ? [{ id: 'D13', behaviours: 'B4', optional: true, division: second, instruction: `In the second division (${second}), which has its own App and was never granted ${alpha}, run its sync.`, expect: [`${alpha} is not in the second division's catalog`], expectations: [a('absent')], sync: true }] : []),
-    { id: 'D14', behaviours: 'B5', optional: true, instruction: `Only if acceptable in the test organisation: install the source-read App on all repositories instead of selected ones.`, expect: [`only repositories that carry .division-ontology.json appear; ${gamma} has no row`], expectations: [{ source: gamma, status: 'absent' }], sync: true },
+    { id: 'D1', behaviours: 'B7', manual: 'Confirm the new division has not been given any source yet.', expect: ['dist/catalog.json has empty sources and importStatus arrays'], empty: true, actions: [] },
+    { id: 'D2', behaviours: 'B1, B6, B2', manual: `As the owner of ${alpha}: commit .division-ontology.json and a valid ontology, then add ${alpha} to the source-read App.`, expect: [`${alpha} is current at its default-branch head`, 'the generated-only refresh PR merged with no review at all'], autoMerged: true,
+      actions: [commit(alpha, '.division-ontology.json', config(namespaceOf(alpha))), commit(alpha, 'docs/ontology.ttl', ontology(alpha, ['Alpha'])), act(`add ${alpha} to the source-read App`, (i) => grant(i, alpha))], expectations: [a('current')], sync: true },
+    { id: 'D3', behaviours: 'B13', manual: `Add ${gamma} (no .division-ontology.json) to the source-read App.`, expect: [`${gamma} is not configured`, `${alpha} is still current`],
+      actions: [act(`remove .division-ontology.json from ${gamma} if present`, () => deleteFile(gamma, '.division-ontology.json', 'acceptance: onboarding')), act(`add ${gamma} to the source-read App`, (i) => grant(i, gamma))], expectations: [a('current'), { source: gamma, status: 'not configured' }], sync: true },
+    { id: 'D4', behaviours: 'B8', manual: `Commit a new term to ${alpha}.`, expect: [`${alpha} is current at the new head`], actions: [commit(alpha, 'docs/ontology.ttl', ontology(alpha, ['Alpha', 'NewTerm']))], expectations: [a('current')], sync: true },
+    { id: 'D5', behaviours: 'B9', manual: `Move ${alpha}'s ontology file and update its .division-ontology.json in the same commit.`, expect: [`${alpha} is current at the new head`],
+      actions: [commit(alpha, 'docs/moved.ttl', ontology(alpha, ['Alpha', 'Moved'])), commit(alpha, '.division-ontology.json', config(namespaceOf(alpha), 'docs/moved.ttl')), act(`delete docs/ontology.ttl from ${alpha}`, () => deleteFile(alpha, 'docs/ontology.ttl', 'acceptance: onboarding'))], expectations: [a('current')], sync: true },
+    { id: 'D6', behaviours: 'B11, B10', manual: `Commit invalid Turtle to ${alpha}'s ontology.`, expect: [`${alpha} is invalid with its last valid version still published and stale`], actions: [commit(alpha, 'docs/moved.ttl', invalidTurtle)], expectations: [a('invalid')], sync: true },
+    { id: 'D7', behaviours: 'B11', manual: `Commit a fix to ${alpha}'s ontology.`, expect: [`${alpha} is current at the fixing commit`], actions: [commit(alpha, 'docs/moved.ttl', ontology(alpha, ['Alpha', 'Fixed']))], expectations: [a('current')], sync: true },
+    { id: 'D8', behaviours: 'B16, B12, B15', manual: `Commit a configuration and ontology for ${beta} that use ${alpha}'s namespace, then add ${beta} to the App.`, expect: [`${beta} is invalid and not published`, `${alpha} is still current in the same sync`],
+      actions: [commit(beta, '.division-ontology.json', config(namespaceOf(alpha))), commit(beta, 'docs/ontology.ttl', `@prefix : <${namespaceOf(alpha)}> . @prefix owl: <http://www.w3.org/2002/07/owl#> . @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .\n:BetaClaim a owl:Class; rdfs:label "BetaClaim" .\n`), act(`add ${beta} to the source-read App`, (i) => grant(i, beta))], expectations: [a('current'), { source: beta, status: 'invalid' }], sync: true },
+    { id: 'D9', behaviours: 'B14', manual: `Remove ${alpha} from the source-read App.`, expect: [`${alpha} is access removed and stays in the catalog, stale`], actions: [act(`remove ${alpha} from the source-read App`, (i) => revoke(i, alpha))], expectations: [a('access removed')], sync: true },
+    { id: 'D10', behaviours: 'B14', manual: `Add ${alpha} back to the source-read App.`, expect: [`${alpha} is current again`], actions: [act(`add ${alpha} to the source-read App`, (i) => grant(i, alpha))], expectations: [a('current')], sync: true },
+    { id: 'D11', behaviours: 'B17', manual: 'Make no changes.', expect: ['two syncs in a row leave main unchanged and open no refresh PR'], actions: [], expectations: [a('current')], repeat: true },
   ];
 }
 
-export async function guidedDeployed({ division, alpha, beta, gamma, second, name = 'unnamed', out, log = console.log }) {
-  const rl = createInterface({ input: process.stdin, output: process.stdout });
+// Behaviours that need something this script cannot do for you, each with a single comparing command to run afterwards.
+export const optionalChecks = ({ division, alpha, gamma }) => [
+  { behaviours: 'B3', needs: `a steward-approved, merged PR that registers ${alpha} in sources.json while it is also in the App`, command: `node test/acceptance/onboarding-deployed.mjs --sync ${division} ${alpha}=registered` },
+  { behaviours: 'B4', needs: `a second division with its own App that was never given ${alpha}`, command: `node test/acceptance/onboarding-deployed.mjs --sync <owner/second-division> ${alpha}=absent` },
+  { behaviours: 'B5', needs: 'the source-read App installed on all repositories of the test organisation (only if acceptable there)', command: `node test/acceptance/onboarding-deployed.mjs --sync ${division} ${gamma}=absent` },
+];
+
+// Runs every step, compares the published catalog with the expected result, and stops at the first exception.
+export async function runDeployed({ division, alpha, beta, gamma, installation, dryRun = false, name = 'unnamed', out, log = console.log }) {
+  const steps = deployedSteps({ alpha, beta, gamma, installation });
   const results = [];
-  const steps = deployedSteps({ alpha, beta, gamma, second });
+  let failed = null;
+  const rl = !installation && !dryRun ? createInterface({ input: process.stdin, output: process.stdout }) : null;
   try {
-    if (!process.stdin.isTTY) throw new Error('run this in a terminal so you can answer prompts');
+    if (rl && !process.stdin.isTTY) throw new Error('without --installation the GitHub actions are manual, so run this in a terminal');
     for (const step of steps) {
-      const target = step.division ?? division;
-      log(`\n=== ${step.id} — ${step.behaviours}${step.optional ? ' (optional)' : ''} ===\n${step.instruction}`);
-      const ready = (await rl.question(`\nPress Enter when done${step.optional ? ', s to skip' : ''}, q to quit: `)).trim().toLowerCase();
-      if (ready === 'q') { log('Stopped.'); break; }
-      if (ready === 's' && step.optional) { results.push({ id: step.id, behaviours: step.behaviours, optional: true, automated: 'skipped', walkthrough: 'skipped' }); continue; }
-      let automated = 'n/a'; let problems = [];
+      log(`\n=== ${step.id} — ${step.behaviours} ===`);
+      if (dryRun) {
+        for (const action of step.actions) log(`  would: ${action.describe}`);
+        if (!step.actions.length) log(`  would: nothing to change (${step.manual})`);
+        log(`  would: ${step.repeat ? 'dispatch the sync twice' : step.sync ? 'dispatch the sync and wait for its refresh PR' : 'read the catalog'}, then require: ${step.expect.join('; ')}`);
+        continue;
+      }
+      const problems = [];
       try {
+        if (installation) for (const action of step.actions) { log(`  ${action.describe}`); action.run(); }
+        else if (step.actions.length) { log(`  Do this now: ${step.manual}`); await rl.question('  Press Enter when done: '); }
         if (step.repeat) {
-          const before = mainHead(target);
-          await dispatchAndWait(target, { log }); await dispatchAndWait(target, { log });
-          if (mainHead(target) !== before) problems.push('main moved after two syncs with no changes');
-          if (openRefreshPr(target)) problems.push('a refresh PR is open after two syncs with no changes');
+          const before = mainHead(division);
+          await dispatchAndWait(division, { log }); await dispatchAndWait(division, { log });
+          if (mainHead(division) !== before) problems.push('main moved after two syncs with no changes');
+          if (openRefreshPr(division)) problems.push('a refresh PR is open after two syncs with no changes');
         } else if (step.sync) {
-          const sync = await dispatchAndWait(target, { log });
+          const sync = await dispatchAndWait(division, { log });
           if (sync.pr) problems.push(`refresh PR #${sync.pr} is still open (classified for review, or checks pending)`);
         }
-        if (step.empty) { const catalog = readCatalog(target); if (catalog.sources.length || catalog.importStatus?.length) problems.push('the catalog already holds sources or status'); }
-        if (step.expectations) problems.push(...checkDeployed({ catalog: readCatalog(target), heads: liveHeads(step.expectations), expectations: step.expectations }));
-        automated = problems.length ? 'FAIL' : 'pass';
-      } catch (error) { problems.push(error.message); automated = 'FAIL'; }
-      log(problems.length ? `\nAutomated check: FAIL\n${problems.map((line) => `  - ${line}`).join('\n')}` : '\nAutomated check: pass');
-      log('Expect:'); for (const line of step.expect) log(`  - ${line}`);
-      let answer; do { answer = (await rl.question('\nWalkthrough pass? [y]es / [n]o / [q]uit: ')).trim().toLowerCase(); } while (!['y', 'n', 'q'].includes(answer));
-      if (answer === 'q') { log('Stopped.'); break; }
-      results.push({ id: step.id, behaviours: step.behaviours, optional: Boolean(step.optional), automated, walkthrough: answer === 'y' ? 'pass' : 'FAIL' });
+        if (step.autoMerged) { const problem = lastRefreshMergedWithoutReview(division); if (problem) problems.push(problem); }
+        if (step.empty) { const catalog = readCatalog(division); if (catalog.sources.length || catalog.importStatus?.length) problems.push('expected an empty catalog, but it already holds sources or status; run against a fresh division'); }
+        if (step.expectations) problems.push(...checkDeployed({ catalog: readCatalog(division), heads: liveHeads(step.expectations), expectations: step.expectations }));
+      } catch (error) { problems.push(error.message); }
+      results.push({ id: step.id, behaviours: step.behaviours, pass: !problems.length });
+      if (problems.length) {
+        failed = { step, problems };
+        log(`\nEXCEPTION at ${step.id}. Expected: ${step.expect.join('; ')}\n${problems.map((line) => `  - ${line}`).join('\n')}`);
+        log(`Not run: ${steps.slice(steps.indexOf(step) + 1).map((item) => item.id).join(', ') || 'none'}. Raise this as pushback to the build.`);
+        break;
+      }
+      log(`  pass: ${step.expect.join('; ')}`);
     }
-  } finally { rl.close(); }
-  const complete = steps.filter((step) => !step.optional).every((step) => results.some((item) => item.id === step.id && item.automated === 'pass' && item.walkthrough === 'pass'));
-  const report = [`Deployed walkthrough — ${name}, ${new Date().toISOString().slice(0, 10)}, ${hostname()}, division ${division}, alpha ${alpha}, beta ${beta}, gamma ${gamma}${second ? `, second ${second}` : ''}`, '',
-    '| Step | Behaviours | Automated check | Walkthrough |', '| --- | --- | --- | --- |', ...results.map((item) => `| ${item.id} | ${item.behaviours} | ${item.automated} | ${item.walkthrough} |`), '',
-    complete ? 'All required steps passed.' : 'Not complete: a required step failed or was not reached.'].join('\n');
-  log(`\n${report}`);
-  if (out) writeFileSync(out, `${report}\n`);
-  return { results };
+  } finally { rl?.close(); }
+  const report = dryRun ? null : [`Deployed run — ${name}, ${new Date().toISOString().slice(0, 10)}, ${hostname()}, division ${division}, alpha ${alpha}, beta ${beta}, gamma ${gamma}`, '',
+    '| Step | Behaviours | Result |', '| --- | --- | --- |', ...results.map((item) => `| ${item.id} | ${item.behaviours} | ${item.pass ? 'pass' : 'FAIL'} |`), '',
+    failed ? 'Not complete: see the exception above.' : `PASS — ${results.length} steps covering ${[...new Set(steps.flatMap((step) => step.behaviours.split(',').map((item) => item.trim())))].join(', ')}.`,
+    '', 'Still to check separately (one comparing command each):', ...optionalChecks({ division, alpha, gamma }).map((check) => `- ${check.behaviours}, once you have ${check.needs}: ${check.command}`)].join('\n');
+  if (report) { log(`\n${report}`); if (out) writeFileSync(out, `${report}\n`); }
+  return { results, failed };
 }
 
 async function main(argv) {
   const option = (flag) => (argv.includes(flag) ? argv.splice(argv.indexOf(flag), 2)[1] : undefined);
-  if (argv[0] === 'guided') {
+  const flag = (name) => argv.includes(name) && argv.splice(argv.indexOf(name), 1).length > 0;
+  if (argv[0] === 'run') {
     argv.shift();
-    const [alpha, beta, gamma, second, name, out] = [option('--alpha'), option('--beta'), option('--gamma'), option('--second'), option('--name'), option('--out')];
+    const dryRun = flag('--dry-run');
+    const [alpha, beta, gamma, installation, name, out] = [option('--alpha'), option('--beta'), option('--gamma'), option('--installation'), option('--name'), option('--out')];
     const [division] = argv;
-    if (!division || !alpha || !beta || !gamma) throw new Error('usage: onboarding-deployed.mjs guided <owner/division> --alpha <owner/repo> --beta <owner/repo> --gamma <owner/repo> [--second <owner/division>] [--name N] [--out file]');
-    return guidedDeployed({ division, alpha, beta, gamma, second, name, out });
+    if (!division || !alpha || !beta || !gamma) throw new Error('usage: onboarding-deployed.mjs run <owner/division> --alpha <owner/repo> --beta <owner/repo> --gamma <owner/repo> [--installation <source-read App installation id>] [--dry-run] [--name N] [--out file]');
+    const { failed } = await runDeployed({ division, alpha, beta, gamma, installation, dryRun, name, out });
+    if (failed) process.exitCode = 1;
+    return;
   }
   const ref = option('--ref') ?? 'main';
-  const sync = argv.includes('--sync') && argv.splice(argv.indexOf('--sync'), 1);
+  const sync = flag('--sync');
   const [division, ...pairs] = argv;
-  if (!division || !pairs.length) throw new Error('usage: onboarding-deployed.mjs <owner/division> [--ref main] [--sync] <owner/source>=<status> ... | guided <owner/division> --alpha ... --beta ... --gamma ...');
+  if (!division || !pairs.length) throw new Error('usage: onboarding-deployed.mjs [--ref main] [--sync] <owner/division> <owner/source>=<status> ... | run <owner/division> --alpha ... --beta ... --gamma ... [--installation <id>] [--dry-run]');
   const expectations = pairs.map(parse);
   if (sync) { const result = await dispatchAndWait(division); if (result.pr) console.error(`refresh PR #${result.pr} is still open`); }
   const problems = checkDeployed({ catalog: readCatalog(division, ref), heads: liveHeads(expectations), expectations });

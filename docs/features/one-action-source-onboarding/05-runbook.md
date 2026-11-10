@@ -24,7 +24,7 @@ For the local build: Node.js 20 or later, Git and `npm ci` in a clean checkout. 
 - **Health checks.**
   - The latest `Sync division catalog` run is green: `gh run list --workflow "Sync division catalog" --limit 3`.
   - `npm test` passes in a clean checkout of the division revision.
-  - For a deployed division: `node test/acceptance/onboarding-deployed.mjs [--sync] <owner/division> <owner/source>=<status> ...` compares the published catalog with the live source repositories and prints `PASS` or each discrepancy. With `--sync` it first dispatches the division's sync and waits for the run and its refresh PR. Without `--sync` it is read-only. It needs `gh` signed in with read access, and permission to run workflows for `--sync`. `guided` walks the whole deployed acceptance; see the [acceptance record](05-acceptance.md#quick-path-two-commands).
+  - For a deployed division: `node test/acceptance/onboarding-deployed.mjs [--sync] <owner/division> <owner/source>=<status> ...` compares the published catalog with the live source repositories and prints `PASS` or each discrepancy. With `--sync` it first dispatches the division's sync and waits for the run and its refresh PR. Without `--sync` it is read-only. It needs `gh` signed in with read access, and permission to run workflows for `--sync`. `run` performs and compares the whole deployed acceptance and stops only on an exception; see [What to run](05-acceptance.md#what-to-run).
 - **Local build of a division that holds granted sources** needs `DIVISION_SOURCE_APP=enabled` and `GH_SOURCE_TOKEN` set to a read-only installation token for the source-read App, passed through the environment only. Without them the command stops rather than treating the granted sources as removed.
 
 ## Recover

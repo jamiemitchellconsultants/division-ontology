@@ -7,33 +7,51 @@ Every behaviour B1–B17 has a scripted walkthrough and an executable acceptance
 - **Local build.** The scripted harness `test/acceptance/onboarding-walkthrough.mjs` creates two divisions (A and B) from this template with the real `init-division` command, five local Git repositories as sources, and a file-backed stand-in for the App installation. The executable story is `test/acceptance/onboarding.test.mjs`; it runs the same actions in the same order as the walkthrough below. One extra executable check exercises the real GitHub client over HTTP against a local API stand-in.
 - **Deployed environment.** A real division copy with its own pair of GitHub Apps and three test source repositories, checked with the read-only `test/acceptance/onboarding-deployed.mjs`.
 
-Participant, architect and reviewer: the person who follows the walkthroughs and records each result below. The executable tests are shown to them and approved after their walkthrough has passed.
+Participant, architect and reviewer: the person who runs the commands in [What to run](#what-to-run) and records each result below. They read and approve the executable tests; the commands, not the participant, compare actual with expected results.
 
-**Status: prepared, not yet accepted.** The executable local story has been run during preparation (see [Preparation run](#preparation-run)) but no walkthrough has been followed by the participant, no executable test has been approved, and the deployed environment does not exist yet. Nothing below the [Formal results](#formal-results) heading has been recorded as passed.
+**Status: prepared, not yet accepted.** The local executable layer has been run during preparation (see [Preparation run](#preparation-run)), but it has not been run on a clean checkout of a reviewed revision, no executable test has been approved by the participant, and the deployed environment does not exist yet. Nothing under [Formal results](#formal-results) has been recorded as passed.
 
-## Quick path: two commands
+## What to run
 
-**Local build.** One command runs every walkthrough step below for you, shows the output, prints what to expect, asks `Pass? [y]es / [n]o / [q]uit` for each of the 13 steps, and prints a results table you can paste under [Formal results](#formal-results). Run it in a terminal:
+At the participant's direction (10 November 2026), the commands below compare actual results with the expected results themselves and stop only on an exception, printing what was expected and what was found. The step-by-step walkthroughs further down are the reference for investigating an exception; they are not followed by hand.
 
-```bash
-npm ci && node test/acceptance/onboarding-walkthrough.mjs guided --name "Your Name" --out "${TMPDIR:-/tmp}/onboarding-local-results.md"
-```
-
-It takes a few minutes of reading. `--yes` rehearses without prompts and labels the report as not an acceptance result. Then run the executable layer with `npm ci && npm run --silent acceptance:onboarding`.
-
-**Deployed environment.** After the one-time setup in the [runbook](05-runbook.md#deploy) and the preconditions below, one command walks every deployed step. For each step it tells you the GitHub action to take, waits for you to do it, then dispatches the division's sync, waits for the run and for the refresh PR to merge, checks the published catalog against the live repositories, and asks for your pass or fail:
+### Local build: one command
 
 ```bash
-node test/acceptance/onboarding-deployed.mjs guided <owner/division> --alpha <owner/alpha> --beta <owner/beta> --gamma <owner/gamma> --name "Your Name" --out "${TMPDIR:-/tmp}/onboarding-deployed-results.md"
+npm ci && npm run --silent acceptance:onboarding
 ```
 
-Add `--second <owner/second-division>` for B4. Optional steps (B3, B4, B5) can be skipped with `s`. It needs `gh` signed in with permission to dispatch the division's workflow and read the repositories; it never changes a source repository or an App for you, so granting, committing and removing access stay manual.
+Run it on a clean checkout of the reviewed revision. It prints the machine, Node version, revision and `Working tree: clean` (any other value is not valid as a record), runs the whole repository suite, then lists every acceptance check by name with `pass` or `FAIL`, and ends with `PASS — repository tests and one-action source onboarding B1–B17`. On a mismatch it prints the check's expected and actual values and exits nonzero. Nothing else is asked of you.
 
-The sections below are the full step-by-step reference behind both commands, for anyone who prefers to follow them by hand or must investigate a failure.
+### Deployed environment
 
-## Local build walkthrough
+1. **One-time setup, by hand (it cannot be scripted):** follow the [runbook](05-runbook.md#deploy) to create the division copy, the two Apps, the Actions variables and the merge policy; create three test repositories (`alpha` and `beta` with no required content, `gamma` empty of `.division-ontology.json`) in the same organisation; and note the **installation id** of the source-read App, which is the number at the end of its settings URL (`…/settings/installations/<id>`). Do this on a fresh division, because step D1 expects an empty catalog.
+2. **Review what the run will do, changing nothing** (this makes no calls to GitHub):
 
-Open Terminal at the repository root of a clean checkout (zsh or bash) and run the following. Keep this Terminal tab for the whole walkthrough, because `x` and `w` exist only in it:
+   ```bash
+   node test/acceptance/onboarding-deployed.mjs run <owner/division> --alpha <owner/alpha> --beta <owner/beta> --gamma <owner/gamma> --installation <id> --dry-run
+   ```
+
+3. **Run it:**
+
+   ```bash
+   node test/acceptance/onboarding-deployed.mjs run <owner/division> --alpha <owner/alpha> --beta <owner/beta> --gamma <owner/gamma> --installation <id> --name "Your Name" --out "${TMPDIR:-/tmp}/onboarding-deployed-results.md"
+   ```
+
+   Through `gh`, as the signed-in user, it commits to the three test repositories and adds or removes them from the source-read App; it then dispatches the division's sync, waits for the run and for the refresh PR to merge, compares the published catalog with the live repositories, and moves to the next of its eleven steps. It stops at the first exception, prints the step, the expected and actual results and the steps not run, and exits nonzero. When all steps pass it prints a results table and the line `PASS — 11 steps covering …`. The `gh` token needs `repo` scope, and you must be an owner of the App installation; a permission error is reported as an exception with the `gh` message. Without `--installation` it asks you to make each GitHub change yourself (press Enter when done) and still compares automatically.
+4. **Three behaviours need something the script cannot do for you.** The run prints one command for each when it finishes; each compares automatically after you have done the stated thing:
+
+   | Behaviour | Needs | Command |
+   | --- | --- | --- |
+   | B3 | A steward-approved, merged `sources.json` PR registering `alpha` while it is also in the App | `node test/acceptance/onboarding-deployed.mjs --sync <owner/division> <owner/alpha>=registered` |
+   | B4 | A second division with its own App that was never given `alpha` | `node test/acceptance/onboarding-deployed.mjs --sync <owner/second-division> <owner/alpha>=absent` |
+   | B5 | The App installed on all repositories of the test organisation (only if acceptable there) | `node test/acceptance/onboarding-deployed.mjs --sync <owner/division> <owner/gamma>=absent` |
+
+The deployed run has not yet been run against GitHub. The comparisons, the step list and the dry run are tested; dispatching the workflow, the `gh` calls and the PR polling are not, so the first real run may report an exception that is a tooling or permission problem rather than a product defect.
+
+## Local build walkthrough (reference)
+
+Use this to investigate a failing check. Open Terminal at the repository root of a clean checkout (zsh or bash) and run the following. Keep this Terminal tab for the whole walkthrough, because `x` and `w` exist only in it:
 
 ```bash
 npm ci
@@ -133,9 +151,7 @@ Run `$x teardown "$w"`.
 
 ## Local build executable tests
 
-From the repository root run `npm run --silent acceptance:onboarding`. It prints the machine, Node version and revision, runs the whole repository suite and `test/acceptance/onboarding.test.mjs`, and prints one line: `PASS — repository tests and one-action source onboarding B1–B17`. On a failure it prints the failing test names and assertions and exits nonzero.
-
-The acceptance file has 22 checks. Eighteen are named after the behaviours and run as one ordered story: B7, B1, B6, B4, B5, B13, B8, B9, B11, B12 and B15 together, B10, B16, B14, B2, B3 and B17; then B1 through the real GitHub client against a local API stand-in, and one check of the deployed-environment checker's own comparison logic. Four more check the tooling itself: the checker's `registered` and `absent` handling, that the guided local and deployed steps cover B1–B17, that the guided local run completes in rehearsal mode, and that the guided deployed run refuses to start without its repositories. After the walkthrough has passed, the participant reads `test/acceptance/onboarding.test.mjs`, confirms it automates what they just did, and approves it.
+`npm run --silent acceptance:onboarding` (see [What to run](#what-to-run)) is the executable layer. Its acceptance file, `test/acceptance/onboarding.test.mjs`, runs the same actions in the same order as the walkthrough above as one ordered story: B7, B1, B6, B4, B5, B13, B8, B9, B11, B12 and B15 together, B10, B16, B14, B2, B3 and B17. It then runs B1 through the real GitHub client against a local API stand-in, and checks the deployed tooling itself: the checker's comparisons (including `registered` and `absent`), that the deployed steps and one-command checks cover B1–B17, that the dry run lists every action without touching GitHub, and that the run refuses to start without its repositories. A final check fails if any of B1–B17 is not named by an executable check. The participant reads this file once and approves it before the results are accepted.
 
 ## Deployed environment
 
@@ -143,7 +159,7 @@ Name these before the first deployed run and record them under [Formal results](
 
 **Preconditions.** The division was made from the template and `init-division`, both Apps are installed as the [runbook](05-runbook.md#deploy) says, `Sync division catalog` has run once successfully, and an owner of a test repository who has no write access to the division repository can add that repository to the source-read App (U12). If that is not allowed, record it: B1 cannot pass.
 
-The guided command above performs each step in the table. In the table, the automated check is `onboarding-deployed.mjs`'s comparison of the published catalog with the live repositories; you can also run it alone: `node test/acceptance/onboarding-deployed.mjs [--sync] <owner/division> <owner/source>=<status> …` and expect `PASS — … expectation(s) match …`. Statuses are `current`, `invalid`, `'not configured'`, `'access removed'`, `registered` (a steward-registered source with no status row) and `absent` (not in the catalog at all).
+The `run` command above performs steps D1–D11 in the table and compares each result automatically; D12–D14 are the three separate commands in step 4. The automated check is `onboarding-deployed.mjs`'s comparison of the published catalog with the live repositories; you can also run it alone: `node test/acceptance/onboarding-deployed.mjs [--sync] <owner/division> <owner/source>=<status> …` and expect `PASS — … expectation(s) match …`. Statuses are `current`, `invalid`, `'not configured'`, `'access removed'`, `registered` (a steward-registered source with no status row) and `absent` (not in the catalog at all).
 
 | Step | Behaviours | Action in GitHub | Expected result | Automated check |
 | --- | --- | --- | --- | --- |
@@ -158,9 +174,9 @@ The guided command above performs each step in the table. In the table, the auto
 | D9 | B14 | Remove `alpha` from the App. | `alpha` is `access removed`, still in the catalog, stale. | `alpha=access removed` |
 | D10 | B14 | Add `alpha` back to the App. | `alpha` is current again. | `alpha=current` |
 | D11 | B17 | Make no changes; the check runs the sync twice. | The second run is green, opens no PR and leaves `main` unchanged. | `alpha=current`, `main` unchanged, no open refresh PR |
-| D12 (optional) | B3 | Open a `sources.json` PR registering `alpha` while it is also in the App, get a steward to approve it, and let it merge. | `alpha` appears once, as `registered`, with no status row. | `alpha=registered` |
-| D13 (optional) | B4 | In a second division with its own App, run its sync. | `alpha` is not in the second division's catalog. | second division `alpha=absent` |
-| D14 (optional) | B5 | If acceptable in the test organisation, install the App on all repositories. | Only repositories that carry `.division-ontology.json` appear; `gamma` has no row. | `gamma=absent` |
+| D12 (separate command) | B3 | Open a `sources.json` PR registering `alpha` while it is also in the App, get a steward to approve it, and let it merge. | `alpha` appears once, as `registered`, with no status row. | `alpha=registered` |
+| D13 (separate command) | B4 | In a second division with its own App, run its sync. | `alpha` is not in the second division's catalog. | second division `alpha=absent` |
+| D14 (separate command) | B5 | If acceptable in the test organisation, install the App on all repositories. | Only repositories that carry `.division-ontology.json` appear; `gamma` has no row. | `gamma=absent` |
 
 ## Preparation run
 
