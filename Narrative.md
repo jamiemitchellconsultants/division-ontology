@@ -33,6 +33,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [23](#entry-add-demo-commands-for-the-synthetic-three-repo-ingestion) | 2026-11-10 | Add demo commands for the synthetic three-repo ingestion | product | Make the existing fixture available through `npm run demo:*` scripts and add a demo script that keeps the local workspace running until `demo:down` is run. All demo data lives outside the checkout so it is fully removable. |
 | [24](#entry-docs-amend-one-action-onboarding-vision-for-division-templates) | 2026-11-10 | docs: amend one-action onboarding vision for division templates | product | An owner joins one particular division by granting that division's own read-only App access. Joining must need no steward approval of the steward-governed source registration or division settings. |
 | [25](#entry-docs-feature-define-one-action-source-onboarding-behaviours) | 2026-11-10 | docs(feature): define one-action source onboarding behaviours | product | A SourceAccessGrant to a division's own read-only App registers a repository that has a committed SourceImportConfiguration; `sources.json` stays for steward-registered sources and governs when a repository is both. |
+| [26](#entry-ci-run-the-catalog-sync-every-two-hours) | 2026-11-10 | ci: run the catalog sync every two hours | product | Division copies run the scheduled sync every two hours. The template keeps the sync disabled. |
 
 ---
 
@@ -593,5 +594,29 @@ A SourceAccessGrant to a division's own read-only App registers a repository tha
 The architect must design discovery of grants and removals, the SourceImportConfiguration contract with InternalOntology, a refresh classification that treats granted-source changes as automatic, and a catalog status table without time-based churn. Organisation policy for per-division Apps must be confirmed during acceptance planning. Renamed, transferred and archived repositories are out of scope. The generated catalog change for the new core terms follows in the scheduled-sync PR.
 
 AI-Fingerprint: sha256:f853655fff7a
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+---
+
+<a id="entry-ci-run-the-catalog-sync-every-two-hours"></a>
+
+## Entry 26 — 2026-11-10 — ci: run the catalog sync every two hours
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+Division repositories created from this template inherit a catalog sync scheduled every 30 minutes. The template itself has no sources or App credentials, so the sync has no work to do here and its workflow is disabled.
+
+## Decision
+
+Division copies run the scheduled sync every two hours. The template keeps the sync disabled.
+
+## Consequences
+
+In a division, a new source version reaches the generated catalog PR up to two hours after commit rather than 30 minutes, which still meets "the next normal sync" in the one-action onboarding vision; manual dispatch remains for an immediate run. In the template, generated `dist/` changes, such as those following new core terms, are made by a separate generated-only PR rather than by the sync.
+
+AI-Fingerprint: sha256:0db922f6f455
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
