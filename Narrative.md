@@ -31,6 +31,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [21](#entry-amend-c4-architecture-to-state-deployment-evidence-per-source) | 2026-11-10 | Amend C4 architecture to state deployment evidence per source | product | Express the Terraform-only rule as a per-source deployment-evidence constraint, matching the implemented selector configuration, and describe the no-graph case without naming a repository. |
 | [22](#entry-make-the-repository-usable-as-a-division-template) | 2026-11-10 | Make the repository usable as a division template | product | Move the namespace and steward logins into a steward-governed `division.json` read by the build and the trusted merge policy, and provide a one-time `init-division` script that requires each division to choose its namespace explicitly. |
 | [23](#entry-add-demo-commands-for-the-synthetic-three-repo-ingestion) | 2026-11-10 | Add demo commands for the synthetic three-repo ingestion | product | Make the existing fixture available through `npm run demo:*` scripts and add a demo script that keeps the local workspace running until `demo:down` is run. All demo data lives outside the checkout so it is fully removable. |
+| [24](#entry-docs-amend-one-action-onboarding-vision-for-division-templates) | 2026-11-10 | docs: amend one-action onboarding vision for division templates | product | An owner joins one particular division by granting that division's own read-only App access. Joining must need no steward approval of the steward-governed source registration or division settings. |
 
 ---
 
@@ -543,5 +544,29 @@ New teams can explore the catalog, C4 paths and the workspace UI with one comman
 ---
 
 AI-Fingerprint: sha256:ac5c525b1bd7
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+---
+
+<a id="entry-docs-amend-one-action-onboarding-vision-for-division-templates"></a>
+
+## Entry 24 — 2026-11-10 — docs: amend one-action onboarding vision for division templates
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The one-action source onboarding vision assumed a single division catalog with one preapproved read-only App. #73 made the repository a template: each division copy sets its own namespace and stewards in `division.json`, the merge policy requires steward approval for changes to `sources.json` and `division.json`, the template must ship with no registered sources, and each division creates its own App.
+
+## Decision
+
+An owner joins one particular division by granting that division's own read-only App access. Joining must need no steward approval of the steward-governed source registration or division settings. First visibility is demonstrated in a division created from the template, not in the template. The capability ships in the template. One App serving several divisions, and registering sources in the template itself, are out of scope.
+
+## Consequences
+
+The analyst works from a vision that matches the template model. Behaviours and acceptance must target a division copy, and admission must avoid the steward-gated files. Multi-division routing from a single grant is not designed for.
+
+AI-Fingerprint: sha256:73f4718393ff
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
