@@ -70,6 +70,8 @@ npm run check
 
 ## C4 impact pilot
 
+Run `npm run --silent acceptance:c4` after `npm ci` to exercise the pilot with synthetic sources. The runner creates its own fixtures and runs the repository tests and C4 acceptance checks. See the [C4 acceptance instructions](docs/features/c4-diagrams-from-source-knowledge-graphs/05-acceptance.md#automated-reruns).
+
 The local pilot reads a published catalog commit, reviewed mapping and binding commit, and clean checkouts for every catalog source. Its JSON and Markdown reports retain evidence and gaps; they do not decide impact or approve a request. Graph-backed paths require a source graph at the catalog-pinned commit. The template’s mapping and binding registries start empty.
 
 Use Node.js 20 or newer. Supply `--catalog-commit`, `--registry-commit`, an absolute `--checkout owner/repo=/path` for every source, and `--output /path/outside/repositories` to each command. For example:
@@ -88,6 +90,8 @@ View levels are `context`, `container`, `component` and `code`. `assessment-init
 - [`Narrative.md`](Narrative.md) is the generated project history of what was asked, decided, why, and what followed. Edit its fragments in [`narrative/entries/`](narrative/entries/), not the generated file.
 
 ## Try the workspace with disposable data
+
+The workspace uses embeddings for semantic search. See [Configure embedding search](docs/adding-embedding-search.md) to choose a provider and connect your own deployment.
 
 On a Mac with Docker and jq, install the browser used by the smoke test, then run it from a checkout:
 
