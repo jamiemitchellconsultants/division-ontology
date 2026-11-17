@@ -34,6 +34,7 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          DIVISION_SOURCE_APP: ${{ vars.DIVISION_SOURCE_APP_CLIENT_ID && 'enabled' || 'disabled' }}
         run: node src/merge-policy.mjs inspect "$RUNNER_TEMP/policy-input.json"
       - name: Checkout candidate as data
         if: steps.inspect.outputs.generated_only == 'true'
@@ -44,7 +45,7 @@ jobs:
           path: _candidate
           persist-credentials: false
       - name: Create source-read token
-        if: steps.inspect.outputs.generated_only == 'true'
+        if: steps.inspect.outputs.generated_only == 'true' && steps.inspect.outputs.source_token == 'true'
         uses: actions/create-github-app-token@v3
         id: source-token
         with:

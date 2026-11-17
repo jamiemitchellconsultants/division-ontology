@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { verifyRefresh } from './verify-refresh.mjs';
 import { loadDivision } from './division.mjs';
+import { loadSources } from './sources.mjs';
 
 const generated = new Set(['dist/catalog.json', 'dist/catalog.md', 'dist/combined.nq']);
 const stewardGoverned = new Set(['sources.json', 'division.json']);
@@ -68,6 +69,10 @@ export function changedPathsFromFiles(files) {
     : [file.filename]);
 }
 
+export function needsSourceToken({ registeredSources, sourceAppConfigured }) {
+  return registeredSources > 0 || sourceAppConfigured;
+}
+
 export async function inspectPr(path) {
   const { repo, number, changedFileCount } = await currentPr();
   const files = await pages(`/repos/${repo}/pulls/${number}/files`);
@@ -75,7 +80,11 @@ export async function inspectPr(path) {
   const changedPaths = changedPathsFromFiles(files);
   writeFileSync(path, JSON.stringify({ changedPaths }));
   const generatedOnly = changedPaths.length > 0 && changedPaths.every((file) => generated.has(file));
-  appendFileSync(process.env.GITHUB_OUTPUT, `generated_only=${generatedOnly}\n`);
+  const sourceToken = generatedOnly && needsSourceToken({
+    registeredSources: loadSources(resolve('sources.json')).length,
+    sourceAppConfigured: process.env.DIVISION_SOURCE_APP === 'enabled',
+  });
+  appendFileSync(process.env.GITHUB_OUTPUT, `generated_only=${generatedOnly}\nsource_token=${sourceToken}\n`);
 }
 
 export async function checkPr(path) {

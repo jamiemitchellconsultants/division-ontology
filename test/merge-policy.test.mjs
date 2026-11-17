@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { evaluateMergePolicy, validatePrTarget, changedPathsFromFiles, validateFileCount } from '../src/merge-policy.mjs';
+import { evaluateMergePolicy, validatePrTarget, changedPathsFromFiles, validateFileCount, needsSourceToken } from '../src/merge-policy.mjs';
 
 const headSha = 'a'.repeat(40);
 const approval = (state = 'APPROVED', commitId = headSha, user = 'steward-one', id = 1) => ({ state, commit_id: commitId, user: { login: user }, id });
@@ -58,4 +58,9 @@ test('a truncated or invalid pull request file list fails closed', () => {
   assert.throws(() => validateFileCount([{ filename: 'README.md' }], 3001), /file list/i);
   assert.throws(() => validateFileCount([{ filename: 'README.md' }], undefined), /file list/i);
   assert.doesNotThrow(() => validateFileCount([{ filename: 'README.md' }], 1));
+});
+test('a generated refresh needs the source-read token only when a source can be read', () => {
+  assert.equal(needsSourceToken({ registeredSources: 0, sourceAppConfigured: false }), false);
+  assert.equal(needsSourceToken({ registeredSources: 1, sourceAppConfigured: false }), true);
+  assert.equal(needsSourceToken({ registeredSources: 0, sourceAppConfigured: true }), true);
 });
