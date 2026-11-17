@@ -46,7 +46,9 @@ test('merge gate runs trusted base code and exposes source credentials only to g
   assert.match(candidate.if, /generated_only/);
   const token = steps.find((step) => step.id === 'source-token');
   assert.match(token.if, /generated_only/);
+  assert.match(token.if, /source_token/);
   readToken(token);
+  assert.match(steps.find((step) => step.id === 'inspect').env.DIVISION_SOURCE_APP, flag);
   assert.match(steps.find((step) => step.name === 'Evaluate trusted policy').env.DIVISION_SOURCE_APP, flag);
   assert.ok(!steps.some((step) => step.run?.includes('_candidate/src/')));
 });
