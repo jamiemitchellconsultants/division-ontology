@@ -41,6 +41,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [31](#entry-fix-fetch-the-division-repository-with-the-writer-token-not-the-source-t) | 2026-11-10 | fix: fetch the division repository with the writer token, not the source token | product | The finalize step authenticates its git fetch with the division-writer token, which is installed on the division repository. The source-read token is for reading source repositories only: it clones sources and lists the installation. |
 | [32](#entry-fix-remove-the-template-only-tests-from-a-new-division-copy) | 2026-11-10 | fix: remove the template-only tests from a new division copy | product | `init-division` removes `test/template.test.mjs` and `test/init-division.test.mjs` from a division copy, next to the template history it already removes. |
 | [33](#entry-docs-feature-one-action-source-onboarding-acceptance) | 2026-11-10 | docs(feature): one-action source onboarding acceptance | product | Two acceptance layers per behaviour. Locally, a scripted harness creates two divisions with the real `init-division`, five local Git repositories and a file-backed stand-in for the App installation. |
+| [34](#entry-fix-skip-the-source-read-token-when-a-generated-refresh-reads-no-source) | 2026-11-17 | fix: skip the source-read token when a generated refresh reads no source | product | Skip the source-read token when a generated refresh has nothing to read: no registered sources and no source-read App configured. The policy still verifies the candidate `dist/` against a fresh build from trusted default-branch code. |
 
 ---
 
@@ -795,3 +796,29 @@ Nothing changes in the product in this PR. All six criteria on #14 are ticked. O
 AI-Fingerprint: sha256:494972783627
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+---
+
+<a id="entry-fix-skip-the-source-read-token-when-a-generated-refresh-reads-no-source"></a>
+
+## Entry 34 — 2026-11-17 — fix: skip the source-read token when a generated refresh reads no source
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The template has no registered sources and no working sync App. Its `dist/`-only PRs failed `merge-policy` at "Create source-read token" with `Integration not found`, before the policy ran, so PR #100 needed an administrator override. The fresh build in that case reads no source repository, so the token served no purpose.
+
+## Decision
+
+Skip the source-read token when a generated refresh has nothing to read: no registered sources and no source-read App configured. The policy still verifies the candidate `dist/` against a fresh build from trusted default-branch code. Rejected: recreating a sync App for a template that ships with no sources; documenting a manual admin-merge procedure; leaving the override in place.
+
+## Consequences
+
+Template `dist/`-only PRs can pass `merge-policy` without an App or an admin override. Divisions are unchanged, since each registers sources or sets the source App. The new path is first exercised by the next template `dist/`-only PR; this PR's own check runs `main`'s code and does not reach the token step. A stale template `dist/` can still go unnoticed until someone opens a refresh PR.
+
+---
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+AI-Fingerprint: sha256:792dfe3ac2b9
