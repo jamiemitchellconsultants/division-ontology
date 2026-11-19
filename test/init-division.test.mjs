@@ -7,7 +7,7 @@ import { initDivision } from '../scripts/init-division.mjs';
 import { loadDivision } from '../src/division.mjs';
 
 const templateOnlyTests = ['test/template.test.mjs', 'test/init-division.test.mjs'];
-const copied = ['core', 'links', 'sources.json', 'division.json', '.github/CODEOWNERS', 'narrative', 'Narrative.md', 'docs', 'dist', ...templateOnlyTests];
+const copied = ['core', 'links', 'sources.json', 'division.json', '.github/CODEOWNERS', 'narrative', 'Narrative.md', 'docs', 'dist', 'runtime/openapi', ...templateOnlyTests];
 const namespace = 'https://example.test/sales-division#';
 const args = ['--namespace', namespace, '--steward', 'sales-steward', '--steward', 'sales-deputy'];
 
@@ -37,6 +37,8 @@ test('a fresh copy gets its own namespace, stewards, empty narrative and catalog
     // required test check on the first refresh that adds a source.
     for (const path of templateOnlyTests) assert.ok(!existsSync(join(root, path)), `${path} is removed from a division copy`);
     assert.ok(existsSync(join(root, 'docs/features/runtime-knowledge-workspace/05-runbook.md')));
+    // B16: a division copy keeps the committed API spec unchanged, so it matches the code it was copied with.
+    assert.equal(readFileSync(join(root, 'runtime/openapi/workspace-api.json'), 'utf8'), readFileSync('runtime/openapi/workspace-api.json', 'utf8'));
     const catalog = JSON.parse(readFileSync(join(root, 'dist/catalog.json'), 'utf8'));
     assert.equal(catalog.core.namespace, namespace);
     assert.deepEqual(catalog.sources, []);

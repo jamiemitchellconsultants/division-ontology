@@ -22,7 +22,7 @@
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": false,
       "protocol": "openid-connect",
-      "redirectUris": ["${WORKSPACE_ORIGIN}/authentication/login-callback"],
+      "redirectUris": ["${WORKSPACE_ORIGIN}/authentication/login-callback", "${WORKSPACE_ORIGIN}/api/docs/oauth2-redirect.html"],
       "webOrigins": ["${WORKSPACE_ORIGIN}"],
       "attributes": {
         "pkce.code.challenge.method": "S256",

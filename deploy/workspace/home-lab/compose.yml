@@ -78,6 +78,7 @@ services:
       Workspace__Identity__Issuer: ${WORKSPACE_ISSUER:?Supply the public HTTPS Keycloak issuer}
       Workspace__Identity__Audience: ${WORKSPACE_API_AUDIENCE:?Supply the API audience}
       Workspace__Identity__ClientId: ${WORKSPACE_KEYCLOAK_API_CLIENT:?Supply the Keycloak client owning the roles}
+      Workspace__Docs__ClientId: ${WORKSPACE_SPA_CLIENT:?Supply the public SPA client ID}
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/health"]
       interval: 5s
