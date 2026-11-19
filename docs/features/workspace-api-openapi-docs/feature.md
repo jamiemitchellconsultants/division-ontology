@@ -131,3 +131,83 @@ This feature introduces no domain term, so `core/ontology.ttl` is unchanged. The
 - **Drift check:** the CI check that compares the committed spec with the spec the code generates (B6).
 
 Existing ontology terms used: `KnowledgeAnnotation` and `KnowledgeContributionChange`. Existing role names used: `ReadKnowledgeGraph` and `ManageKnowledgeGraph`.
+
+## Architect — structure
+
+**Status:** Accepted by the user on 19 November 2026.
+
+**Basis:** the accepted vision and behaviours above, the analyst handoff on #105, and the current code and deployment files in `runtime/` and `deploy/workspace/`.
+
+### Components
+
+| Component | Responsibility | Behaviours |
+| --- | --- | --- |
+| **Endpoint descriptions** (in `RuntimeKnowledge.Api`) | Metadata on every mapped route: a summary and description, request and response types, the required role, and the problem responses it can return. Error codes stay mapped to statuses in one place (`ProblemResponses`). Each route declares the workspace error codes it can raise, and its problem responses are derived from them. | B1, B2, B4 |
+| **Spec generator** (`Microsoft.AspNetCore.OpenApi`, document `v1`, OpenAPI 3.1) | Builds the OpenAPI document from the endpoint descriptions. Transformers add the `bearer` security scheme, a per-operation security requirement, an `x-workspace-role` extension naming the role, the shared problem-details schema and the generic 500. The output must be deterministic: stable ordering, and no timestamps or build numbers. | B1, B2, B8, B9 |
+| **Build-time writer** (`Microsoft.Extensions.ApiDescription.Server`) | Writes the committed spec, `runtime/openapi/workspace-api.json`, on every build of the API project. It runs the app's entry point with no configuration, so nothing in `Build` or `ConfigureServices` may resolve the database, secrets, embeddings or identity metadata eagerly. The Dockerfile publish turns generation off. | B5, B8, B16 |
+| **Deployment transformer** (in `RuntimeKnowledge.Api`, runtime only) | When a deployment serves the spec, adds the request's origin as the server address, and a `workspaceSignIn` OAuth2 authorization-code scheme as an alternative security requirement on each protected operation. The authorization and token endpoints come from the identity provider's discovery document, which `JwtBearer` already loads, so it works for both Keycloak and Entra. It does nothing when identity is not configured, which is what keeps the committed file neutral. | B9, B14, B20 |
+| **Spec and docs endpoints** (in `RuntimeKnowledge.Api`) | `GET /api/openapi/v1.json` serves the spec, and `/api/docs` serves Swagger UI (`Swashbuckle.AspNetCore.SwaggerUI`, UI only, with assets embedded in the assembly). Both are mapped outside the authorised `/api` group and allow anonymous access. Swagger UI uses PKCE, with the client ID and scopes from `Workspace:Docs`, and its callback is `/api/docs/oauth2-redirect.html`. | B9, B13, B15, B18 |
+| **Existing identity and authorisation** (unchanged) | Validates every data call's token, and maps roles and capabilities exactly as today. The docs UI is just another client of it. | B10, B11, B12, B13, B19, B21 |
+| **Contract tests** (in `RuntimeKnowledge.Tests`, category `OpenApi`, no Docker) | *Completeness:* compares every route in the endpoint data source with the generated document, and fails, naming the operation and the gap, when a summary, role, schema, 401/403/500 response, or a declared error status is missing. *Served-spec check:* fetches the spec from a configured test host, removes the server and `workspaceSignIn` additions, and requires the result to equal the committed file. *Privacy:* the served spec contains no configured secret or connection value. | B3, B4, B14, B20 |
+| **Response conformance hook** (in `ApiFixture`, existing Docker-backed suites) | Records each route and status that the existing scenario tests observe, and fails the run if any of them is missing from the spec. This catches error statuses that the static check cannot see. | B2, B3 |
+| **CI job `api-contract`** (in `.github/workflows/ci.yml`) | On every pull request: set up .NET 10, run a locked restore, build the API (which rewrites the spec), and fail with a message naming `dotnet build runtime/RuntimeKnowledge.Api` if `git diff --exit-code runtime/openapi/` shows a difference. Then run the `OpenApi` tests. It becomes a required check through `docs/automation-setup.md`. | B3, B6, B7 |
+| **Identity-provider configuration** | Keycloak: the existing public `workspace-spa` client gains the docs callback as a redirect URI in `deploy/workspace/local/realm.json` and `home-lab/realm-template.json`, and keeps the `workspace-api` audience mapper. Entra: the existing SPA app registration gains the same callback, which is documented in the AWS and home-lab deployment documentation. The API gains `Workspace:Docs:ClientId` and `Workspace:Docs:Scopes`, set from the web UI's existing values (`entra_client_id` and `entra_api_scope` in Terraform; the SPA client ID in Compose). | B9, B16, B17, B21 |
+
+### Structure
+
+```mermaid
+flowchart LR
+  Browser[Browser: Swagger UI at /api/docs] -->|GET /api/openapi/v1.json, anonymous| Spec[Spec endpoint]
+  Browser -->|PKCE sign-in| IdP[Keycloak or Entra]
+  Browser -->|Bearer token| Api[/api routes/]
+  Spec --> Gen[Spec generator + deployment transformer]
+  Gen --> Desc[Endpoint descriptions]
+  Gen -.discovery document.-> IdP
+  Api --> Auth[Existing JWT validation and roles]
+  Build[dotnet build] --> Writer[Build-time writer] --> File[(runtime/openapi/workspace-api.json)]
+  CI[CI api-contract] --> Build
+  CI -->|git diff, OpenApi tests| File
+```
+
+The spec generator is the single source of the contract. Build-time and runtime generation both use it, with the same endpoint descriptions. They differ only in the deployment transformer, which runs at request time and only when identity is configured. The docs UI is static, embedded and anonymous. Every call it makes to the API goes through the existing authorisation path, with the signed-in user's token.
+
+### Deployment and runtime
+
+- **Routing:** all three deployments already send `/api/*` to the API: Caddy locally and in the home lab, and CloudFront `/api/*` → API Gateway `ANY /api/{proxy+}` → Lambda in AWS. No routing, cache or Terraform routing change is needed. CloudFront caching is already disabled for `/api/*`.
+- **Hosting:** the endpoints are mapped in `ApiProgram.Configure`, so `LambdaHosting` and the container host serve them alike. Swagger UI's assets come from the assembly, so the home lab and Lambda need no CDN.
+- **Configuration:** `Workspace:Docs:ClientId` (required for sign-in) and `Workspace:Docs:Scopes` (optional; Entra needs the API scope). If either is missing, the docs and spec are still served, but the docs UI has no sign-in. The local and home-lab Compose files and `aws/identity.tf` supply them.
+- **Identity provider changes:** one extra redirect URI on the existing SPA client in each provider. There is no new client, role or audience.
+- **Build and CI:** `dotnet build` regenerates the committed spec. The new `api-contract` job needs .NET 10 but no Docker. The image build keeps working unchanged, with spec generation turned off.
+
+### Traceability
+
+| Behaviour | Components |
+| --- | --- |
+| B1 | Endpoint descriptions, spec generator |
+| B2 | Endpoint descriptions, spec generator, response conformance hook |
+| B3 | Contract tests (completeness), response conformance hook, CI job |
+| B4 | Endpoint descriptions, contract tests |
+| B5 | Build-time writer |
+| B6 | CI job |
+| B7 | CI job (the drift check fails unless the spec is in the same pull request) |
+| B8 | Build-time writer, spec generator, deployment transformer (inactive without identity) |
+| B9 | Spec and docs endpoints, deployment transformer, identity-provider configuration |
+| B10 | Existing identity and authorisation, spec and docs endpoints |
+| B11 | Existing identity and authorisation |
+| B12 | Existing identity and authorisation |
+| B13 | Spec and docs endpoints (Swagger UI re-authorisation and logout), existing identity and authorisation |
+| B14 | Deployment transformer, contract tests (served-spec check) |
+| B15 | Spec and docs endpoints, existing `/api/*` routing in all three deployments |
+| B16 | Build-time writer, identity-provider configuration, spec and docs endpoints |
+| B17 | Identity-provider configuration |
+| B18 | Spec and docs endpoints |
+| B19 | Existing identity and authorisation |
+| B20 | Deployment transformer, contract tests (privacy) |
+| B21 | Identity-provider configuration, existing identity and authorisation |
+
+### Decisions
+
+- [ADR 0013 — Generate the workspace API spec from code at build time and commit it](../../adr/0013-generate-workspace-api-spec-at-build-time.md)
+- [ADR 0014 — Serve the spec and Swagger UI anonymously from the API under /api](../../adr/0014-serve-spec-and-swagger-ui-from-the-api.md)
+- [ADR 0015 — Sign in from the docs UI with the web UI's client and discovered endpoints](../../adr/0015-docs-ui-sign-in-reuses-web-client.md)
+- [ADR 0016 — Check spec completeness statically and against observed responses](../../adr/0016-check-spec-completeness-statically-and-by-observation.md)
