@@ -163,6 +163,34 @@ public sealed class WorkspaceUiTests
         Assert.DoesNotContain("Indexing is pending", view.Markup);
     }
 
+    [Theory]
+    [InlineData(HttpStatusCode.Forbidden, "roleRequired", "Your account does not have the role this operation needs.")]
+    [InlineData(HttpStatusCode.BadRequest, "unreadableRequest", "The request body or parameters could not be read.")]
+    [InlineData(HttpStatusCode.Unauthorized, "authenticationRequired", "Sign in to use the workspace API.")]
+    public async Task RefusalsCarryTheApiTitleAndCode(HttpStatusCode status, string code, string title)
+    {
+        using var http = new HttpClient(new RefusalHandler(status, code, title)) { BaseAddress = new Uri("https://workspace.test") };
+        var error = await Assert.ThrowsAsync<WorkspaceApiException>(() => new WorkspaceClient(http).Session());
+        Assert.Equal((status, code, title), (error.Status, error.Code, error.Message));
+
+        using var context = new BunitContext();
+        var alert = context.Render<ApiError>(parameters => parameters.Add(component => component.Error, error));
+        if (status == HttpStatusCode.Unauthorized)
+            Assert.Contains("Sign in again", alert.Markup);
+        else
+            Assert.Contains(title, alert.Markup);
+    }
+
+    private sealed class RefusalHandler(HttpStatusCode status, string code, string title) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token) =>
+            Task.FromResult(new HttpResponseMessage(status)
+            {
+                Content = new StringContent($$"""{"type":"https://tools.ietf.org/html/rfc9110","title":"{{title}}","status":{{(int)status}},"code":"{{code}}","traceId":"00-x"}""",
+                    System.Text.Encoding.UTF8, "application/problem+json")
+            });
+    }
+
     private sealed class StubHandler(Func<HttpRequestMessage, CancellationToken, Task<object>> respond) : HttpMessageHandler
     {
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token) =>

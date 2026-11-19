@@ -48,12 +48,12 @@ public sealed class IdentityTests
         using var reader = f.ClientWithToken(["ReadKnowledgeGraph"]);
         using var manager = f.ClientWithToken(["ManageKnowledgeGraph"]);
         Assert.Equal(HttpStatusCode.OK, (await reader.GetAsync("/api/history")).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, (await f.PostAnnotationAsync(reader)).StatusCode);
+        await AssertRefusal(await f.PostAnnotationAsync(reader), HttpStatusCode.Forbidden, "roleRequired");
         Assert.Equal(HttpStatusCode.Created, (await f.PostAnnotationAsync(manager)).StatusCode);
         using var expired = f.ClientWithToken(["ManageKnowledgeGraph"], expired: true);
-        Assert.Equal(HttpStatusCode.Unauthorized, (await f.PostAnnotationAsync(expired)).StatusCode);
+        await AssertRefusal(await f.PostAnnotationAsync(expired), HttpStatusCode.Unauthorized, "authenticationRequired");
         using var unrelated = f.ClientWithToken(["OtherRole"]);
-        Assert.Equal(HttpStatusCode.Forbidden, (await unrelated.GetAsync("/api/inventory")).StatusCode);
+        await AssertRefusal(await unrelated.GetAsync("/api/inventory"), HttpStatusCode.Forbidden, "roleRequired");
         Assert.Equal(1, await f.AnnotationCountAsync());
     }
 
@@ -68,7 +68,7 @@ public sealed class IdentityTests
         using var wrongAudience = f.ClientWithToken(["ManageKnowledgeGraph"], audience: "other-api");
         using var badSignature = f.ClientWithToken(["ManageKnowledgeGraph"], wrongSignature: true);
         foreach (var client in new[] { noToken, wrongIssuer, wrongAudience, badSignature })
-            Assert.Equal(HttpStatusCode.Unauthorized, (await f.PostAnnotationAsync(client)).StatusCode);
+            await AssertRefusal(await f.PostAnnotationAsync(client), HttpStatusCode.Unauthorized, "authenticationRequired");
         Assert.Equal(0, await f.AnnotationCountAsync());
     }
 
@@ -83,5 +83,12 @@ public sealed class IdentityTests
         Assert.Equal(HttpStatusCode.Forbidden, (await f.PostAnnotationAsync(forgedNormalizedClaim)).StatusCode);
         Assert.Equal(HttpStatusCode.Created, (await f.PostAnnotationAsync(both)).StatusCode);
         Assert.Equal(1, await f.AnnotationCountAsync());
+    }
+
+    private static async Task AssertRefusal(HttpResponseMessage response, HttpStatusCode status, string code)
+    {
+        Assert.Equal(status, response.StatusCode);
+        using var body = System.Text.Json.JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal(code, body.RootElement.GetProperty("code").GetString());
     }
 }

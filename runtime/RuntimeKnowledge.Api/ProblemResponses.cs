@@ -5,6 +5,29 @@ namespace RuntimeKnowledge.Api;
 
 internal static class ProblemResponses
 {
+    internal sealed record Refusal(string Code, string Title);
+
+    /// <summary>The fixed bodies of B22. A 401 body never says why the token was rejected.</summary>
+    public static IReadOnlyDictionary<int, Refusal> Refusals { get; } = new Dictionary<int, Refusal>
+    {
+        [StatusCodes.Status400BadRequest] = new("unreadableRequest", "The request body or parameters could not be read."),
+        [StatusCodes.Status401Unauthorized] = new("authenticationRequired", "Sign in to use the workspace API."),
+        [StatusCodes.Status403Forbidden] = new("roleRequired", "Your account does not have the role this operation needs.")
+    };
+
+    /// <summary>
+    /// Writes the refusal body for a 400, 401 or 403 that has none. Every other status, and any response that
+    /// already has a body, is left alone (ADR 0018).
+    /// </summary>
+    public static IApplicationBuilder UseRefusalResponses(this IApplicationBuilder app) =>
+        app.UseStatusCodePages(context =>
+        {
+            var status = context.HttpContext.Response.StatusCode;
+            if (!Refusals.TryGetValue(status, out var refusal)) return Task.CompletedTask;
+            return Results.Problem(statusCode: status, title: refusal.Title,
+                extensions: new Dictionary<string, object?> { ["code"] = refusal.Code }).ExecuteAsync(context.HttpContext);
+        });
+
     public static Task WriteAsync(HttpContext context)
     {
         var error = context.Features.Get<IExceptionHandlerFeature>()?.Error;

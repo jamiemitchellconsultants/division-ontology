@@ -1,3 +1,8 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Net.Http.Headers;
+using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
@@ -8,6 +13,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
+using Microsoft.IdentityModel.Tokens;
 using RuntimeKnowledge.Api;
 
 namespace RuntimeKnowledge.Tests.OpenApi;
@@ -19,12 +25,21 @@ internal sealed class OpenApiHost : IAsyncDisposable
     public const string Audience = "workspace-api";
     public const string ClientId = "workspace-api";
 
-    public static readonly OpenIdConnectConfiguration Discovery = new()
+    private static readonly RsaSecurityKey SigningKey = new(RSA.Create(2048)) { KeyId = "openapi-host" };
+
+    public static readonly OpenIdConnectConfiguration Discovery = CreateDiscovery();
+
+    private static OpenIdConnectConfiguration CreateDiscovery()
     {
-        Issuer = Issuer,
-        AuthorizationEndpoint = Issuer + "/protocol/openid-connect/auth",
-        TokenEndpoint = Issuer + "/protocol/openid-connect/token"
-    };
+        var discovery = new OpenIdConnectConfiguration
+        {
+            Issuer = Issuer,
+            AuthorizationEndpoint = Issuer + "/protocol/openid-connect/auth",
+            TokenEndpoint = Issuer + "/protocol/openid-connect/token"
+        };
+        discovery.SigningKeys.Add(SigningKey);
+        return discovery;
+    }
 
     private readonly WebApplicationFactory<ApiProgram> _factory;
     private HttpClient? _client;
@@ -58,6 +73,21 @@ internal sealed class OpenApiHost : IAsyncDisposable
     }
 
     public HttpClient CreateClient(WebApplicationFactoryClientOptions options) => _factory.CreateClient(options);
+
+    /// <summary>A client with a Keycloak-shaped token for this host's issuer. Requests it sends must not reach the store.</summary>
+    public HttpClient ClientWithToken(string[] roles, bool expired = false, bool wrongSignature = false)
+    {
+        var resources = new Dictionary<string, object> { [ClientId] = new { roles } };
+        Claim[] claims = [new("sub", "openapi-user"), new("resource_access", JsonSerializer.Serialize(resources), JsonClaimValueTypes.Json)];
+        using var wrong = wrongSignature ? RSA.Create(2048) : null;
+        var key = wrong is null ? SigningKey : new RsaSecurityKey(wrong) { KeyId = SigningKey.KeyId };
+        var now = DateTime.UtcNow;
+        var token = new JwtSecurityToken(Issuer, Audience, claims, now.AddHours(-2), expired ? now.AddHours(-1) : now.AddHours(1),
+            new SigningCredentials(key, SecurityAlgorithms.RsaSha256));
+        var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", new JwtSecurityTokenHandler().WriteToken(token));
+        return client;
+    }
 
     public async Task<JsonNode> SpecAsync() =>
         JsonNode.Parse(await Client.GetStringAsync("/api/openapi/v1.json"))!;

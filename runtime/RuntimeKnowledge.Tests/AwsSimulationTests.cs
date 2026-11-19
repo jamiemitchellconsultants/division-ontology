@@ -75,8 +75,12 @@ public sealed class AwsSimulationTests
         var manager = Signed("ManageKnowledgeGraph", signingKey);
         const string path = "/api/contributions/relationships";
         var change = new CreateRelationship(scenario.A, scenario.B, RelationshipMeaning.Custom("supplies", "Lambda fixture"));
-        Assert.Equal(401, (await api.FunctionHandlerAsync(Event("POST", path, change), Context)).StatusCode);
-        Assert.Equal(403, (await api.FunctionHandlerAsync(Event("POST", path, change, reader), Context)).StatusCode);
+        var anonymous = await api.FunctionHandlerAsync(Event("POST", path, change), Context);
+        Assert.Equal(401, anonymous.StatusCode);
+        Assert.Contains("\"authenticationRequired\"", anonymous.Body);
+        var readerOnly = await api.FunctionHandlerAsync(Event("POST", path, change, reader), Context);
+        Assert.Equal(403, readerOnly.StatusCode);
+        Assert.Contains("\"roleRequired\"", readerOnly.Body);
         var created = await api.FunctionHandlerAsync(Event("POST", path, change, manager), Context);
         Assert.Equal(201, created.StatusCode);
         var relationship = JsonSerializer.Deserialize<ContributionResult>(created.Body, WorkspaceJson.Options)!;
@@ -88,6 +92,45 @@ public sealed class AwsSimulationTests
         Assert.Equal(manifest, paths.SnapshotId);
         Assert.Contains(paths.Paths.SelectMany(item => item.Steps), step => step.RuntimeId == relationship.Id);
     }
+
+    [Fact, Trait("Category", "OpenApi")]
+    public async Task LambdaHostGivesRefusalsTheirBodies()
+    {
+        var api = DocsFreeLambda();
+        var anonymous = await api.FunctionHandlerAsync(Request("GET", "/api/inventory"), Context);
+        Assert.Equal(401, anonymous.StatusCode);
+        Assert.Equal("Bearer", Header(anonymous, "www-authenticate"));
+        Assert.Equal("authenticationRequired", JsonDocument.Parse(anonymous.Body).RootElement.GetProperty("code").GetString());
+        var plain = await api.FunctionHandlerAsync(Request("POST", "/api/search", "text/plain", "x"), Context);
+        Assert.Equal(415, plain.StatusCode);
+        Assert.True(string.IsNullOrEmpty(plain.Body));
+        var unknown = await api.FunctionHandlerAsync(Request("GET", "/api/no-such-operation"), Context);
+        Assert.Equal(404, unknown.StatusCode);
+        Assert.True(string.IsNullOrEmpty(unknown.Body));
+    }
+
+    /// <summary>A Lambda host with no database, for requests that never reach the store.</summary>
+    private static LambdaHosting DocsFreeLambda(IReadOnlyDictionary<string, string?>? extra = null)
+    {
+        var metadata = new OpenIdConnectConfiguration { Issuer = Issuer };
+        var settings = new Dictionary<string, string?>
+        {
+            ["Workspace:Identity:Provider"] = "Entra",
+            ["Workspace:Identity:Issuer"] = Issuer,
+            ["Workspace:Identity:Audience"] = Audience
+        };
+        foreach (var (key, value) in extra ?? new Dictionary<string, string?>()) settings[key] = value;
+        return new LambdaHosting(builder =>
+        {
+            builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(settings));
+            builder.ConfigureServices(services => services.PostConfigure<JwtBearerOptions>(
+                JwtBearerDefaults.AuthenticationScheme, options =>
+                    options.ConfigurationManager = new StaticConfigurationManager<OpenIdConnectConfiguration>(metadata)));
+        });
+    }
+
+    private static string? Header(APIGatewayHttpApiV2ProxyResponse response, string name) =>
+        response.Headers?.FirstOrDefault(header => string.Equals(header.Key, name, StringComparison.OrdinalIgnoreCase)).Value;
 
     [Fact]
     public async Task BundleAdapterUsesTheExpectedS3WireKeysAndImmutablePut()
@@ -162,6 +205,25 @@ public sealed class AwsSimulationTests
                 Http = new APIGatewayHttpApiV2ProxyRequest.HttpDescription { Method = method, Path = path, Protocol = "HTTP/1.1", SourceIp = "127.0.0.1" }
             },
             Body = JsonSerializer.Serialize(body, WorkspaceJson.Options)
+        };
+    }
+
+    private static APIGatewayHttpApiV2ProxyRequest Request(string method, string path, string? contentType = null, string? body = null)
+    {
+        var headers = new Dictionary<string, string> { ["host"] = "workspace.fixture.test" };
+        if (contentType is not null) headers["content-type"] = contentType;
+        return new APIGatewayHttpApiV2ProxyRequest
+        {
+            Version = "2.0",
+            RawPath = path,
+            RawQueryString = "",
+            Headers = headers,
+            RequestContext = new APIGatewayHttpApiV2ProxyRequest.ProxyRequestContext
+            {
+                Stage = "$default",
+                Http = new APIGatewayHttpApiV2ProxyRequest.HttpDescription { Method = method, Path = path, Protocol = "HTTP/1.1", SourceIp = "127.0.0.1" }
+            },
+            Body = body
         };
     }
 

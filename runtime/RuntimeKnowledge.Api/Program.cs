@@ -50,6 +50,7 @@ public partial class ApiProgram
     internal static void Configure(IApplicationBuilder app)
     {
         app.UseExceptionHandler(exceptionApp => exceptionApp.Run(ProblemResponses.WriteAsync));
+        app.UseRefusalResponses();
         app.UseRouting();
         app.UseAuthentication();
         app.UseAuthorization();
