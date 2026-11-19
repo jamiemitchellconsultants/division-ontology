@@ -1,0 +1,1583 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "RuntimeKnowledge.Api | v1",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "RuntimeKnowledge.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/session": {
+      "get": {
+        "tags": [
+          "RuntimeKnowledge.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceSession"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/inventory": {
+      "get": {
+        "tags": [
+          "RuntimeKnowledge.Api"
+        ],
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryPage"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entities/detail": {
+      "post": {
+        "tags": [
+          "RuntimeKnowledge.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EntityDetailRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntityDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/relationships/detail": {
+      "post": {
+        "tags": [
+          "RuntimeKnowledge.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RelationshipDetailRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelationshipDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/search": {
+      "post": {
+        "tags": [
+          "RuntimeKnowledge.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/traverse": {
+      "post": {
+        "tags": [
+          "RuntimeKnowledge.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TraversalRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TraversalResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/history": {
+      "get": {
+        "tags": [
+          "RuntimeKnowledge.Api"
+        ],
+        "parameters": [
+          {
+            "name": "contributionId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistoryPage"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/contributions/annotations": {
+      "post": {
+        "tags": [
+          "RuntimeKnowledge.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAnnotation"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/contributions/relationships": {
+      "post": {
+        "tags": [
+          "RuntimeKnowledge.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRelationship"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/contributions/{id}": {
+      "put": {
+        "tags": [
+          "RuntimeKnowledge.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditContributionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContributionResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/contributions/{id}/remove": {
+      "post": {
+        "tags": [
+          "RuntimeKnowledge.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemoveContributionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContributionResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/contributions/{id}/codifications": {
+      "post": {
+        "tags": [
+          "RuntimeKnowledge.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CodificationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContributionResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Actor": {
+        "required": [
+          "issuer",
+          "subject"
+        ],
+        "type": "object",
+        "properties": {
+          "issuer": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          }
+        }
+      },
+      "AnnotationData": {
+        "required": [
+          "target",
+          "category",
+          "text",
+          "targetProvenance"
+        ],
+        "type": "object",
+        "properties": {
+          "target": {
+            "$ref": "#/components/schemas/PublishedKey"
+          },
+          "category": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "targetProvenance": {
+            "$ref": "#/components/schemas/Provenance"
+          }
+        }
+      },
+      "CodificationAssociation": {
+        "required": [
+          "id",
+          "publishedRelationship",
+          "publishedProvenance",
+          "actor",
+          "occurredAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "publishedRelationship": {
+            "$ref": "#/components/schemas/PublishedKey"
+          },
+          "publishedProvenance": {
+            "$ref": "#/components/schemas/Provenance"
+          },
+          "actor": {
+            "$ref": "#/components/schemas/Actor"
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CodificationRequest": {
+        "required": [
+          "expectedVersion",
+          "publishedRelationship"
+        ],
+        "type": "object",
+        "properties": {
+          "expectedVersion": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "publishedRelationship": {
+            "$ref": "#/components/schemas/PublishedKey"
+          }
+        }
+      },
+      "ContributionResult": {
+        "required": [
+          "id",
+          "version",
+          "position"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "position": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          }
+        }
+      },
+      "CoverageGap": {
+        "required": [
+          "code",
+          "sourceId",
+          "nodeIri",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "sourceId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "nodeIri": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "coverageIri": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "selector": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "CreateAnnotation": {
+        "required": [
+          "target",
+          "category",
+          "text"
+        ],
+        "type": "object",
+        "properties": {
+          "target": {
+            "$ref": "#/components/schemas/PublishedKey"
+          },
+          "category": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateRelationship": {
+        "required": [
+          "from",
+          "to",
+          "meaning"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "$ref": "#/components/schemas/PublishedKey"
+          },
+          "to": {
+            "$ref": "#/components/schemas/PublishedKey"
+          },
+          "meaning": {
+            "$ref": "#/components/schemas/RelationshipMeaning"
+          }
+        }
+      },
+      "EditContributionRequest": {
+        "required": [
+          "expectedVersion"
+        ],
+        "type": "object",
+        "properties": {
+          "expectedVersion": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "category": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "text": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "from": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PublishedKey"
+              }
+            ]
+          },
+          "to": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PublishedKey"
+              }
+            ]
+          },
+          "meaning": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RelationshipMeaning"
+              }
+            ]
+          }
+        }
+      },
+      "EndpointContext": {
+        "required": [
+          "key",
+          "label",
+          "provenance",
+          "available"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/PublishedKey"
+          },
+          "label": {
+            "type": "string"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/Provenance"
+          },
+          "available": {
+            "type": "boolean"
+          }
+        }
+      },
+      "EntityDetail": {
+        "required": [
+          "snapshotId",
+          "entity",
+          "available",
+          "annotations"
+        ],
+        "type": "object",
+        "properties": {
+          "snapshotId": {
+            "type": "string"
+          },
+          "entity": {
+            "$ref": "#/components/schemas/PublishedEntity"
+          },
+          "available": {
+            "type": "boolean"
+          },
+          "annotations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RuntimeContribution"
+            }
+          }
+        }
+      },
+      "EntityDetailRequest": {
+        "required": [
+          "key"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/PublishedKey"
+          }
+        }
+      },
+      "Evidence": {
+        "required": [
+          "path",
+          "startLine",
+          "endLine",
+          "blobId",
+          "role"
+        ],
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "startLine": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "endLine": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "blobId": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          }
+        }
+      },
+      "HistoryEntry": {
+        "required": [
+          "position",
+          "type",
+          "actor",
+          "occurredAt",
+          "contributionId",
+          "revision",
+          "before",
+          "after",
+          "snapshotId"
+        ],
+        "type": "object",
+        "properties": {
+          "position": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "type": {
+            "type": "string"
+          },
+          "actor": {
+            "$ref": "#/components/schemas/Actor"
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "contributionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "revision": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "before": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RuntimeContribution"
+              }
+            ]
+          },
+          "after": {
+            "$ref": "#/components/schemas/RuntimeContribution"
+          },
+          "snapshotId": {
+            "type": "string"
+          }
+        }
+      },
+      "HistoryPage": {
+        "required": [
+          "entries",
+          "nextCursor"
+        ],
+        "type": "object",
+        "properties": {
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HistoryEntry"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "InventoryPage": {
+        "required": [
+          "snapshotId",
+          "entities",
+          "relationshipTypes",
+          "gaps",
+          "nextCursor",
+          "relationships"
+        ],
+        "type": "object",
+        "properties": {
+          "snapshotId": {
+            "type": "string"
+          },
+          "entities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublishedEntity"
+            }
+          },
+          "relationshipTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RelationshipType"
+            }
+          },
+          "gaps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CoverageGap"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "relationships": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublishedEdge"
+            }
+          }
+        }
+      },
+      "Provenance": {
+        "required": [
+          "key",
+          "sourceCommit",
+          "snapshotId",
+          "basis",
+          "evidence"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/PublishedKey"
+          },
+          "sourceCommit": {
+            "type": "string"
+          },
+          "snapshotId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "basis": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Evidence"
+            }
+          }
+        }
+      },
+      "PublishedEdge": {
+        "required": [
+          "key",
+          "from",
+          "to",
+          "label",
+          "relationshipType",
+          "provenance"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/PublishedKey"
+          },
+          "from": {
+            "$ref": "#/components/schemas/PublishedKey"
+          },
+          "to": {
+            "$ref": "#/components/schemas/PublishedKey"
+          },
+          "label": {
+            "type": "string"
+          },
+          "relationshipType": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PublishedKey"
+              }
+            ]
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/Provenance"
+          },
+          "context": { }
+        }
+      },
+      "PublishedEntity": {
+        "required": [
+          "key",
+          "label",
+          "description",
+          "types",
+          "provenance"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/PublishedKey"
+          },
+          "label": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/Provenance"
+          },
+          "c4": { }
+        }
+      },
+      "PublishedKey": {
+        "required": [
+          "sourceId",
+          "kind",
+          "identifier"
+        ],
+        "type": "object",
+        "properties": {
+          "sourceId": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "identifier": {
+            "type": "string"
+          }
+        }
+      },
+      "RelationshipData": {
+        "required": [
+          "from",
+          "to",
+          "meaning",
+          "label",
+          "fromProvenance",
+          "toProvenance",
+          "meaningProvenance"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "$ref": "#/components/schemas/PublishedKey"
+          },
+          "to": {
+            "$ref": "#/components/schemas/PublishedKey"
+          },
+          "meaning": {
+            "$ref": "#/components/schemas/RelationshipMeaning"
+          },
+          "label": {
+            "type": "string"
+          },
+          "fromProvenance": {
+            "$ref": "#/components/schemas/Provenance"
+          },
+          "toProvenance": {
+            "$ref": "#/components/schemas/Provenance"
+          },
+          "meaningProvenance": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Provenance"
+              }
+            ]
+          }
+        }
+      },
+      "RelationshipDetail": {
+        "required": [
+          "snapshotId",
+          "relationship"
+        ],
+        "type": "object",
+        "properties": {
+          "snapshotId": {
+            "type": "string"
+          },
+          "relationship": {
+            "$ref": "#/components/schemas/TraversalStep"
+          }
+        }
+      },
+      "RelationshipDetailRequest": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PublishedKey"
+              }
+            ]
+          },
+          "runtimeId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "RelationshipMeaning": {
+        "required": [
+          "publishedType",
+          "customLabel",
+          "explanation"
+        ],
+        "type": "object",
+        "properties": {
+          "publishedType": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PublishedKey"
+              }
+            ]
+          },
+          "customLabel": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "explanation": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "RelationshipType": {
+        "required": [
+          "key",
+          "label",
+          "description",
+          "domain",
+          "range",
+          "provenance"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/PublishedKey"
+          },
+          "label": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "domain": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "range": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/Provenance"
+          },
+          "context": { }
+        }
+      },
+      "RemoveContributionRequest": {
+        "required": [
+          "expectedVersion"
+        ],
+        "type": "object",
+        "properties": {
+          "expectedVersion": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "RuntimeContribution": {
+        "required": [
+          "id",
+          "version",
+          "kind",
+          "author",
+          "createdAt",
+          "createdSnapshotId",
+          "removed",
+          "annotation",
+          "relationship",
+          "associations"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "author": {
+            "$ref": "#/components/schemas/Actor"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdSnapshotId": {
+            "type": "string"
+          },
+          "removed": {
+            "type": "boolean"
+          },
+          "annotation": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AnnotationData"
+              }
+            ]
+          },
+          "relationship": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RelationshipData"
+              }
+            ]
+          },
+          "associations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CodificationAssociation"
+            }
+          }
+        }
+      },
+      "SearchHit": {
+        "required": [
+          "entityKey",
+          "annotationId",
+          "matchedText",
+          "score",
+          "provenance",
+          "annotation"
+        ],
+        "type": "object",
+        "properties": {
+          "entityKey": {
+            "$ref": "#/components/schemas/PublishedKey"
+          },
+          "annotationId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "matchedText": {
+            "type": "string"
+          },
+          "score": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/Provenance"
+          },
+          "annotation": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RuntimeContribution"
+              }
+            ]
+          }
+        }
+      },
+      "SearchRequest": {
+        "required": [
+          "query"
+        ],
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "limit": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32",
+            "default": 20
+          }
+        }
+      },
+      "SearchResult": {
+        "required": [
+          "snapshotId",
+          "hits",
+          "indexPending"
+        ],
+        "type": "object",
+        "properties": {
+          "snapshotId": {
+            "type": "string"
+          },
+          "hits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SearchHit"
+            }
+          },
+          "indexPending": {
+            "type": "boolean"
+          }
+        }
+      },
+      "TraversalEntity": {
+        "required": [
+          "key",
+          "label",
+          "provenance",
+          "available",
+          "annotations"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/PublishedKey"
+          },
+          "label": {
+            "type": "string"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/Provenance"
+          },
+          "available": {
+            "type": "boolean"
+          },
+          "annotations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RuntimeContribution"
+            }
+          }
+        }
+      },
+      "TraversalPath": {
+        "required": [
+          "steps"
+        ],
+        "type": "object",
+        "properties": {
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TraversalStep"
+            }
+          }
+        }
+      },
+      "TraversalRequest": {
+        "required": [
+          "start"
+        ],
+        "type": "object",
+        "properties": {
+          "start": {
+            "$ref": "#/components/schemas/PublishedKey"
+          },
+          "direction": {
+            "type": "string",
+            "default": "outgoing"
+          },
+          "maxDepth": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32",
+            "default": 2
+          },
+          "includeUnavailable": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      "TraversalResult": {
+        "required": [
+          "snapshotId",
+          "paths",
+          "gaps",
+          "truncated",
+          "entities"
+        ],
+        "type": "object",
+        "properties": {
+          "snapshotId": {
+            "type": "string"
+          },
+          "paths": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TraversalPath"
+            }
+          },
+          "gaps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CoverageGap"
+            }
+          },
+          "truncated": {
+            "type": "boolean"
+          },
+          "entities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TraversalEntity"
+            }
+          }
+        }
+      },
+      "TraversalStep": {
+        "required": [
+          "key",
+          "runtimeId",
+          "from",
+          "to",
+          "label",
+          "direction",
+          "origin",
+          "provenance"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PublishedKey"
+              }
+            ]
+          },
+          "runtimeId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "from": {
+            "$ref": "#/components/schemas/PublishedKey"
+          },
+          "to": {
+            "$ref": "#/components/schemas/PublishedKey"
+          },
+          "label": {
+            "type": "string"
+          },
+          "direction": {
+            "type": "string"
+          },
+          "origin": {
+            "type": "string"
+          },
+          "provenance": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Provenance"
+              }
+            ]
+          },
+          "endpointUnavailable": {
+            "type": "boolean",
+            "default": false
+          },
+          "lastKnownSnapshotId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "context": { },
+          "contribution": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RuntimeContribution"
+              }
+            ]
+          },
+          "fromEndpoint": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/EndpointContext"
+              }
+            ]
+          },
+          "toEndpoint": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/EndpointContext"
+              }
+            ]
+          },
+          "codifyingContributions": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/RuntimeContribution"
+            }
+          }
+        }
+      },
+      "WorkspaceSession": {
+        "required": [
+          "canRead",
+          "canManage"
+        ],
+        "type": "object",
+        "properties": {
+          "canRead": {
+            "type": "boolean"
+          },
+          "canManage": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "RuntimeKnowledge.Api"
+    }
+  ]
+}

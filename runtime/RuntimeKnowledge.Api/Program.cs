@@ -22,6 +22,7 @@ public partial class ApiProgram
     {
         services.AddWorkspaceIdentity();
         services.AddProblemDetails();
+        services.AddWorkspaceOpenApi();
         services.AddSingleton<NpgsqlDataSource>(provider =>
         {
             var configuration = provider.GetRequiredService<IConfiguration>();
@@ -60,6 +61,7 @@ public partial class ApiProgram
                 return Results.Ok(new { status = "ready" });
             }).AllowAnonymous();
             endpoints.MapWorkspaceRoutes();
+            endpoints.MapOpenApi("/api/openapi/{documentName}.json").AllowAnonymous();
         });
     }
 }
