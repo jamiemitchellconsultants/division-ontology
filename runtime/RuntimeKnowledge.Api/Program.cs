@@ -59,10 +59,13 @@ public partial class ApiProgram
             endpoints.MapGet("/health", async (Db db, CancellationToken token) =>
             {
                 await using var connection = await db.OpenAsync(token);
-                return Results.Ok(new { status = "ready" });
-            }).AllowAnonymous();
+                return TypedResults.Ok(new HealthStatus("ready"));
+            }).AllowAnonymous().WithSummary("Report readiness").WithTags("Health");
             endpoints.MapWorkspaceRoutes();
             endpoints.MapOpenApi("/api/openapi/{documentName}.json").AllowAnonymous();
         });
     }
 }
+
+/// <summary>The health check's body: <c>{"status":"ready"}</c>.</summary>
+public sealed record HealthStatus(string Status);

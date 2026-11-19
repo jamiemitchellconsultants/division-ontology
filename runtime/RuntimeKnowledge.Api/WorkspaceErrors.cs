@@ -3,6 +3,9 @@ namespace RuntimeKnowledge.Api;
 /// <summary>The workspace error codes a route can raise. Its problem responses are derived from them.</summary>
 internal sealed record WorkspaceErrorCodes(IReadOnlyList<string> Codes);
 
+/// <summary>An invented request body shown as the operation's example.</summary>
+internal sealed record RequestExample(object Value);
+
 internal static class WorkspaceErrors
 {
     /// <summary>Declares the workspace codes a route can raise. Statuses come only from <see cref="ProblemResponses.StatusFor"/>.</summary>

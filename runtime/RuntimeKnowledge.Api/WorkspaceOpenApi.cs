@@ -1,8 +1,10 @@
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.OpenApi;
+using RuntimeKnowledge.Contracts;
 
 namespace RuntimeKnowledge.Api;
 
@@ -70,6 +72,9 @@ internal static class WorkspaceOpenApi
                 }
             };
         }
+        if (context.Description.ActionDescriptor.EndpointMetadata.OfType<RequestExample>().FirstOrDefault() is { } example &&
+            operation.RequestBody?.Content?.TryGetValue("application/json", out var media) == true)
+            media.Example = JsonSerializer.SerializeToNode(example.Value, example.Value.GetType(), WorkspaceJson.Options);
         if (operation.RequestBody is not null || operation.Parameters is { Count: > 0 })
             operation.Responses["400"] = new OpenApiResponseReference("unreadableRequest", document);
         return Task.CompletedTask;
