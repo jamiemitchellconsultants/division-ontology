@@ -14,14 +14,15 @@ env -i PATH="$PATH" "${compose[@]}" config --format json | jq -e '
   (.services.api.environment.Workspace__Identity__Issuer == "https://auth.example.test/realms/workspace") and
   (.services.api.environment.Workspace__Identity__AllowLocalHttp == null) and
   (.services.api.environment.Workspace__Identity__Audience == "workspace-api") and
-  (.configs["web-settings"].content | fromjson | .Identity.ClientId == "workspace-spa")
+  (.configs["web-settings"].content | fromjson | .Identity.ClientId == "workspace-spa") and
+  (.services.api.environment.Workspace__Docs__ClientId == "workspace-spa")
 '
 jq -e '
   ((.users // []) | length == 0) and
   (.roles.client["${WORKSPACE_KEYCLOAK_API_CLIENT}"] | map(.name) | sort == ["ManageKnowledgeGraph","ReadKnowledgeGraph"]) and
   (.clients | any(.publicClient and (.directAccessGrantsEnabled == false) and
     .attributes["pkce.code.challenge.method"] == "S256" and
-    .redirectUris == ["https://${WORKSPACE_PUBLIC_HOST}/authentication/login-callback"]))
+    .redirectUris == ["https://${WORKSPACE_PUBLIC_HOST}/authentication/login-callback", "https://${WORKSPACE_PUBLIC_HOST}/api/docs/oauth2-redirect.html"]))
 ' "$dir/realm-template.json"
 grep -Fq 'reverse_proxy runtime-workspace-api:8080' "$dir/Caddyfile.fragment"
 grep -Fq 'reverse_proxy runtime-workspace-web:8080' "$dir/Caddyfile.fragment"

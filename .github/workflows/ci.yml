@@ -16,3 +16,38 @@ jobs:
           cache: npm
       - run: npm ci --ignore-scripts
       - run: npm test
+  api-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        env:
+          # Commands run from the repository root, outside runtime/global.json's scope.
+          DOTNET_INSTALL_DIR: ${{ runner.temp }}/api-contract-dotnet
+        with:
+          global-json-file: runtime/global.json
+      - name: Verify the SDK selected from the repository root
+        run: |
+          expected="$(jq -er '.sdk.version' runtime/global.json)"
+          actual="$(dotnet --version)"
+          printf 'Using .NET SDK %s (expected %s)\n' "$actual" "$expected"
+          test "$actual" = "$expected"
+      - run: dotnet restore runtime/RuntimeKnowledge.slnx --locked-mode
+      - name: Regenerate the API spec
+        run: dotnet build runtime/RuntimeKnowledge.Api --no-restore
+      - name: Check the committed API spec
+        run: |
+          if [ -n "$(git status --porcelain -- runtime/openapi)" ]; then
+            git --no-pager diff -- runtime/openapi
+            echo "::error file=runtime/openapi/workspace-api.json::The committed API spec is out of date. Run: dotnet build runtime/RuntimeKnowledge.Api, then commit runtime/openapi/."
+            exit 1
+          fi
+      - name: Check deployment settings do not reach the committed spec
+        env:
+          Workspace__Identity__Provider: Keycloak
+          Workspace__Identity__Issuer: https://issuer.example.test/realms/workspace
+          Workspace__Docs__ClientId: workspace-spa
+          ASPNETCORE_ENVIRONMENT: Development
+        run: dotnet build runtime/RuntimeKnowledge.Api --no-restore --no-incremental && git diff --exit-code -- runtime/openapi
+      - name: Check spec completeness
+        run: dotnet test runtime/RuntimeKnowledge.Tests --no-restore --filter Category=OpenApi

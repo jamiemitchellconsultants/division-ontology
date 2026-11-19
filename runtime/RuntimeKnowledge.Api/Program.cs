@@ -22,6 +22,7 @@ public partial class ApiProgram
     {
         services.AddWorkspaceIdentity();
         services.AddProblemDetails();
+        services.AddWorkspaceOpenApi();
         services.AddSingleton<NpgsqlDataSource>(provider =>
         {
             var configuration = provider.GetRequiredService<IConfiguration>();
@@ -49,6 +50,8 @@ public partial class ApiProgram
     internal static void Configure(IApplicationBuilder app)
     {
         app.UseExceptionHandler(exceptionApp => exceptionApp.Run(ProblemResponses.WriteAsync));
+        app.UseRefusalResponses();
+        app.UseWorkspaceDocsUi();
         app.UseRouting();
         app.UseAuthentication();
         app.UseAuthorization();
@@ -57,9 +60,13 @@ public partial class ApiProgram
             endpoints.MapGet("/health", async (Db db, CancellationToken token) =>
             {
                 await using var connection = await db.OpenAsync(token);
-                return Results.Ok(new { status = "ready" });
-            }).AllowAnonymous();
+                return TypedResults.Ok(new HealthStatus("ready"));
+            }).AllowAnonymous().WithSummary("Report readiness").WithTags("Health");
             endpoints.MapWorkspaceRoutes();
+            endpoints.MapOpenApi("/api/openapi/{documentName}.json").AllowAnonymous();
         });
     }
 }
+
+/// <summary>The health check's body: <c>{"status":"ready"}</c>.</summary>
+public sealed record HealthStatus(string Status);

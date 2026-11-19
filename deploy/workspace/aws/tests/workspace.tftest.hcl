@@ -53,6 +53,10 @@ run "private_database_and_serverless_api" {
     error_message = "Each function needs bounded concurrency and the total must fit the connection budget."
   }
   assert {
+    condition     = local.workloads.api.environment.Workspace__Docs__ClientId == var.entra_client_id && local.workloads.api.environment.Workspace__Docs__Scopes == var.entra_api_scope
+    error_message = "The docs UI must reuse the web client and API scope."
+  }
+  assert {
     condition     = aws_s3_bucket_public_access_block.bundles.block_public_policy && aws_s3_bucket_public_access_block.web.block_public_policy
     error_message = "Web and bundle buckets need private S3 access."
   }

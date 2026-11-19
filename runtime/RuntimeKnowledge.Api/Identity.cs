@@ -20,7 +20,8 @@ internal static class Identity
     {
         const string bearer = JwtBearerDefaults.AuthenticationScheme;
         services.AddAuthentication(bearer).AddJwtBearer();
-        services.AddOptions<JwtBearerOptions>(bearer).Configure<IConfiguration>(Configure).ValidateOnStart();
+        var jwt = services.AddOptions<JwtBearerOptions>(bearer).Configure<IConfiguration>(Configure);
+        if (!BuildTimeGeneration.IsActive) jwt.ValidateOnStart(); // the build-time writer runs Main with no configuration
         services.AddAuthorization(options =>
         {
             options.AddPolicy(ReadPolicy, policy => policy.RequireAuthenticatedUser().RequireClaim(Capability, "read"));

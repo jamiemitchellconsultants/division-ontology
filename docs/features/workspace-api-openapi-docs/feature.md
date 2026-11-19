@@ -237,3 +237,157 @@ The spec generator is the single source of the contract. Build-time and runtime 
 - [ADR 0016 — Check spec completeness statically and against observed responses](../../adr/0016-check-spec-completeness-statically-and-by-observation.md)
 - [ADR 0017 — Serve the spec without a server address](../../adr/0017-serve-the-spec-without-a-server-address.md) (amends 0015)
 - [ADR 0018 — Give 400, 401 and 403 fixed problem-details bodies through one status-code hook](../../adr/0018-give-refusals-fixed-problem-details-bodies.md) (amends 0016)
+
+## User — docs and acceptance
+
+### Runbook
+
+#### Deploy
+
+Acceptance targets the local Docker Compose workspace, the HTTPS home-lab workspace behind Caddy,
+and the AWS workspace through its CloudFront `workspace_url` output. Start with the reviewed build
+revision. Run the commands below from the repository root.
+
+- **Local (Keycloak).** With Docker, jq and the Node dependencies installed, run
+  `npm run demo:up`. It builds the stack, publishes a sample snapshot and prints the origin
+  (default `http://workspace.localhost:8087`) and where to find the fixture passwords. Use
+  `WORKSPACE_PORT` to select another port. The demo stays up for browser checks.
+- **Home lab (Keycloak).** Follow the [home-lab deployment contract](../../../deploy/workspace/home-lab/deployment-contract.md)
+  to build and stage the images, configure the workspace environment and start Compose. Use the
+  public HTTPS origin for both browser and verification checks.
+- **AWS (Entra).** Follow the [AWS deployment instructions](../../../deploy/workspace/aws/simulation.md)
+  to package the application, deploy the reviewed artefacts and apply the workspace Terraform.
+  Use the CloudFront `workspace_url` output as the public origin.
+
+The existing `/api/*` proxy route must reach the API. For interactive sign-in, set
+`Workspace:Docs:ClientId` to the web UI's public SPA client ID and `Workspace:Docs:Scopes` to the
+delegated API scope when required by the provider. Compose and Terraform supply the settings for
+their environments. The public setup uses authorization code with PKCE.
+
+- **Keycloak.** Register the exact public origin plus `/api/docs/oauth2-redirect.html` as a valid
+  redirect URI on the existing public SPA client alongside the web UI callback. The local and
+  home-lab realm templates include it. If the realm already exists or is managed externally,
+  check the effective registration and add the callback there. Retain the API audience mapper.
+- **Entra.** Register the full `entra_docs_redirect_uri` output, ending in
+  `/api/docs/oauth2-redirect.html`, as a **Single-page application** redirect URI on the existing
+  SPA registration. Retain the existing web UI callback and delegated API scope
+  (`entra_api_scope`). Assign workspace roles on the API registration.
+
+#### Operate
+
+On the deployed origin, open `/api/docs` and fetch `/api/openapi/v1.json` without signing in.
+Check that the web UI still loads at `/`. In Compose, check that the API container is healthy.
+Its health probe calls `GET /health` directly on the API container. Use the existing deployment's
+readiness check for AWS. With curl and jq installed, run the anonymous docs check, supplying the
+base origin with its scheme and optional port.
+
+```bash
+deploy/workspace/verify-docs.sh <origin> [--expect-sign-in]
+```
+
+Use `--expect-sign-in` for Keycloak and Entra deployments configured for docs sign-in. The
+script checks the OpenAPI version, same-origin contract, Swagger UI and callback pages, and the
+401 body on an anonymous inventory request. The flag also checks for a sign-in authorization URL.
+A passing run prints `Docs verified at <origin>.` Run the browser steps in
+[acceptance](05-acceptance.md) to verify the OAuth callback and real role enforcement.
+
+To regenerate the committed contract, use the SDK pinned in
+[`runtime/global.json`](../../../runtime/global.json) from the repository root. No running
+workspace or provider credentials are needed. Check the selected SDK before building.
+
+```bash
+dotnet --version
+dotnet build runtime/RuntimeKnowledge.Api
+git diff -- runtime/openapi/workspace-api.json
+```
+
+Review and commit the generated file in the same PR as the contract change. The
+[`api-contract` job](../../../.github/workflows/ci.yml) uses a locked restore, rebuilds the spec,
+fails on drift, checks that deployment-shaped settings leave the file identical, and runs the
+OpenAPI completeness tests. The full .NET suite checks observed API responses against the contract
+while exercising the database-backed scenarios.
+
+#### Recover
+
+1. If the docs or JSON are missing, check the deployed API version, health and `/api/*` forwarding.
+   Confirm that the docs page and callback both resolve through the same public origin.
+2. If the spec loads but `workspaceSignIn` is absent, check the docs client ID and whether the API
+   can reach the configured issuer's discovery document. If the provider rejects the redirect,
+   compare the exact scheme, host, port and path with the SPA registration. In Entra, also check
+   the SPA platform and delegated scope. Retry the deployment check and a fresh browser sign-in.
+3. If `api-contract` reports drift, regenerate with the pinned SDK, review the diff and commit the
+   generated file. If it reports a completeness failure, send the named operation and gap to the
+   API maintainer.
+4. If the release needs rolling back, redeploy the previous reviewed application revision with
+   the environment's normal release procedure. On AWS use the previous reviewed Lambda packages
+   and web artefacts. In the home lab restore the previous image references. Retain workspace
+   data and existing web UI redirect registration. Verify the previous release's health, web UI
+   and protected inventory route, and apply the docs check if that revision serves these paths.
+   For the disposable local demo, `npm run demo:down` removes its containers and volumes.
+
+### User guide
+
+#### Find and read the contract (B1–B4, B14–B20, B22)
+
+Open `<origin>/api/docs` to browse operations or fetch `<origin>/api/openapi/v1.json` for
+OpenAPI 3.1 JSON. Both paths are available anonymously on local, home-lab and AWS deployments,
+including initialized division copies. The spec uses the origin you fetched it from. The
+committed file can be read offline using the base URL supplied by your workspace operator.
+
+Expand an operation to see its method, path, parameters, request and response schemas, and
+possible errors. Read operations require `ReadKnowledgeGraph`; contributions require
+`ManageKnowledgeGraph`. In the JSON, look for `x-workspace-role` on each operation. The health
+check is anonymous. For paged operations supply `limit` and pass the previous page's
+`nextCursor` as `cursor` when you need another page. Example values are synthetic, so use an
+entity key from your workspace inventory when trying a real contribution.
+
+Protected calls need a workspace bearer token. The served spec can include the provider's public
+sign-in endpoints and scopes. A version-conflict 409 describes the `current` version. Use the
+operation's listed method, URL and media type when sending HTTP requests directly.
+
+#### Sign in and read (B9, B10, B18, B19, B21)
+
+1. Open `/api/docs` and choose **Authorize**. In the `workspaceSignIn` section select the
+   configured API scope if shown, then choose **Authorize**. Use your workspace account on
+   the Keycloak or Entra page. The public client uses PKCE. Leave the client secret field blank
+   if Swagger shows it.
+2. Return to the docs and close the authorization dialog. Expand `GET /api/inventory`, choose
+   **Try it out**, optionally set `limit`, then choose **Execute**. A reader or manager should
+   see 200 and the workspace inventory. `GET /api/session` shows the signed-in account's access.
+3. For a direct API call, send your valid workspace access token as an
+   `Authorization: Bearer` header. The same audience and roles apply as in the web UI.
+
+#### Save a contribution and check history (B11, B12, B21)
+
+In a workspace where you can make a test contribution, sign in with `ManageKnowledgeGraph` and
+copy a published entity's `key` from `GET /api/inventory`. In
+`POST /api/contributions/annotations`, choose **Try it out**, put the copied key in `target`,
+and supply a `category` of `businessExplanation` and your annotation `text`. **Execute** saves
+to the workspace and returns 201 with an `id` and a history URL in the `Location` header. Run
+`GET /api/history` with that ID as `contributionId` to see the saved change and its actor.
+A reader attempting the same command gets 403 and no contribution is saved.
+
+#### Interpret a refusal and sign in again (B12, B13, B19, B22)
+
+Read `status`, `title` and `code` in the problem-details response.
+
+| Status | Code | What to do |
+| --- | --- | --- |
+| 400 | `unreadableRequest` | Check JSON and parameter types against the request schema. |
+| 401 | `authenticationRequired` | Sign in again from **Authorize**. This response uses the same code for a missing, invalid or expired token and carries `WWW-Authenticate: Bearer`. |
+| 403 | `roleRequired` | Check the required role and ask your workspace administrator to review your assignments. |
+
+To stop sending the token, choose **Authorize**, then **Logout** in the `workspaceSignIn`
+section. The docs remain open. A subsequent data call returns 401 until you authorize again.
+If the provider still has an active browser session, use a fresh browser profile to switch accounts.
+
+#### Review a contract change (B3, B5–B8)
+
+In the PR, review `runtime/openapi/workspace-api.json` alongside changes to routes or request and
+response types. Use the `api-contract` result to confirm that the PR regenerates the same neutral
+OpenAPI file and describes the mapped operations. See the runbook's **Operate** steps to reproduce
+the generation locally.
+
+### Acceptance
+
+See [scripted walkthroughs, executable checks and results](05-acceptance.md).
