@@ -121,13 +121,10 @@ and [build handoff](https://github.com/jamiemitchellconsultants/division-ontolog
 | Local SDK 10.0.402 contract checks | Pass | The approved rerun passed locked restore, both API builds with and without deployment-shaped settings, byte-for-byte spec comparisons and all 98 OpenAPI tests. The earlier isolated Linux run also passed. |
 | GitHub `api-contract` | Pass | The [amended PR check](https://github.com/jamiemitchellconsultants/division-ontology/actions/runs/44555102724/job/135668940686) selected SDK 10.0.402 at the repository root and passed locked restore, both spec builds, drift, and all 98 OpenAPI tests. [CI on the merge commit](https://github.com/jamiemitchellconsultants/division-ontology/actions/runs/44558564863) also passed. |
 | Terraform validation and fixtures | Pass | The approved rerun passed formatting, validation and `private_database_and_serverless_api` (1/1) with the previously approved AWS provider 6.66.0. |
-| Home lab and AWS | Not run | Live origin and account access were not supplied. After deployment of the merged build, the workspace operator runs `verify-docs.sh <origin> --expect-sign-in` and the live steps on each origin, including home-lab Keycloak and AWS Entra sign-in. Record the date, operator, deployment revision and step outcomes here. |
 
 Local acceptance passed. The approved executable rerun included Compose smoke and replay,
 the Swagger browser suite for both roles, pinned-SDK contract checks, the database-backed suite,
-Node tests, home-lab configuration, and Terraform fixtures. Deployed walkthroughs and executable
-checks are **not run**. The home-lab configuration and Terraform results above validate the
-repository fixtures.
+Node tests, home-lab configuration, and Terraform fixtures.
 
 | Behaviour | Local walkthrough result | Executable result |
 | --- | --- | --- |
@@ -144,3 +141,39 @@ repository fixtures.
 | B20 | Pass. Compared the committed contract with the served document and inspected the sign-in addition. | Pass. Served-spec and example tests. |
 | B21 | Pass. Swagger and web UI session responses and token audience and role claims matched for both reader and manager. | Pass. Browser session checks and fixture identity, configuration and Terraform tests. |
 | B22 | Pass. Triggered 400, 401 and 403 from the docs UI. | Pass. Browser checks and .NET refusal tests, including missing, invalid and expired 401 cases. |
+
+## Deployed acceptance
+
+| Environment | Date and operator | Running revision | Walkthrough | Executable check | Evidence or blocker |
+| --- | --- | --- | --- | --- | --- | --- |
+| Home lab (Keycloak) | 19 November 2026, Jamie and Codex | `90e061fd63e0325960a530739123faa786323a5a` | Pass | Pass | The [image publication](https://github.com/jamiemitchellconsultants/division-ontology/actions/runs/44581759823) succeeded on this commit. Installer evidence reported this running revision, healthy containers and HTTPS reachability. Git ancestry confirms that the revision contains build PR #112. See the home-lab walkthrough below. |
+| AWS CloudFront (Entra) | 19 November 2026, Codex | Unverified | Not run | Not run | The workspace operator deferred AWS acceptance to [#115](https://github.com/jamiemitchellconsultants/division-ontology/issues/115). |
+
+### Home-lab walkthrough
+
+On 19 November 2026 at `https://division.tqaentry.com`, Jamie performed the Keycloak sign-ins and
+operator checks. Codex ran the executable checks and exercised the Swagger operations in Chrome.
+Initial preflight found no running workspace. The recovered 9 November installer record was for
+`b2bfdb5`, which predates PR #112. After deploying `90e061f`, authenticated inventory initially
+returned `503 snapshotUnavailable`. Staging the previous bundle returned `invalidBundle` because
+an object was missing. Jamie built, uploaded and activated a fresh synthetic fixture with manifest
+`e568a58b8798120472f133d3cc440dbd6f31f333eab8a1a7e9ce7eabc2498d44`. The live inventory response
+reported that snapshot. Jamie approved its synthetic Ecommerce Order concept for the annotation.
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Executable deployment probe (B14–B15, B18–B19) | Pass | `deploy/workspace/verify-docs.sh https://division.tqaentry.com --expect-sign-in` exited 0 and printed `Docs verified at https://division.tqaentry.com.` It verified the OpenAPI 3.1 JSON, sign-in URL, Swagger index, OAuth callback asset and anonymous inventory refusal. |
+| Served contract and public configuration (B1–B2, B4, B14, B20) | Pass | After removing only `workspaceSignIn` and its operation requirements, the live JSON equalled the contract committed at the running revision. Neither document declared `servers`. The OAuth endpoints matched the web UI's public Keycloak configuration. Swagger sent the inventory request to the docs origin. |
+| Anonymous docs, web UI and readiness (B15, B18–B19) | Pass | `/api/docs` redirected to the Swagger index and loaded without sign-in. The spec and workspace root returned 200. The direct API container health probe returned `{"status":"ready"}`. Anonymous inventory returned 401 `authenticationRequired` in Swagger and through a direct request. |
+| Keycloak registration and Swagger sign-in (B9, B17) | Pass after retry | Jamie saved the exact docs redirect URI on `workspace-spa`. The live Swagger initializer enabled public-client PKCE, the served bundle supplied `S256`, and the authorization dialog displayed no client-secret prompt. Reader, manager and roleless sign-ins returned usable tokens. The first manager exchange returned `400 invalid_grant` and the session endpoint returned 401. A fresh Swagger tab completed the manager sign-in and returned 200 from the session endpoint. |
+| Reader access and direct comparison (B10) | Pass | The reader session returned 200 with `canRead: true` and `canManage: false`. Swagger and a direct request using its bearer each returned 200 for `/api/inventory?limit=1` with identical payloads. The synthetic Ecommerce Order detail returned 200. |
+| Manager contribution and attribution (B11) | Pass | Swagger creation returned 201 and a history location for `a8c191c1-9924-44c8-ba15-31b4c3b964a4`, at position 2. History returned 200 and matched the ID, annotation text, journal position and the signed-in manager's issuer and subject. |
+| Reader and roleless refusals (B12) | Pass | The reader's creation request returned 403 `roleRequired` and its unique test text was absent from recent history. The roleless token had the workspace API audience and no workspace roles. Session, inventory and annotation creation each returned 403 `roleRequired`. Anonymous API health still returned ready. |
+| Expiry, logout and reauthorization (B13) | Pass | Swagger sent an actually expired reader token after the 30-second clock allowance and received 401 `authenticationRequired`. Swagger logout removed the bearer header and the next inventory call returned the same 401 problem fields. Reauthorization in the same tab restored inventory to 200. |
+| Swagger and web UI identity (B21) | Pass | For each signed-in reader and manager, both clients reported the same audience list (`account`, `workspace-api`), workspace role and session capabilities. Both could read, and the manager session alone reported `canManage: true`. |
+| Problem details (B22) | Pass | A malformed manager annotation returned 400 `unreadableRequest`. The observed 400, 401 and 403 bodies matched the fixed status, title and code. Missing, deliberately invalid and expired credentials returned matching 401 problem fields and the `WWW-Authenticate: Bearer` challenge. |
+
+The approved local and CI evidence above covers build-time regeneration, drift, completeness
+and the initialized division copy. The deployed acceptance criterion on
+[#105](https://github.com/jamiemitchellconsultants/division-ontology/issues/105) remains open
+until AWS acceptance also passes.
