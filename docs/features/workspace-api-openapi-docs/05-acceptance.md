@@ -121,13 +121,10 @@ and [build handoff](https://github.com/jamiemitchellconsultants/division-ontolog
 | Local SDK 10.0.402 contract checks | Pass | The approved rerun passed locked restore, both API builds with and without deployment-shaped settings, byte-for-byte spec comparisons and all 98 OpenAPI tests. The earlier isolated Linux run also passed. |
 | GitHub `api-contract` | Pass | The [amended PR check](https://github.com/jamiemitchellconsultants/division-ontology/actions/runs/44555102724/job/135668940686) selected SDK 10.0.402 at the repository root and passed locked restore, both spec builds, drift, and all 98 OpenAPI tests. [CI on the merge commit](https://github.com/jamiemitchellconsultants/division-ontology/actions/runs/44558564863) also passed. |
 | Terraform validation and fixtures | Pass | The approved rerun passed formatting, validation and `private_database_and_serverless_api` (1/1) with the previously approved AWS provider 6.66.0. |
-| Home lab and AWS | Not run | Live origin and account access were not supplied. After deployment of the merged build, the workspace operator runs `verify-docs.sh <origin> --expect-sign-in` and the live steps on each origin, including home-lab Keycloak and AWS Entra sign-in. Record the date, operator, deployment revision and step outcomes here. |
 
 Local acceptance passed. The approved executable rerun included Compose smoke and replay,
 the Swagger browser suite for both roles, pinned-SDK contract checks, the database-backed suite,
-Node tests, home-lab configuration, and Terraform fixtures. Deployed walkthroughs and executable
-checks are **not run**. The home-lab configuration and Terraform results above validate the
-repository fixtures.
+Node tests, home-lab configuration, and Terraform fixtures.
 
 | Behaviour | Local walkthrough result | Executable result |
 | --- | --- | --- |
@@ -144,3 +141,14 @@ repository fixtures.
 | B20 | Pass. Compared the committed contract with the served document and inspected the sign-in addition. | Pass. Served-spec and example tests. |
 | B21 | Pass. Swagger and web UI session responses and token audience and role claims matched for both reader and manager. | Pass. Browser session checks and fixture identity, configuration and Terraform tests. |
 | B22 | Pass. Triggered 400, 401 and 403 from the docs UI. | Pass. Browser checks and .NET refusal tests, including missing, invalid and expired 401 cases. |
+
+## Deployed acceptance
+
+| Environment | Date and operator | Running revision | Walkthrough | Executable check | Evidence or blocker |
+| --- | --- | --- | --- | --- | --- | --- |
+| Home lab (Keycloak) | 19 November 2026, Codex | Unverified | Not run | Not run | The latest successful [workspace image publication](https://github.com/jamiemitchellconsultants/division-ontology/actions/runs/42645737385) used `b2bfdb5`, which predates build PR #112. The running API image still needs to be verified. The workspace operator will sign in interactively and confirm the test entity for the annotation. |
+| AWS CloudFront (Entra) | 19 November 2026, Codex | Unverified | Not run | Not run | The workspace operator deferred AWS acceptance to [#115](https://github.com/jamiemitchellconsultants/division-ontology/issues/115). |
+
+The home-lab configuration and Terraform results above validate the repository fixtures. The
+deployed acceptance criterion on [#105](https://github.com/jamiemitchellconsultants/division-ontology/issues/105)
+remains open until both live environments pass.
