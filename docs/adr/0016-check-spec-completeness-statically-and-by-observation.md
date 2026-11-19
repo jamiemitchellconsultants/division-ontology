@@ -1,6 +1,6 @@
 # 0016 — Check spec completeness statically and against observed responses
 
-- **Status:** accepted
+- **Status:** accepted; amended by [ADR 0018](0018-give-refusals-fixed-problem-details-bodies.md) (400, 401 and 403 as problem details; statuses before operation selection)
 - **Date:** 2026-11-19
 - **Feature:** #105 (docs/features/workspace-api-openapi-docs/)
 

@@ -1,6 +1,6 @@
 # 0015 — Sign in from the docs UI with the web UI's client and discovered endpoints
 
-- **Status:** accepted
+- **Status:** accepted; amended by [ADR 0017](0017-serve-the-spec-without-a-server-address.md) (no server address in the served spec)
 - **Date:** 2026-11-19
 - **Feature:** #105 (docs/features/workspace-api-openapi-docs/)
 
