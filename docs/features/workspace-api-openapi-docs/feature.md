@@ -61,7 +61,7 @@ The existing roles still decide what anyone can do through the API. A signed-in 
 
 ## Analyst — behaviours
 
-**Status:** Accepted by the user on 19 November 2026. Amended on 19 November 2026 after developer pushback: B2, B3, B12, B13 and B19 are regenerated, B22 is new, U6 is revised, and U15 and U16 are new.
+**Status:** Accepted by the user on 19 November 2026. Amended on 19 November 2026 after developer pushback: B2, B3, B12, B13 and B19 are regenerated, B22 is new, U6 is revised, and U15 and U16 are new. Amended again after architect pushback: B2, B14 and B20 are reworded, and U17 is new.
 
 **Basis:** the accepted product-owner vision above, the product-owner handoff on #105, and the analyst decisions recorded with the user. The outcome numbers match the vision. The scenarios describe observable behaviour. Components, products, paths and deployment details are left to the architect.
 
@@ -76,7 +76,7 @@ The existing roles still decide what anyone can do through the API. A signed-in 
   - 403 for a token without the required role;
   - whichever of 404, 409, 422 and 503 apply.
 
-  Each is described as a problem-details response carrying its `code`. The codes are `unreadableRequest` for 400, `authenticationRequired` for 401 and `roleRequired` for 403. The other statuses carry the workspace error codes that the operation can raise. A 409 version conflict also describes the `current` record it returns. A generic 500 is described once for all operations.
+  Each is described as a problem-details response carrying its `code`. The codes are `unreadableRequest` for 400, `authenticationRequired` for 401 and `roleRequired` for 403. The other statuses carry the workspace error codes that the operation can raise. A 409 version conflict also describes the `current` record it returns. A generic 500 is described once for all operations. Responses the API gives before any operation is chosen (404 for an unknown path, 405 for a wrong method, 413 for an oversized body and 415 for a body that is not JSON) are not statuses of an operation. The spec states each operation's method, path and media type instead.
 - **B3 — The completeness check fails on gaps.** **Given** a change that maps a new operation, or leaves an operation without a summary, required role, request or response schema, or any status it can return (including 400 where the operation has a body or parameters), **when** the automated tests run, **then** the completeness check fails and names each operation and what it is missing. **Given** a spec that describes every mapped operation fully, **then** the check passes.
 - **B22 — Every error has the same shape.** **Given** a request that the API refuses with 400, 401 or 403, **then** the response is problem details with its `status`, a fixed `title` and its `code`, as follows:
 
@@ -103,7 +103,7 @@ The existing roles still decide what anyone can do through the API. A signed-in 
 - **B11 — A contributor can run a contribution command.** **Given** a user signed in with `ManageKnowledgeGraph`, **when** they run a contribution command, for example creating a `KnowledgeAnnotation`, **then** the change is saved against the deployment's real data, attributed to that user, recorded as a `KnowledgeContributionChange`, and visible in history, exactly as if the web UI had made it. There is no separate trial mode.
 - **B12 — A missing role is refused.** **Given** a user signed in with `ReadKnowledgeGraph` only, **when** they run a contribution command, **then** the docs UI shows the API's 403 response, with code `roleRequired`, and nothing is saved. **Given** a signed-in user with no workspace role, **when** they run any operation except the health check, **then** the docs UI shows a 403 response with code `roleRequired`.
 - **B13 — Expired and signed-out sessions.** **Given** a user whose docs UI token has expired, **when** they run an operation, **then** the docs UI shows the API's 401 response, with code `authenticationRequired`, and the user can sign in again without leaving the page. **When** a user signs out of the docs UI, **then** the docs UI stops sending their token, and later data calls are refused with 401.
-- **B14 — The served spec adds only sign-in details.** **Given** a deployment, **when** its spec is fetched, **then** it is the committed contract plus that deployment's server address and its identity provider's sign-in details, and nothing else. Comparing it with the committed file shows no other difference.
+- **B14 — The served spec adds only sign-in details.** **Given** a deployment, **when** its spec is fetched, **then** it is the committed contract plus that deployment's identity-provider sign-in details, and nothing else. It names no server address, so a client calls the origin it fetched the spec from. Comparing it with the committed file shows no other difference.
 
 #### Outcome 4 — It works wherever the workspace is deployed
 
@@ -115,7 +115,7 @@ The existing roles still decide what anyone can do through the API. A signed-in 
 
 - **B18 — Anonymous visitors can read the docs.** **Given** a visitor who has not signed in, **when** they fetch the spec or open the docs UI, **then** both are returned without a sign-in prompt.
 - **B19 — Anonymous data calls are refused.** **Given** a visitor who has not signed in, **when** they run any operation except the health check, from the docs UI or directly, **then** the API refuses it with 401, as it does today. The response is the `authenticationRequired` problem details of B22.
-- **B20 — The served spec reveals nothing private.** **Given** a deployment's served spec, **then** it contains no secret, database or storage detail, or catalog content. The only deployment values it includes are the server address and the identity provider's public sign-in details, which are already served to the web UI.
+- **B20 — The served spec reveals nothing private.** **Given** a deployment's served spec, **then** it contains no secret, database or storage detail, or catalog content. The only deployment values it includes are the identity provider's public sign-in details, which are already served to the web UI.
 - **B21 — The docs UI grants nothing beyond the user's roles.** **Given** a user signed in through the docs UI, **then** their token has the same audience, and is checked against the same roles, as a token issued to the web UI. Signing in through the docs UI never grants any capability that the user's roles do not grant.
 
 ### Uncertainties
@@ -138,6 +138,7 @@ The existing roles still decide what anyone can do through the API. A signed-in 
 | U14 | Does this feature add domain terms to the ontology? | No. It describes the existing API and introduces no division knowledge concept. The existing terms `KnowledgeAnnotation` and `KnowledgeContributionChange` and the role names are used unchanged. | Analyst decision; see Terms. |
 | U15 | Does the Blazor web UI need changing when 400, 401 and 403 gain a body? | No. It already reads a problem body from any error and handles 401 by its status alone. For 403 and 400, it will show the API's `title` in place of "Workspace request failed (403)." This needs no web UI code change. | Analyst check of `WorkspaceClient.cs` and `ApiError.razor`, following the product-owner handoff. |
 | U16 | Which codes and titles do 400, 401 and 403 carry? | `unreadableRequest`, `authenticationRequired` and `roleRequired`, with the fixed titles in B22. | Decided by the user. |
+| U17 | Does the served spec name a server address? Which statuses count as an operation's? | No server address. The served spec adds sign-in details only, and clients call the origin they fetched it from (B14, B20). Responses given before an operation is chosen (404 unknown path, 405, 413, 415) are not operation statuses (B2). | Decided by the user, following the architect's pushback; ADRs 0017 and 0018. |
 
 ### Terms
 
