@@ -31,9 +31,10 @@ async function signIn(page, role) {
     clientSecretPrompt = true;
     console.log(`B9 FAIL (${role}): Swagger shows a client_secret field for PKCE. Continuing with it blank.`);
   }
-  const popupPending = page.waitForEvent('popup');
-  await oauth.getByRole('button', { name: 'Authorize', exact: true }).click();
-  const popup = await popupPending;
+  const [popup] = await Promise.all([
+    page.waitForEvent('popup'),
+    oauth.getByRole('button', { name: 'Apply given OAuth2 credentials' }).click()
+  ]);
   await popup.locator('#username').fill(`workspace-${role}`);
   const authorize = new URL(popup.url());
   assert.equal(authorize.origin, origin);
@@ -44,7 +45,7 @@ async function signIn(page, role) {
   assert.equal(authorize.searchParams.get('redirect_uri'), origin + '/api/docs/oauth2-redirect.html');
   await popup.locator('#password').fill(password);
   await popup.locator('#kc-login').click();
-  await oauth.getByRole('button', { name: 'Logout', exact: true }).waitFor();
+  await oauth.locator('button').filter({ hasText: /^Logout$/ }).waitFor();
   await oauth.getByRole('button', { name: 'Close', exact: true }).click();
   console.log(`B9 (${role}): Keycloak PKCE round trip returned to Swagger authorized.`);
 }
@@ -83,10 +84,12 @@ async function problem(response, status, code) {
 try {
   const reader = await docsPage();
   await problem(await execute(reader, 'GET', inventory), 401, 'authenticationRequired');
-  assert.equal((await reader.request.get(origin + '/api/health')).status(), 200);
-  console.log('B18/B19 PASS: opened docs anonymously, read was refused, and health returned 200.');
+  console.log('B18/B19 PASS: opened docs anonymously and the read was refused.');
 
   await signIn(reader, 'reader');
+  const readerSession = await execute(reader, 'GET', '/api/session');
+  assert.equal(readerSession.status(), 200);
+  assert.deepEqual(await readerSession.json(), { canRead: true, canManage: false });
   const read = await execute(reader, 'GET', inventory, { parameters: { limit: '1' } });
   assert.equal(read.status(), 200);
   const data = await read.json();
@@ -107,8 +110,10 @@ try {
   const managerAuthorization = await session.request().headerValue('authorization');
   const encodedClaims = managerAuthorization?.split('.')[1];
   assert.ok(encodedClaims);
-  const { iss: issuer, sub: subject } = JSON.parse(Buffer.from(encodedClaims, 'base64url'));
+  const { iss: issuer, sub: subject, aud: audience } = JSON.parse(Buffer.from(encodedClaims, 'base64url'));
   assert.ok(issuer && subject);
+  assert.ok([audience].flat().includes('workspace-api'), 'Swagger uses the workspace API audience.');
+  console.log('B21 PASS (browser): the token has the workspace audience and the sessions report the expected roles.');
   const text = `Swagger acceptance fixture ${randomUUID()}`;
   const annotation = { target, category: 'businessExplanation', text };
   await problem(await execute(manager, 'POST', annotations, { body: '{' }), 400, 'unreadableRequest');
@@ -140,12 +145,17 @@ try {
 
   await reader.getByRole('button', { name: 'Authorize', exact: true }).first().click();
   const oauth = reader.locator('.auth-container').filter({ hasText: 'workspaceSignIn' });
-  await oauth.getByRole('button', { name: 'Logout', exact: true }).click();
+  await oauth.locator('button').filter({ hasText: /^Logout$/ }).click();
   await oauth.getByRole('button', { name: 'Close', exact: true }).click();
   const afterLogout = await execute(reader, 'GET', inventory);
   await problem(afterLogout, 401, 'authenticationRequired');
-  assert.equal(await afterLogout.request().headerValue('authorization'), null);
+  assert.ok(!(await afterLogout.request().headerValue('authorization')), 'Logout drops the bearer header.');
   console.log('B13 PASS (logout): Swagger stopped sending the token and the read returned 401.');
+
+  await reader.context().clearCookies();
+  await signIn(reader, 'reader');
+  assert.equal((await execute(reader, 'GET', inventory)).status(), 200);
+  console.log('B13 PASS (reauthorization): sign-in restored access in the same Swagger page.');
 
   if (clientSecretPrompt) process.exitCode = 1;
 } finally {

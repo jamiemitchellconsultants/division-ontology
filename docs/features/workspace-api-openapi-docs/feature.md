@@ -276,8 +276,10 @@ their environments. The public setup uses authorization code with PKCE.
 #### Operate
 
 On the deployed origin, open `/api/docs` and fetch `/api/openapi/v1.json` without signing in.
-Check that `/api/health` returns 200 and the web UI still loads at `/`. With curl and jq installed,
-run the anonymous deployment check, supplying the base origin with its scheme and optional port.
+Check that the web UI still loads at `/`. In Compose, check that the API container is healthy.
+Its health probe calls `GET /health` directly on the API container. Use the existing deployment's
+readiness check for AWS. With curl and jq installed, run the anonymous docs check, supplying the
+base origin with its scheme and optional port.
 
 ```bash
 deploy/workspace/verify-docs.sh <origin> [--expect-sign-in]
@@ -291,9 +293,10 @@ A passing run prints `Docs verified at <origin>.` Run the browser steps in
 
 To regenerate the committed contract, use the SDK pinned in
 [`runtime/global.json`](../../../runtime/global.json) from the repository root. No running
-workspace or provider credentials are needed.
+workspace or provider credentials are needed. Check the selected SDK before building.
 
 ```bash
+dotnet --version
 dotnet build runtime/RuntimeKnowledge.Api
 git diff -- runtime/openapi/workspace-api.json
 ```
@@ -346,7 +349,8 @@ operation's listed method, URL and media type when sending HTTP requests directl
 
 1. Open `/api/docs` and choose **Authorize**. In the `workspaceSignIn` section select the
    configured API scope if shown, then choose **Authorize**. Use your workspace account on
-   the Keycloak or Entra page. The public client uses PKCE and needs no client secret.
+   the Keycloak or Entra page. The public client uses PKCE. Leave the client secret field blank
+   if Swagger shows it.
 2. Return to the docs and close the authorization dialog. Expand `GET /api/inventory`, choose
    **Try it out**, optionally set `limit`, then choose **Execute**. A reader or manager should
    see 200 and the workspace inventory. `GET /api/session` shows the signed-in account's access.
