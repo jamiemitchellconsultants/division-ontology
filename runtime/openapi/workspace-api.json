@@ -1,79 +1,247 @@
 {
   "openapi": "3.1.1",
   "info": {
-    "title": "RuntimeKnowledge.Api | v1",
-    "version": "1.0.0"
+    "title": "Runtime knowledge workspace API",
+    "version": "v1"
   },
   "paths": {
-    "/health": {
-      "get": {
+    "/api/contributions/annotations": {
+      "post": {
         "tags": [
           "RuntimeKnowledge.Api"
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAnnotation"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "OK"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/internalError"
           }
-        }
+        },
+        "security": [
+          {
+            "bearer": [ ]
+          }
+        ],
+        "x-workspace-role": "ManageKnowledgeGraph"
       }
     },
-    "/api/session": {
-      "get": {
+    "/api/contributions/relationships": {
+      "post": {
         "tags": [
           "RuntimeKnowledge.Api"
         ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WorkspaceSession"
-                }
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRelationship"
               }
             }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/internalError"
           }
-        }
+        },
+        "security": [
+          {
+            "bearer": [ ]
+          }
+        ],
+        "x-workspace-role": "ManageKnowledgeGraph"
       }
     },
-    "/api/inventory": {
-      "get": {
+    "/api/contributions/{id}": {
+      "put": {
         "tags": [
           "RuntimeKnowledge.Api"
         ],
         "parameters": [
           {
-            "name": "cursor",
-            "in": "query",
+            "name": "id",
+            "in": "path",
+            "required": true,
             "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditContributionRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/InventoryPage"
+                  "$ref": "#/components/schemas/ContributionResult"
                 }
               }
             }
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/internalError"
           }
-        }
+        },
+        "security": [
+          {
+            "bearer": [ ]
+          }
+        ],
+        "x-workspace-role": "ManageKnowledgeGraph"
+      }
+    },
+    "/api/contributions/{id}/codifications": {
+      "post": {
+        "tags": [
+          "RuntimeKnowledge.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CodificationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContributionResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/internalError"
+          }
+        },
+        "security": [
+          {
+            "bearer": [ ]
+          }
+        ],
+        "x-workspace-role": "ManageKnowledgeGraph"
+      }
+    },
+    "/api/contributions/{id}/remove": {
+      "post": {
+        "tags": [
+          "RuntimeKnowledge.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemoveContributionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContributionResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/internalError"
+          }
+        },
+        "security": [
+          {
+            "bearer": [ ]
+          }
+        ],
+        "x-workspace-role": "ManageKnowledgeGraph"
       }
     },
     "/api/entities/detail": {
@@ -101,95 +269,23 @@
                 }
               }
             }
-          }
-        }
-      }
-    },
-    "/api/relationships/detail": {
-      "post": {
-        "tags": [
-          "RuntimeKnowledge.Api"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RelationshipDetailRequest"
-              }
-            }
           },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RelationshipDetail"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/search": {
-      "post": {
-        "tags": [
-          "RuntimeKnowledge.Api"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SearchRequest"
-              }
-            }
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
           },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SearchResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/traverse": {
-      "post": {
-        "tags": [
-          "RuntimeKnowledge.Api"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TraversalRequest"
-              }
-            }
+          "403": {
+            "$ref": "#/components/responses/forbidden"
           },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TraversalResult"
-                }
-              }
-            }
+          "500": {
+            "$ref": "#/components/responses/internalError"
           }
-        }
+        },
+        "security": [
+          {
+            "bearer": [ ]
+          }
+        ],
+        "x-workspace-role": "ReadKnowledgeGraph"
       }
     },
     "/api/history": {
@@ -236,11 +332,81 @@
                 }
               }
             }
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/internalError"
           }
-        }
+        },
+        "security": [
+          {
+            "bearer": [ ]
+          }
+        ],
+        "x-workspace-role": "ReadKnowledgeGraph"
       }
     },
-    "/api/contributions/annotations": {
+    "/api/inventory": {
+      "get": {
+        "tags": [
+          "RuntimeKnowledge.Api"
+        ],
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/internalError"
+          }
+        },
+        "security": [
+          {
+            "bearer": [ ]
+          }
+        ],
+        "x-workspace-role": "ReadKnowledgeGraph"
+      }
+    },
+    "/api/relationships/detail": {
       "post": {
         "tags": [
           "RuntimeKnowledge.Api"
@@ -249,159 +415,178 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateAnnotation"
+                "$ref": "#/components/schemas/RelationshipDetailRequest"
               }
             }
           },
           "required": true
         },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelationshipDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/internalError"
+          }
+        },
+        "security": [
+          {
+            "bearer": [ ]
+          }
+        ],
+        "x-workspace-role": "ReadKnowledgeGraph"
+      }
+    },
+    "/api/search": {
+      "post": {
+        "tags": [
+          "RuntimeKnowledge.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/internalError"
+          }
+        },
+        "security": [
+          {
+            "bearer": [ ]
+          }
+        ],
+        "x-workspace-role": "ReadKnowledgeGraph"
+      }
+    },
+    "/api/session": {
+      "get": {
+        "tags": [
+          "RuntimeKnowledge.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceSession"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/internalError"
+          }
+        },
+        "security": [
+          {
+            "bearer": [ ]
+          }
+        ],
+        "x-workspace-role": "ReadKnowledgeGraph"
+      }
+    },
+    "/api/traverse": {
+      "post": {
+        "tags": [
+          "RuntimeKnowledge.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TraversalRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TraversalResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/internalError"
+          }
+        },
+        "security": [
+          {
+            "bearer": [ ]
+          }
+        ],
+        "x-workspace-role": "ReadKnowledgeGraph"
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "RuntimeKnowledge.Api"
+        ],
         "responses": {
           "200": {
             "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/contributions/relationships": {
-      "post": {
-        "tags": [
-          "RuntimeKnowledge.Api"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateRelationship"
-              }
-            }
           },
-          "required": true
+          "500": {
+            "$ref": "#/components/responses/internalError"
+          }
         },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/contributions/{id}": {
-      "put": {
-        "tags": [
-          "RuntimeKnowledge.Api"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/EditContributionRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ContributionResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/contributions/{id}/remove": {
-      "post": {
-        "tags": [
-          "RuntimeKnowledge.Api"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RemoveContributionRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ContributionResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/contributions/{id}/codifications": {
-      "post": {
-        "tags": [
-          "RuntimeKnowledge.Api"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CodificationRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ContributionResult"
-                }
-              }
-            }
-          }
-        }
+        "security": [ ],
+        "x-workspace-role": "none"
       }
     }
   },
@@ -884,6 +1069,34 @@
             "items": {
               "$ref": "#/components/schemas/PublishedEdge"
             }
+          }
+        }
+      },
+      "Problem": {
+        "required": [
+          "status",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "instance": {
+            "type": "string"
+          },
+          "traceId": {
+            "type": "string"
           }
         }
       },
@@ -1558,6 +1771,38 @@
           }
         }
       },
+      "WorkspaceProblem": {
+        "required": [
+          "status",
+          "title",
+          "code"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "instance": {
+            "type": "string"
+          },
+          "traceId": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          }
+        }
+      },
       "WorkspaceSession": {
         "required": [
           "canRead",
@@ -1572,6 +1817,60 @@
             "type": "boolean"
           }
         }
+      }
+    },
+    "responses": {
+      "forbidden": {
+        "description": "Your account does not have the role this operation needs. Code: roleRequired",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/WorkspaceProblem"
+            }
+          }
+        },
+        "x-workspace-codes": [
+          "roleRequired"
+        ]
+      },
+      "internalError": {
+        "description": "The workspace could not complete the request.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        }
+      },
+      "unauthorized": {
+        "description": "Sign in to use the workspace API. Code: authenticationRequired",
+        "headers": {
+          "WWW-Authenticate": {
+            "description": "Bearer",
+            "schema": {
+              "type": "string"
+            }
+          }
+        },
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/WorkspaceProblem"
+            }
+          }
+        },
+        "x-workspace-codes": [
+          "authenticationRequired"
+        ]
+      }
+    },
+    "securitySchemes": {
+      "bearer": {
+        "type": "http",
+        "description": "An access token from the deployment's identity provider, with the workspace API audience.",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
       }
     }
   },
