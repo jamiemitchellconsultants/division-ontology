@@ -24,6 +24,9 @@
           "200": {
             "description": "OK"
           },
+          "400": {
+            "$ref": "#/components/responses/unreadableRequest"
+          },
           "401": {
             "$ref": "#/components/responses/unauthorized"
           },
@@ -60,6 +63,9 @@
         "responses": {
           "200": {
             "description": "OK"
+          },
+          "400": {
+            "$ref": "#/components/responses/unreadableRequest"
           },
           "401": {
             "$ref": "#/components/responses/unauthorized"
@@ -116,6 +122,9 @@
               }
             }
           },
+          "400": {
+            "$ref": "#/components/responses/unreadableRequest"
+          },
           "401": {
             "$ref": "#/components/responses/unauthorized"
           },
@@ -170,6 +179,9 @@
                 }
               }
             }
+          },
+          "400": {
+            "$ref": "#/components/responses/unreadableRequest"
           },
           "401": {
             "$ref": "#/components/responses/unauthorized"
@@ -226,6 +238,9 @@
               }
             }
           },
+          "400": {
+            "$ref": "#/components/responses/unreadableRequest"
+          },
           "401": {
             "$ref": "#/components/responses/unauthorized"
           },
@@ -269,6 +284,9 @@
                 }
               }
             }
+          },
+          "400": {
+            "$ref": "#/components/responses/unreadableRequest"
           },
           "401": {
             "$ref": "#/components/responses/unauthorized"
@@ -333,6 +351,9 @@
               }
             }
           },
+          "400": {
+            "$ref": "#/components/responses/unreadableRequest"
+          },
           "401": {
             "$ref": "#/components/responses/unauthorized"
           },
@@ -388,14 +409,57 @@
               }
             }
           },
+          "400": {
+            "$ref": "#/components/responses/unreadableRequest"
+          },
           "401": {
             "$ref": "#/components/responses/unauthorized"
           },
           "403": {
             "$ref": "#/components/responses/forbidden"
           },
+          "409": {
+            "description": "Conflict. Codes: staleCursor",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "staleCursor"
+            ]
+          },
+          "422": {
+            "description": "Unprocessable Entity. Codes: invalidCursor, invalidLimit",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "invalidCursor",
+              "invalidLimit"
+            ]
+          },
           "500": {
             "$ref": "#/components/responses/internalError"
+          },
+          "503": {
+            "description": "Service Unavailable. Codes: snapshotUnavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "snapshotUnavailable"
+            ]
           }
         },
         "security": [
@@ -431,6 +495,9 @@
                 }
               }
             }
+          },
+          "400": {
+            "$ref": "#/components/responses/unreadableRequest"
           },
           "401": {
             "$ref": "#/components/responses/unauthorized"
@@ -475,6 +542,9 @@
                 }
               }
             }
+          },
+          "400": {
+            "$ref": "#/components/responses/unreadableRequest"
           },
           "401": {
             "$ref": "#/components/responses/unauthorized"
@@ -553,6 +623,9 @@
                 }
               }
             }
+          },
+          "400": {
+            "$ref": "#/components/responses/unreadableRequest"
           },
           "401": {
             "$ref": "#/components/responses/unauthorized"
@@ -1771,6 +1844,41 @@
           }
         }
       },
+      "WorkspaceConflictProblem": {
+        "required": [
+          "status",
+          "title",
+          "code"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "instance": {
+            "type": "string"
+          },
+          "traceId": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "current": {
+            "$ref": "#/components/schemas/RuntimeContribution"
+          }
+        }
+      },
       "WorkspaceProblem": {
         "required": [
           "status",
@@ -1862,6 +1970,19 @@
         },
         "x-workspace-codes": [
           "authenticationRequired"
+        ]
+      },
+      "unreadableRequest": {
+        "description": "The request body or parameters could not be read. Code: unreadableRequest",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/WorkspaceProblem"
+            }
+          }
+        },
+        "x-workspace-codes": [
+          "unreadableRequest"
         ]
       }
     },

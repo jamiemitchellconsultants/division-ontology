@@ -35,15 +35,18 @@ internal static class ProblemResponses
             return Results.Problem(statusCode: StatusCodes.Status500InternalServerError,
                 title: "The workspace could not complete the request.").ExecuteAsync(context);
 
-        var status = problem.Code switch
-        {
-            "entityNotFound" or "relationshipNotFound" or "contributionNotFound" => StatusCodes.Status404NotFound,
-            "versionConflict" or "staleCursor" => StatusCodes.Status409Conflict,
-            "snapshotUnavailable" or "writesPaused" or "searchUnavailable" => StatusCodes.Status503ServiceUnavailable,
-            _ => StatusCodes.Status422UnprocessableEntity
-        };
+        var status = StatusFor(problem.Code);
         var fields = new Dictionary<string, object?> { ["code"] = problem.Code };
         if (problem.Current is not null) fields["current"] = problem.Current;
         return Results.Problem(statusCode: status, title: problem.Message, extensions: fields).ExecuteAsync(context);
     }
+
+    /// <summary>The single map from a workspace error code to its status. The spec derives its statuses from it.</summary>
+    public static int StatusFor(string code) => code switch
+    {
+        "entityNotFound" or "relationshipNotFound" or "contributionNotFound" => StatusCodes.Status404NotFound,
+        "versionConflict" or "staleCursor" => StatusCodes.Status409Conflict,
+        "snapshotUnavailable" or "writesPaused" or "searchUnavailable" => StatusCodes.Status503ServiceUnavailable,
+        _ => StatusCodes.Status422UnprocessableEntity
+    };
 }

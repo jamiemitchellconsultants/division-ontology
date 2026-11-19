@@ -11,7 +11,8 @@ internal static class WorkspaceRoutes
         var api = app.MapGroup("/api").RequireAuthorization(Identity.ReadPolicy);
         api.MapGet("/session", (ClaimsPrincipal user) => Identity.GetSession(user));
         api.MapGet("/inventory", (string? cursor, int? limit, GraphQueries graph, CancellationToken token) =>
-            graph.InventoryAsync(new PageRequest(cursor, limit ?? 50), token));
+            graph.InventoryAsync(new PageRequest(cursor, limit ?? 50), token))
+            .ProducesWorkspaceErrors("invalidLimit", "invalidCursor", "staleCursor", "snapshotUnavailable");
         api.MapPost("/entities/detail", (EntityDetailRequest request, GraphQueries graph, CancellationToken token) =>
             graph.EntityDetailAsync(request.Key, token));
         api.MapPost("/relationships/detail", (RelationshipDetailRequest request, GraphQueries graph, CancellationToken token) =>

@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.OpenApi;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.OpenApi;
 
 namespace RuntimeKnowledge.Api;
@@ -51,8 +52,32 @@ internal static class WorkspaceOpenApi
             operation.Responses["403"] = new OpenApiResponseReference("forbidden", document);
         }
         operation.Responses["500"] = new OpenApiResponseReference("internalError", document);
+
+        var codes = context.Description.ActionDescriptor.EndpointMetadata.OfType<WorkspaceErrorCodes>().SelectMany(c => c.Codes);
+        foreach (var group in codes.Distinct().GroupBy(ProblemResponses.StatusFor))
+        {
+            var sorted = group.Order(StringComparer.Ordinal).ToArray();
+            operation.Responses[group.Key.ToString()] = new OpenApiResponse
+            {
+                Description = $"{ReasonPhrases.GetReasonPhrase(group.Key)}. Codes: {string.Join(", ", sorted)}",
+                Content = new Dictionary<string, OpenApiMediaType>
+                {
+                    [ProblemJson] = new() { Schema = new OpenApiSchemaReference(ProblemSchemaFor(sorted), document) }
+                },
+                Extensions = new Dictionary<string, IOpenApiExtension>
+                {
+                    [CodesExtension] = new JsonNodeExtension(new JsonArray(sorted.Select(code => (JsonNode)code).ToArray()))
+                }
+            };
+        }
+        if (operation.RequestBody is not null || operation.Parameters is { Count: > 0 })
+            operation.Responses["400"] = new OpenApiResponseReference("unreadableRequest", document);
         return Task.CompletedTask;
     }
+
+    /// <summary>The problem schema for a status's codes: a version conflict also returns the current record.</summary>
+    public static string ProblemSchemaFor(IEnumerable<string> codes) =>
+        codes.Contains("versionConflict") ? "WorkspaceConflictProblem" : "WorkspaceProblem";
 
     private static Task DocumentDescriptions(OpenApiDocument document, OpenApiDocumentTransformerContext context,
         CancellationToken cancellationToken)
@@ -69,8 +94,13 @@ internal static class WorkspaceOpenApi
         };
 
         document.Components.Schemas ??= new Dictionary<string, IOpenApiSchema>();
+        // ProducesProblem metadata makes the framework add ProblemDetails; every such response is replaced above.
+        document.Components.Schemas.Remove("ProblemDetails");
         document.Components.Schemas["Problem"] = ProblemSchema(withCode: false);
         document.Components.Schemas["WorkspaceProblem"] = ProblemSchema(withCode: true);
+        var conflict = ProblemSchema(withCode: true);
+        conflict.Properties!["current"] = new OpenApiSchemaReference("RuntimeContribution", document);
+        document.Components.Schemas["WorkspaceConflictProblem"] = conflict;
 
         document.Components.Responses ??= new Dictionary<string, IOpenApiResponse>();
         var unauthorized = RefusalResponse(document, StatusCodes.Status401Unauthorized);
@@ -84,6 +114,7 @@ internal static class WorkspaceOpenApi
         };
         document.Components.Responses["unauthorized"] = unauthorized;
         document.Components.Responses["forbidden"] = RefusalResponse(document, StatusCodes.Status403Forbidden);
+        document.Components.Responses["unreadableRequest"] = RefusalResponse(document, StatusCodes.Status400BadRequest);
         document.Components.Responses["internalError"] = new OpenApiResponse
         {
             Description = "The workspace could not complete the request.",
