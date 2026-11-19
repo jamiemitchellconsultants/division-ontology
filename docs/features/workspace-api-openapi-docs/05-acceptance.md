@@ -11,6 +11,10 @@ without workspace roles, and a published entity reserved for acceptance. Use a d
 demo or an approved test entity on a deployment. The manager's test creates an attributed change
 in real history. Keep credentials and bearer tokens out of evidence and issue comments.
 
+For local B12, add a disposable Keycloak account with no workspace roles and keep the SPA's API
+audience mapper active. For local B13, use a short access-token lifetime in the disposable realm
+and wait for expiry plus the API's 30-second clock allowance before retrying.
+
 | Step | Behaviour | Action | Expected result |
 | --- | --- | --- | --- |
 | 1 | B1 | Open the spec and compare the method and path list with WorkspaceRoutes and the health route. Expand a paged read, a contribution and the health check. | Every mapped operation has a summary, applicable parameters (including `cursor` and `limit`), schemas and the right role. Health is anonymous. |
@@ -33,7 +37,7 @@ in real history. Keep credentials and bearer tokens out of evidence and issue co
 | 18 | B18 | In a fresh profile open the docs and fetch the spec before signing in. | Both load without any identity provider prompt. |
 | 19 | B19 | Before signing in, execute an inventory read in Swagger and call the same operation with curl. Check the API health probe separately. | Both inventory calls return 401 `authenticationRequired`. Health remains callable. |
 | 20 | B20 | Inspect the served JSON and compare with the public web UI identity settings and the committed document. | The only deployment values are the public sign-in details. There are no credentials, database/storage details or published records. |
-| 21 | B21 | Compare the docs and web UI session details for the same reader and manager. Use the browser request details locally to compare the audience claims without logging bearer tokens. | Both clients use the same API audience. Read and manage capabilities match and the reader's contribution is refused. |
+| 21 | B21 | Sign in to both clients as the same reader and manager. Open an entity in the web UI to trigger `GET /api/session`. Compare its response with the Swagger session and compare the audience and workspace role claims locally without logging bearer tokens. | Both clients use the same API audience. Read and manage capabilities match and the reader's contribution is refused. |
 | 22 | B22 | As manager, send malformed JSON with `application/json` to the annotation operation. Compare its response with the refusals in steps 12, 13 and 19. | Responses carry their original 400, 401 or 403, a fixed title and respectively `unreadableRequest`, `authenticationRequired` or `roleRequired`. A 401 has `WWW-Authenticate: Bearer` and the same problem fields for missing, invalid or expired tokens, with a per-request trace ID. |
 
 ## Executable checks
@@ -92,39 +96,51 @@ history regression coverage. Run the Swagger-specific steps separately.
 
 ## Results
 
-Acceptance operator is Codex on 19 November 2026. The local test command used SDK 10.0.302.
-The isolated Linux reproduction used SDK 10.0.402, the version in `runtime/global.json`.
+Acceptance operator is Codex on 19 November 2026. [Build PR #112](https://github.com/jamiemitchellconsultants/division-ontology/pull/112)
+merged at `a406ecf`. This record includes the amended build and the post-merge local walkthrough at `ec1638c`.
+The workspace operator approved the local executable checks on 19 November 2026. The approved
+rerun used revision `b8bf497`. The initial local .NET runs used SDK 10.0.302. The approved
+rerun and GitHub used the pinned SDK 10.0.402.
+
+The initial Swagger walkthrough exposed a client-secret field (B9). The initial CI job also
+stopped in locked restore with NU1004. The Developer amendment resolved both failures.
+[Initial pushback](https://github.com/jamiemitchellconsultants/division-ontology/issues/105#issuecomment-7013301100)
+and [build handoff](https://github.com/jamiemitchellconsultants/division-ontology/issues/105#issuecomment-7013650898).
 
 | Environment and check | Result | Evidence |
 | --- | --- | --- |
-| Local database-backed .NET suite | Pass | 136 passed, 0 failed, 0 skipped. Includes Docker-free OpenAPI checks, database-backed response conformance, and Keycloak and Entra token fixtures. |
-| Node suite | Pass | `npm test` reported 245 passed, 0 failed, 0 skipped. |
+| Local database-backed .NET suite | Pass | The approved rerun passed 136 tests on SDK 10.0.402, including response conformance and Keycloak and Entra token fixtures. |
+| Node suite | Pass | The approved `npm test` rerun passed 246 tests. |
 | Home-lab configuration | Pass | `home-lab/verify-config.sh` exited 0. |
-| Local Swagger PKCE dialog (B9) | Fail | The reader and manager both completed the Keycloak PKCE round trip with the field blank. Swagger displayed a visible `client_secret` password field before both logins. |
+| Local Swagger PKCE dialog (B9) | Pass | On the amended build, Chrome showed neither the client-secret field nor its label. The reader and manager completed the Keycloak PKCE round trip. |
 | Local Swagger reader and manager (B10–B13, B18–B19, B21–B22) | Pass for the exercised steps | In Chrome at `http://workspace.localhost:18088/api/docs` the reader's inventory matched a direct 200. The manager created an attributed annotation (201) and found it in history. The reader received 403 `roleRequired`, with no matching history change. Swagger sent no bearer header after logout and returned 401 `authenticationRequired`. Reauthorization restored 200 in the same page. An unreadable manager request returned 400 `unreadableRequest`. |
-| Local Compose smoke | Pass | Retried with `PLAYWRIGHT_CHROMIUM_EXECUTABLE` pointing to installed Chrome. The docs check with `--expect-sign-in`, browser and API smoke, persistence and replay all passed. The replay digest matched at journal position 5. |
+| Post-merge local Swagger walkthrough (B12, B13, B21) | Pass | In a disposable Keycloak realm, the roleless account received 403 `roleRequired` on inventory, session and annotation creation. After a 25-second token expired and the 30-second clock allowance elapsed, Swagger sent the expired token and received 401 `authenticationRequired`. Same-page reauthorization restored the read to 200. For reader and manager, Swagger and the web UI matched on account, API audience, workspace role and session capabilities. |
+| Local Compose smoke | Pass | The approved rerun used installed Chrome via `PLAYWRIGHT_CHROMIUM_EXECUTABLE`. The docs check with `--expect-sign-in`, browser and API smoke, persistence and replay all passed. The replay digest matched at journal position 5. |
 | Local served spec and readiness (B14, B15, B20) | Pass | After removing only `workspaceSignIn` and its operation requirements, served and committed JSON matched. The web UI returned 200 and the API container's health returned `{"status":"ready"}`. |
 | Local contract walkthrough (B1–B8) | Pass for local checks | Reviewed all 13 operations and the four synthetic examples. In a disposable checkout the drift step rejected a missing spec and printed the regeneration command. The normal build recreated the identical file, the drift step passed, and the PR carries the file together with its source changes. |
-| Isolated Linux SDK 10.0.402 check | Pass | Locked restore, both API builds (with and without deployment-shaped settings), byte-for-byte spec comparisons and all 98 OpenAPI tests passed in the pinned SDK container. |
-| GitHub `api-contract` | Fail | On [the first PR #112 run](https://github.com/jamiemitchellconsultants/division-ontology/actions/runs/44551136678/job/135654855477), locked restore failed with NU1004 in the Web project. The lock file expects `Microsoft.NET.ILLink.Tasks` 10.0.13 and the runner requested 10.0.15. CI skipped spec generation, drift and completeness. |
-| Terraform validation and fixtures | Pass | `verify-terraform.sh` installed signed AWS provider 6.66.0 with approval. Validation passed and `private_database_and_serverless_api` passed (1/1). |
-| Home lab and AWS | Not run | Live origin and account access were not supplied. After review, merge and deployment, the workspace operator runs `verify-docs.sh <origin> --expect-sign-in` and the live steps on each origin, including home-lab Keycloak and AWS Entra sign-in. Record the date, operator, deployment revision and step outcomes here. |
+| Local SDK 10.0.402 contract checks | Pass | The approved rerun passed locked restore, both API builds with and without deployment-shaped settings, byte-for-byte spec comparisons and all 98 OpenAPI tests. The earlier isolated Linux run also passed. |
+| GitHub `api-contract` | Pass | The [amended PR check](https://github.com/jamiemitchellconsultants/division-ontology/actions/runs/44555102724/job/135668940686) selected SDK 10.0.402 at the repository root and passed locked restore, both spec builds, drift, and all 98 OpenAPI tests. [CI on the merge commit](https://github.com/jamiemitchellconsultants/division-ontology/actions/runs/44558564863) also passed. |
+| Terraform validation and fixtures | Pass | The approved rerun passed formatting, validation and `private_database_and_serverless_api` (1/1) with the previously approved AWS provider 6.66.0. |
+| Home lab and AWS | Not run | Live origin and account access were not supplied. After deployment of the merged build, the workspace operator runs `verify-docs.sh <origin> --expect-sign-in` and the live steps on each origin, including home-lab Keycloak and AWS Entra sign-in. Record the date, operator, deployment revision and step outcomes here. |
 
-All deployed walkthroughs and executable checks are **not run**. The home-lab configuration and
-Terraform results above validate the repository fixtures.
+Local acceptance passed. The approved executable rerun included Compose smoke and replay,
+the Swagger browser suite for both roles, pinned-SDK contract checks, the database-backed suite,
+Node tests, home-lab configuration, and Terraform fixtures. Deployed walkthroughs and executable
+checks are **not run**. The home-lab configuration and Terraform results above validate the
+repository fixtures.
 
 | Behaviour | Local walkthrough result | Executable result |
 | --- | --- | --- |
 | B1–B4 | Pass. Reviewed the route list, roles, response shapes and synthetic examples. | Pass. OpenAPI tests and database-backed conformance. |
-| B5–B8 | Pass locally. Inspected PR #112 and reproduced neutral builds and drift detection in disposable checkouts. | Pass locally on 10.0.302 and in the isolated 10.0.402 container. GitHub `api-contract` failed before these steps. |
-| B9 | Fail. Both accounts completed the OAuth round trip and both saw the secret prompt. | Fail. `verify-docs-browser.mjs` exited 1 for the prompt after continuing the remaining live checks. |
+| B5–B8 | Pass locally. Inspected PR #112 and reproduced neutral builds and drift detection in disposable checkouts. | Pass locally on 10.0.302, in the isolated 10.0.402 container, and in GitHub `api-contract` on the amended build and merge commit. |
+| B9 | Pass. Both accounts completed the OAuth round trip without a client-secret prompt. | Pass. `verify-docs-browser.mjs` exited 0 in the approved rerun. |
 | B10–B11 | Pass. Reader got 200 and manager's 201 was attributed and visible in history. | Pass. The browser steps and the .NET role and contribution tests passed. |
-| B12 | Pass for the reader. A live roleless user was not supplied. | Pass. Browser reader attempt and roleless-token .NET fixture passed. |
-| B13 | Pass for sign-out and same-page reauthorization. Live expiry was not run. | Pass. Browser logout and reauthorization checks and the .NET expiry fixture passed. |
+| B12 | Pass. The reader could not save a contribution and the signed-in roleless account received 403 on protected reads and a contribution. The direct API health probe succeeded. | Pass. Browser reader attempt and roleless-token .NET fixture passed. |
+| B13 | Pass. Sign-out removed the bearer header. An actual expired token returned 401, and same-page reauthorization restored 200. | Pass. Browser logout and reauthorization checks and the .NET expiry fixture passed. |
 | B14–B15 | Pass. Compared served JSON and checked the docs redirect, web UI and readiness. | Pass. Local deployment script, OpenAPI tests and full smoke. |
 | B16 | Pass. Initialized a new division copy, regenerated the same spec and served its docs from a disposable Compose deployment. | Pass. `init-division.test.mjs`, unchanged spec after build, and `verify-docs.sh http://workspace.localhost:18089 --expect-sign-in`. |
 | B17 | Pass locally. Observed the Keycloak callback on both docs logins. | Pass. Node configuration tests, home-lab check, Terraform fixture and actual local sign-ins. |
 | B18–B19 | Pass. Opened docs and attempted a read in an anonymous page. | Pass. Browser, deployment script and .NET checks. |
 | B20 | Pass. Compared the committed contract with the served document and inspected the sign-in addition. | Pass. Served-spec and example tests. |
-| B21 | Pass for the local workspace audience and reader/manager role checks. A side-by-side browser token comparison with the web UI was not run. | Pass. Browser session checks and fixture identity, configuration and Terraform tests. |
+| B21 | Pass. Swagger and web UI session responses and token audience and role claims matched for both reader and manager. | Pass. Browser session checks and fixture identity, configuration and Terraform tests. |
 | B22 | Pass. Triggered 400, 401 and 403 from the docs UI. | Pass. Browser checks and .NET refusal tests, including missing, invalid and expired 401 cases. |

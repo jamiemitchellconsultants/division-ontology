@@ -349,8 +349,7 @@ operation's listed method, URL and media type when sending HTTP requests directl
 
 1. Open `/api/docs` and choose **Authorize**. In the `workspaceSignIn` section select the
    configured API scope if shown, then choose **Authorize**. Use your workspace account on
-   the Keycloak or Entra page. The public client uses PKCE. Leave the client secret field blank
-   if Swagger shows it.
+   the Keycloak or Entra page. The public client uses PKCE and asks for no client secret.
 2. Return to the docs and close the authorization dialog. Expand `GET /api/inventory`, choose
    **Try it out**, optionally set `limit`, then choose **Execute**. A reader or manager should
    see 200 and the workspace inventory. `GET /api/session` shows the signed-in account's access.
