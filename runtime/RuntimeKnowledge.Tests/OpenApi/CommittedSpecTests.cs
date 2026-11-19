@@ -36,7 +36,6 @@ public sealed class CommittedSpecTests
     {
         await using var host = OpenApiHost.Start();
         var served = (JsonObject)await host.SpecAsync();
-        served.Remove("servers"); // request-derived until Task 9 removes it; Task 9 deletes this line
         Assert.True(JsonNode.DeepEquals(OpenApiHost.CommittedSpec(), served), "The build and the running API must generate the same contract.");
     }
 

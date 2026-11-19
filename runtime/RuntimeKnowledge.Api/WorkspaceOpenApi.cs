@@ -22,6 +22,7 @@ internal static class WorkspaceOpenApi
         {
             options.AddOperationTransformer(OperationDescriptions);
             options.AddDocumentTransformer(DocumentDescriptions);
+            options.AddDocumentTransformer<DocsSignIn>();
             options.AddDocumentTransformer(StableOrder); // must stay last
         });
 
