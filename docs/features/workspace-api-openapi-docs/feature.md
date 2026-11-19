@@ -4,7 +4,7 @@
 
 ## Product owner — vision
 
-**Status:** Accepted by the product owner on 19 November 2026.
+**Status:** Accepted by the product owner on 19 November 2026. Amended on 19 November 2026 after analyst pushback.
 
 ### Problem
 
@@ -34,7 +34,7 @@ The existing roles still decide what anyone can do through the API. A signed-in 
 - Signing in from the docs UI through the deployment's configured identity provider, and calling the API with the signed-in user's roles.
 - Open, unauthenticated access to the spec and docs UI in every deployment. The API's shape is not treated as secret.
 - Making the local, home-lab and AWS deployments, and the template that division copies inherit, serve the spec and docs UI.
-- Describing what the API already does. Adding descriptions, examples and response metadata to existing endpoints is in scope. Changing endpoint behaviour is not.
+- Describing what the API already does. Adding descriptions, examples and response metadata to existing endpoints is in scope. Changing endpoint behaviour is not, with one exception: the API's 400, 401 and 403 responses become problem-details responses carrying a `code`, like its other errors, so that every error an integrator receives has the same documented shape. Which requests receive which status does not change, and a 401 never says why a token was rejected.
 
 ### Out of scope
 
@@ -42,7 +42,7 @@ The existing roles still decide what anyone can do through the API. A signed-in 
 - Setting up identities for other systems to call the API without a person signing in, such as service clients. The spec describes the authentication the API already accepts; giving other systems a way to get tokens is a separate feature.
 - Generated client libraries or SDKs.
 - An API versioning or deprecation policy.
-- New endpoints, or changes to the behaviour, paths or payloads of existing ones, beyond what the description needs.
+- New endpoints, or changes to the behaviour, paths or payloads of existing ones, other than the 400, 401 and 403 response bodies named in Scope.
 - A switch to hide the spec or docs UI in particular deployments.
 - A separate public developer portal, or publishing the spec outside the deployment and the repository.
 - Changes to the workspace's Blazor web UI.
@@ -55,6 +55,9 @@ The existing roles still decide what anyone can do through the API. A signed-in 
   - *Implication:* each deployment's identity provider must allow the docs UI's sign-in callback address, alongside the web UI's existing one. The realms in `deploy/workspace/local` and `deploy/workspace/home-lab` currently allow only the web UI's address.
 - **Does public documentation reveal anything sensitive?** The spec would show the shape of the routes and contract types, the required roles, and the identity provider's issuer and client ID. The issuer and client ID are already public: the web UI loads them from its `appsettings.json`. The API already refuses data requests without a valid token and role (`runtime/RuntimeKnowledge.Api/Identity.cs`), and the docs UI adds no other way in. Examples in the spec must use invented values, never real catalogue content, because the catalogue is private (see the README). Source: this repository.
 - **Routing in each deployment.** Only `/api/*` reaches the API today. In AWS, API Gateway routes `ANY /api/{proxy+}` (`deploy/workspace/aws/application.tf`) and CloudFront forwards `/api/*` (`deploy/workspace/aws/cdn.tf`). Locally, Caddy proxies `/api/*` and serves everything else as the web app (`deploy/workspace/local/Caddyfile`). The spec and docs UI need either a path under `/api` or new routes in all three deployments. The architect should decide which. Source: this repository.
+
+- **Error responses today.** Errors raised by the workspace (404, 409, 422 and 503) are already problem-details responses with a `code`. A 401 (sent with `WWW-Authenticate: Bearer`), a 403, and the 400 returned when a request body or parameter cannot be read, all have empty bodies. Source: a run of the API, recorded in the developer's pushback on [#105](https://github.com/jamiemitchellconsultants/division-ontology/issues/105).
+  - *Implication:* without the one behaviour change in Scope, the spec could not describe every error in the same shape.
 
 ## Analyst — behaviours
 
