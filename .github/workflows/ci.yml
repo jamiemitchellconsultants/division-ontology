@@ -21,8 +21,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
+        env:
+          # Commands run from the repository root, outside runtime/global.json's scope.
+          DOTNET_INSTALL_DIR: ${{ runner.temp }}/api-contract-dotnet
         with:
           global-json-file: runtime/global.json
+      - name: Verify the SDK selected from the repository root
+        run: |
+          expected="$(jq -er '.sdk.version' runtime/global.json)"
+          actual="$(dotnet --version)"
+          printf 'Using .NET SDK %s (expected %s)\n' "$actual" "$expected"
+          test "$actual" = "$expected"
       - run: dotnet restore runtime/RuntimeKnowledge.slnx --locked-mode
       - name: Regenerate the API spec
         run: dotnet build runtime/RuntimeKnowledge.Api --no-restore

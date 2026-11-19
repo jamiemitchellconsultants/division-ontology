@@ -15,6 +15,17 @@ test('api-contract runs on every pull request with the pinned SDK and locked res
   assert.ok(run(/dotnet restore runtime\/RuntimeKnowledge\.slnx --locked-mode/));
 });
 
+test('api-contract isolates the pinned SDK and verifies its selection before restoring', () => {
+  const setup = job.steps.find((step) => step.uses?.startsWith('actions/setup-dotnet@'));
+  const verify = run(/dotnet --version/);
+  const restore = run(/dotnet restore runtime\/RuntimeKnowledge\.slnx --locked-mode/);
+  assert.match(setup.env?.DOTNET_INSTALL_DIR ?? '', /runner\.temp/);
+  assert.ok(verify, 'checks the SDK selected from the repository root');
+  assert.match(verify.run, /runtime\/global\.json/);
+  assert.ok(job.steps.indexOf(setup) < job.steps.indexOf(verify));
+  assert.ok(job.steps.indexOf(verify) < job.steps.indexOf(restore));
+});
+
 test('the drift check catches changed and untracked spec files and names the regeneration command', () => {
   const check = run(/git status --porcelain -- runtime\/openapi/);
   assert.ok(check, 'uses git status so an uncommitted new file fails');
