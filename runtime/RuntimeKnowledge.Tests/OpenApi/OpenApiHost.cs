@@ -49,7 +49,7 @@ internal sealed class OpenApiHost : IAsyncDisposable
     public HttpClient Client => _client ??= _factory.CreateClient();
 
     public static OpenApiHost Start(IReadOnlyDictionary<string, string?>? settings = null,
-        IConfigurationManager<OpenIdConnectConfiguration>? discovery = null)
+        IConfigurationManager<OpenIdConnectConfiguration>? discovery = null, Action<IServiceCollection>? services = null)
     {
         var merged = new Dictionary<string, string?>
         {
@@ -65,9 +65,12 @@ internal sealed class OpenApiHost : IAsyncDisposable
             // Every deployment runs as Production. Development would turn binding failures into 500s.
             builder.UseEnvironment("Production");
             builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(merged));
-            builder.ConfigureTestServices(services =>
-                services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme,
-                    options => options.ConfigurationManager = manager));
+            builder.ConfigureTestServices(collection =>
+            {
+                collection.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme,
+                    options => options.ConfigurationManager = manager);
+                services?.Invoke(collection);
+            });
         });
         return new OpenApiHost(factory);
     }

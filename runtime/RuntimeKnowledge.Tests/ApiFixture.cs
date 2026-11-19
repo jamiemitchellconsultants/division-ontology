@@ -1,9 +1,11 @@
+using System.Collections.Concurrent;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -15,6 +17,7 @@ using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 using RuntimeKnowledge.Api;
 using RuntimeKnowledge.Contracts;
+using RuntimeKnowledge.Tests.OpenApi;
 
 namespace RuntimeKnowledge.Tests;
 
@@ -28,6 +31,7 @@ internal sealed class ApiFixture : IAsyncDisposable
     private readonly RSA _rsa;
     private readonly RsaSecurityKey _signingKey;
     private readonly string _provider;
+    private readonly ConcurrentBag<ObservedResponse> _observed = [];
 
     internal ApiFixture(Scenario scenario, string provider, IEmbeddingProvider? embeddings = null)
     {
@@ -50,6 +54,7 @@ internal sealed class ApiFixture : IAsyncDisposable
                 }));
             builder.ConfigureTestServices(services =>
             {
+                services.AddSingleton<IStartupFilter>(new ResponseConformance.Recorder(_observed));
                 if (embeddings is not null) services.AddSingleton(embeddings);
                 services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
                     options.ConfigurationManager = new StaticConfigurationManager<OpenIdConnectConfiguration>(metadata));
@@ -116,10 +121,22 @@ internal sealed class ApiFixture : IAsyncDisposable
         return detail.Annotations.Count;
     }
 
+    /// <summary>Fails the scenario if it observed a status the spec does not declare (ADR 0016).</summary>
     public async ValueTask DisposeAsync()
     {
-        await _factory.DisposeAsync();
-        _rsa.Dispose();
-        await _scenario.DisposeAsync();
+        IReadOnlyList<string> undeclared;
+        try
+        {
+            using var client = _factory.CreateClient();
+            var spec = JsonNode.Parse(await client.GetStringAsync("/api/openapi/v1.json"))!;
+            undeclared = ResponseConformance.Undeclared(_observed.Where(o => o.Route != "/api/openapi/v1.json"), spec);
+        }
+        finally
+        {
+            await _factory.DisposeAsync();
+            _rsa.Dispose();
+            await _scenario.DisposeAsync();
+        }
+        if (undeclared.Count > 0) throw new UndeclaredResponseException(undeclared);
     }
 }
