@@ -18,7 +18,14 @@ internal static class DocsUi
             options.OAuthClientId(docs["ClientId"]);
             options.OAuthUsePkce();
             options.OAuthScopes((docs["Scopes"] ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
-            // Never a client secret: the docs UI is a public client.
+            // Swagger UI renders a secret row even for the workspace's public PKCE client.
+            options.HeadContent = """
+                <style>
+                    .auth-container .wrapper:has(> label[for="client_secret_authorizationCode"]) {
+                        display: none;
+                    }
+                </style>
+                """;
         });
     }
 }
