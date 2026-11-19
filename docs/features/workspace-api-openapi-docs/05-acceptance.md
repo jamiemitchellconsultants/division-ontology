@@ -146,7 +146,7 @@ Node tests, home-lab configuration, and Terraform fixtures.
 
 | Environment | Date and operator | Running revision | Walkthrough | Executable check | Evidence or blocker |
 | --- | --- | --- | --- | --- | --- | --- |
-| Home lab (Keycloak) | 19 November 2026, Codex | No running revision found | Not run | Not run | The operator confirmed the installer evidence file was absent. Read-only Docker checks on `ai-mcp-server` found no running or stopped containers for `runtime-knowledge-workspace` in either the `desktop-linux` or `default` context. The latest successful [workspace image publication](https://github.com/jamiemitchellconsultants/division-ontology/actions/runs/42645737385) used `b2bfdb5`, which predates build PR #112. |
+| Home lab (Keycloak) | 19 November 2026, Codex | No running revision found. Last recorded deployment `b2bfdb5455323a42dca080ec8ec8ed347c018791` | Not run | Not run | The operator recovered installer evidence dated 9 November 2026. Git ancestry confirms that deployment predates build PR #112. Read-only Docker checks on `ai-mcp-server` found no running or stopped containers for `runtime-knowledge-workspace` in either the `desktop-linux` or `default` context. The latest successful [workspace image publication](https://github.com/jamiemitchellconsultants/division-ontology/actions/runs/42645737385) was for the same older revision. |
 | AWS CloudFront (Entra) | 19 November 2026, Codex | Unverified | Not run | Not run | The workspace operator deferred AWS acceptance to [#115](https://github.com/jamiemitchellconsultants/division-ontology/issues/115). |
 
 The home-lab configuration and Terraform results above validate the repository fixtures. The
