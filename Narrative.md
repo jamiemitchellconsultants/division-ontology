@@ -45,6 +45,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [35](#entry-docs-design-for-workspace-api-openapi-docs-105) | 2026-11-19 | docs: design for workspace API OpenAPI docs (#105) | product | - Generate an OpenAPI 3.1 spec from the code with `Microsoft.AspNetCore.OpenApi`. |
 | [36](#entry-docs-amend-105-design-for-refusal-bodies-and-no-server-address) | 2026-11-19 | docs: amend #105 design for refusal bodies and no server address | product | - **The vision allows one behaviour change.** The API's 400, 401 and 403 responses become problem details with fixed codes and titles: `unreadableRequest`, `authenticationRequired` and `roleRequired`. |
 | [37](#entry-docs-developer-plan-for-105-workspace-api-openapi-docs) | 2026-11-19 | docs: developer plan for #105 workspace API OpenAPI docs | product | - **Refusal responses come first (Task 2).** - `ProblemResponses.Refusals` holds the B22 codes and titles. |
+| [38](#entry-workspace-api-openapi-docs-105) | 2026-11-19 | Workspace API OpenAPI docs (#105) | product | Generate and commit the OpenAPI 3.1 contract with its source changes. Serve it and Swagger UI anonymously under `/api`. Use the deployment's existing SPA registration with authorization code and PKCE. |
 
 ---
 
@@ -950,3 +951,27 @@ The same work found the two problems that #108 then fixed in the design: the req
 AI-Fingerprint: sha256:8f6fb653ee89
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+---
+
+<a id="entry-workspace-api-openapi-docs-105"></a>
+
+## Entry 38 — 2026-11-19 — Workspace API OpenAPI docs (#105)
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+Workspace integrators and reviewers needed a discoverable API contract that follows the running API and can be tried on each supported deployment. The existing identity providers, audience and role assignments govern all data access.
+
+## Decision
+
+Generate and commit the OpenAPI 3.1 contract with its source changes. Serve it and Swagger UI anonymously under `/api`. Use the deployment's existing SPA registration with authorization code and PKCE. Keep requests on the docs origin by omitting a server address. Return fixed problem details for 400, 401 and 403 without changing which requests receive those statuses. Check drift and completeness in `api-contract` and verify observed statuses in API scenarios. The design decisions are recorded in ADRs 0013–0018.
+
+## Consequences
+
+Integrators can inspect the contract before signing in. Signed-in calls use the workspace's existing roles, and contributions made through Swagger appear in the workspace's history. Contract changes appear beside their code in review. Deployment operators need the docs callback on their SPA registration and must verify sign-in on the deployed origin.
+
+---
+
+AI-Fingerprint: sha256:2a591babf349
