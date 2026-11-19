@@ -146,9 +146,13 @@ Node tests, home-lab configuration, and Terraform fixtures.
 
 | Environment | Date and operator | Running revision | Walkthrough | Executable check | Evidence or blocker |
 | --- | --- | --- | --- | --- | --- | --- |
-| Home lab (Keycloak) | 19 November 2026, Codex | Unverified | Not run | Not run | The latest successful [workspace image publication](https://github.com/jamiemitchellconsultants/division-ontology/actions/runs/42645737385) used `b2bfdb5`, which predates build PR #112. The running API image still needs to be verified. The workspace operator will sign in interactively and confirm the test entity for the annotation. |
+| Home lab (Keycloak) | 19 November 2026, Codex | No running revision found | Not run | Not run | The operator confirmed the installer evidence file was absent. Read-only Docker checks on `ai-mcp-server` found no running or stopped containers for `runtime-knowledge-workspace` in either the `desktop-linux` or `default` context. The latest successful [workspace image publication](https://github.com/jamiemitchellconsultants/division-ontology/actions/runs/42645737385) used `b2bfdb5`, which predates build PR #112. |
 | AWS CloudFront (Entra) | 19 November 2026, Codex | Unverified | Not run | Not run | The workspace operator deferred AWS acceptance to [#115](https://github.com/jamiemitchellconsultants/division-ontology/issues/115). |
 
 The home-lab configuration and Terraform results above validate the repository fixtures. The
 deployed acceptance criterion on [#105](https://github.com/jamiemitchellconsultants/division-ontology/issues/105)
 remains open until both live environments pass.
+
+The workspace operator approved the synthetic Ecommerce Order concept (`fixture/ecommerce`,
+`https://example.test/ecommerce/ontology#Order`) for the annotation if that fixture is active.
+The operator will sign in interactively after the running home-lab revision is verified.
