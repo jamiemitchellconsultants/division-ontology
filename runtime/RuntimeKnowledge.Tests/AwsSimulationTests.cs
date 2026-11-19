@@ -109,6 +109,22 @@ public sealed class AwsSimulationTests
         Assert.True(string.IsNullOrEmpty(unknown.Body));
     }
 
+    [Fact, Trait("Category", "OpenApi")]
+    public async Task LambdaHostServesDocsAnonymously()
+    {
+        var api = DocsFreeLambda(new Dictionary<string, string?> { ["Workspace:Docs:ClientId"] = "workspace-spa" });
+        var redirect = await api.FunctionHandlerAsync(Request("GET", "/api/docs"), Context);
+        Assert.Equal(301, redirect.StatusCode);
+        Assert.Equal("docs/index.html", Header(redirect, "location"));
+        Assert.Equal(200, (await api.FunctionHandlerAsync(Request("GET", "/api/docs/index.html"), Context)).StatusCode);
+        var spec = await api.FunctionHandlerAsync(Request("GET", "/api/openapi/v1.json"), Context);
+        Assert.Equal(200, spec.StatusCode);
+        Assert.StartsWith("3.1", JsonDocument.Parse(spec.Body).RootElement.GetProperty("openapi").GetString());
+        var data = await api.FunctionHandlerAsync(Request("GET", "/api/inventory"), Context);
+        Assert.Equal(401, data.StatusCode);
+        Assert.Contains("\"authenticationRequired\"", data.Body);
+    }
+
     /// <summary>A Lambda host with no database, for requests that never reach the store.</summary>
     private static LambdaHosting DocsFreeLambda(IReadOnlyDictionary<string, string?>? extra = null)
     {

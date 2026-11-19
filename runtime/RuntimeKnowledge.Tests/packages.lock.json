@@ -657,7 +657,8 @@
           "Microsoft.AspNetCore.OpenApi": "[10.0.13, )",
           "RuntimeKnowledge.Contracts": "[1.0.0, )",
           "RuntimeKnowledge.Providers": "[1.0.0, )",
-          "RuntimeKnowledge.Store": "[1.0.0, )"
+          "RuntimeKnowledge.Store": "[1.0.0, )",
+          "Swashbuckle.AspNetCore.SwaggerUI": "[10.3.1, )"
         }
       },
       "runtimeknowledge.contracts": {
@@ -793,6 +794,12 @@
         "dependencies": {
           "Microsoft.OpenApi": "[2.12.2, 3.0.0)"
         }
+      },
+      "Swashbuckle.AspNetCore.SwaggerUI": {
+        "type": "CentralTransitive",
+        "requested": "[10.3.1, )",
+        "resolved": "10.3.1",
+        "contentHash": "kXuMIVJBDD6qMwG78VUrKy4x5Ke98HU0Q023Sf2iSBO/x45c5BuByYPAExIs9UeVsjdGGgvLWU5jK8l6MO2Z0Q=="
       }
     }
   }

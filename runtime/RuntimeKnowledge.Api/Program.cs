@@ -51,6 +51,7 @@ public partial class ApiProgram
     {
         app.UseExceptionHandler(exceptionApp => exceptionApp.Run(ProblemResponses.WriteAsync));
         app.UseRefusalResponses();
+        app.UseWorkspaceDocsUi();
         app.UseRouting();
         app.UseAuthentication();
         app.UseAuthorization();
