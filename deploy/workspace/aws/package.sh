@@ -12,7 +12,7 @@ trap 'rm -rf "$build"' EXIT
 cd "$root/runtime"
 dotnet restore RuntimeKnowledge.slnx --locked-mode
 for component in Api Worker; do
-  dotnet publish "RuntimeKnowledge.$component" -c Release --no-restore -p:UseAppHost=false -o "$build/$component"
+  dotnet publish "RuntimeKnowledge.$component" -c Release --no-restore -p:UseAppHost=false -p:OpenApiGenerateDocuments=false -o "$build/$component"
   package="$(printf '%s' "$component" | tr '[:upper:]' '[:lower:]')"
   (cd "$build/$component" && zip -qr "$out/$package.zip" .)
 done

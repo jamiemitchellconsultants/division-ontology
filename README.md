@@ -103,6 +103,16 @@ bash deploy/workspace/local/smoke.sh
 
 The script builds a temporary catalog and snapshot from the synthetic Ecommerce, Warehouse, and Accounting repositories used by the C4 pilot. It starts an isolated Docker Compose project, publishes the snapshot, signs in through the UI, and checks that a saved annotation and cross-repository relationship survive a database restart and a rebuild from the journal. It removes the test containers and data volumes when it finishes. Set `WORKSPACE_PORT` if the default test port (18087) is in use.
 
+### Workspace API reference
+
+Every deployment serves the workspace API's OpenAPI spec at `/api/openapi/v1.json` and an interactive docs UI at `/api/docs`. Both are open to anyone. Data calls from the docs UI need the same sign-in and roles as the web UI. The committed copy of the spec is `runtime/openapi/workspace-api.json`. Building the API rewrites it:
+
+```bash
+dotnet build runtime/RuntimeKnowledge.Api
+```
+
+Commit the regenerated file in the same pull request as the code change. CI's `api-contract` job fails if the committed spec is out of date or an operation is not fully described.
+
 ## Contribute
 
 See [GOVERNANCE.md](GOVERNANCE.md). In brief:
