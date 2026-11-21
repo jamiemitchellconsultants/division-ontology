@@ -31,7 +31,8 @@ internal static class TraversalCursor
             deflate.Write(json, 0, json.Length);
         var cursor = Convert.ToBase64String(output.ToArray());
         if (cursor.Length > MaxCursorChars)
-            throw new InvalidOperationException("The traversal cursor exceeds the maximum issuable size.");
+            throw new WorkspaceException("invalidTraversal",
+                "The traversal's remaining frontier exceeds the cursor size limit. Restart with a smaller maxDepth or a more specific start entity.");
         return cursor;
     }
 

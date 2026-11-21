@@ -38,6 +38,24 @@ public sealed class TraversalCursorTests
         Assert.Contains("\"cursor\":\"opaque\"", request);
     }
 
+    [Fact]
+    public void OversizeFrontierFailsWithDeclaredTraversalError()
+    {
+        var random = new Random(1234);
+        var refs = Enumerable.Range(0, 6000)
+            .Select(_ => "p:" + new string(Enumerable.Range(0, 48)
+                .Select(_ => (char)('a' + random.Next(26))).ToArray()))
+            .ToArray();
+        var payload = Payload() with
+        {
+            Resume = new TraversalResume(refs,
+                Enumerable.Range(0, 500).Select(i => new TraversalPending([i])).ToArray(), null)
+        };
+        var error = Assert.Throws<WorkspaceException>(() => TraversalCursor.Encode(payload));
+        Assert.Equal("invalidTraversal", error.Code);
+        Assert.Contains("Restart", error.Message);
+    }
+
     [Theory]
     [InlineData("not base64 at all!!!")]
     [InlineData("")]
