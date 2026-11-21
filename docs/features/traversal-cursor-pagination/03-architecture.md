@@ -16,7 +16,7 @@
 
 ### Paged traversal (RuntimeKnowledge.Store — GraphQueries)
 
-The breadth-first walk becomes page-bounded. It starts from a first-page request or from a validated cursor, emits at most 100 paths, and — when the walk is unfinished — encodes the resumption state as the next cursor instead of discarding the frontier as today. Each page resolves only its own paths' endpoints into entity context (labels, provenance, availability, annotations), preserving today's published-before-runtime step order within each node expansion and the global breadth-first order across the page boundary. A per-request examined-step budget (ten times the page size) bounds the neighbour rows examined to fill a page; exhausting it ends the page early with a cursor, never a scan without limit. Serves: B1–B7, B12, B16–B18.
+The breadth-first walk becomes page-bounded. It starts from a first-page request or from a validated cursor, emits at most 100 paths, and — when the walk is unfinished — encodes the resumption state as the next cursor instead of discarding the frontier as today. Each page resolves only its own paths' endpoints into entity context (labels, provenance, availability, annotations), preserving today's published-before-runtime step order within each node expansion and the global breadth-first order across the page boundary. A per-request examined-row budget (1000 rows) is enforced at fetch time from the remaining allowance and bounds the neighbour rows examined to fill a page; exhausting it ends the page early — possibly with zero paths — with a cursor whose resume position already points past every processed row, never a scan without limit and never a re-examined row. (Amended after developer-plan pushback.) Serves: B1–B7, B12, B16–B18.
 
 ### Traversal cursor codec (RuntimeKnowledge.Store)
 
@@ -24,7 +24,7 @@ Encodes and decodes the cursor payload of ADR 0019/0020: version, bound paramete
 
 ### Neighbour reader (RuntimeKnowledge.Store — AgeGraph)
 
-Unchanged in shape: its existing keyset read (`r.key > after`, ordered, 101-row batches per node and scope) is what makes mid-node resumption and the examined-step counting of B16/B17 possible without new query machinery. The paged traversal supplies the resume positions from the cursor; each returned row is counted against the page's examined-step budget. Serves: B2, B12, B16, B17.
+Nearly unchanged: its keyset read (`r.key > after`, ordered, per node and scope) gains a validated fetch limit so each batch is capped at the page's remaining examined allowance (at most 101) — that, plus counting every returned row, is what makes mid-node resumption and the examined counting of B16/B17 enforceable rather than approximate. The paged traversal supplies the resume positions (last processed key, emitted or filtered) from the cursor. (Amended after developer-plan pushback.) Serves: B2, B12, B16, B17.
 
 ### Workspace view (RuntimeKnowledge.Store — projection state and journal)
 
@@ -61,7 +61,7 @@ A first-page request carries no cursor: the walk starts fresh and the first page
 
 ## Deployment and runtime
 
-No new components, tables, migrations, or background jobs. The change is confined to the Contracts, Store, and Api projects and their tests; the API's Lambda/API Gateway deployment, the Blazor UI (out of scope), and the read-only `RepeatableRead` transaction pattern are unchanged. Traversal remains a read operation: no journal appends, no projection writes, and no Turtle file in any repository is read or written by this feature. Cursor size is bounded by the frontier bound in ADR 0019 and a traversal-specific decode cap; over-cap or otherwise unresolvable payloads are `invalidCursor`.
+No new components, tables, migrations, or background jobs. The change is confined to the Contracts, Store, and Api projects and their tests; the API's Lambda/API Gateway deployment, the Blazor UI (out of scope), and the read-only `RepeatableRead` transaction pattern are unchanged. Traversal remains a read operation: no journal appends, no projection writes, and no Turtle file in any repository is read or written by this feature. Cursor size is bounded by ADR 0019 as amended: dictionary-coded, deflate-compressed payloads, a 262144-character cap on the compressed form asserted again at issue time so no server-issued cursor is undecodable, and an 8388608-byte decompressed guard; over-cap or otherwise unresolvable payloads are `invalidCursor`.
 
 ## Traceability
 
