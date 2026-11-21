@@ -18,8 +18,8 @@
     @if (result is not null)
     {
         <p>Snapshot <code>@result.SnapshotId</code></p>
-        @if (result.Truncated) { <p>Path limit reached. Reduce the depth to narrow the results.</p> }
-        @if (result.Paths.Count == 0) { <p>No paths found for this selection.</p> }
+        @if (result.Truncated) { <p>More paths may exist beyond the @result.Paths.Count shown. Reduce the depth or start from a more specific entity to narrow the results.</p> }
+        else if (result.Paths.Count == 0) { <p>No paths found for this selection.</p> }
         <CoverageGaps Gaps="result.Gaps" />
         <ol aria-label="Paths">
             @foreach (var path in result.Paths)
