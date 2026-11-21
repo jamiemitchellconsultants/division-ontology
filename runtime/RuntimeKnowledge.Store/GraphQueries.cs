@@ -69,7 +69,7 @@ public sealed class GraphQueries(Db db)
     internal async Task<TraversalResult> TraverseAsync(TraversalRequest request, CancellationToken cancellationToken,
         TraversalCounters? counters)
     {
-        var budget = counters?.Budget ?? MaxExaminedSteps;
+        var budget = counters?.Budget ?? MaxExaminedSteps; // single default; see TraversalCounters
         var counter = counters ?? new TraversalCounters();
         if (request.Start is null || request.MaxDepth is < 1 or > 8 ||
             request.Direction is not ("outgoing" or "incoming" or "both"))

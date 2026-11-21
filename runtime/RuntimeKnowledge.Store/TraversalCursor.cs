@@ -95,6 +95,6 @@ internal static class TraversalCursor
 /// <summary>Test-only examination counts for the traversal walk; the API never passes one.</summary>
 internal sealed class TraversalCounters
 {
-    public int Budget { get; set; } = 1000;
+    public int? Budget { get; set; }
     public int ExaminedSteps { get; set; }
 }
