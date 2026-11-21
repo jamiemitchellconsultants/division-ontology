@@ -182,15 +182,18 @@ public sealed class TraversalPagingTests
         await s.ActivateTraversalAsync("busy");
         string? cursor = null;
         var counts = new List<int>();
+        var busyExaminedTotal = 0;
         do
         {
             var counters = new TraversalCounters();
             var page = await s.Graph.TraverseAsync(new TraversalRequest(s.Hub, MaxDepth: 1, Cursor: cursor), CancellationToken.None, counters);
             counts.Add(counters.ExaminedSteps);
+            busyExaminedTotal += counters.ExaminedSteps;
             Assert.True(counters.ExaminedSteps <= 1000);
             cursor = page.NextCursor;
         } while (cursor is not null);
         Assert.All(counts, count => Assert.True(count <= 202, $"examined {count}"));
+        Assert.Equal(150, busyExaminedTotal);
     }
 
     [Fact]

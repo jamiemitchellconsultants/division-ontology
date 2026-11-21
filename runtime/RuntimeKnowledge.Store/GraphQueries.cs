@@ -128,7 +128,7 @@ public sealed class GraphQueries(Db db)
             while (active.Scope < 2 && !stop)
             {
                 var scope = active.Scope == 0 ? snapshot : "runtime";
-                var fetchLimit = Math.Min(101, budget - examined);
+                var fetchLimit = Math.Min(101, Math.Min(budget - examined, MaxPaths - result.Count));
                 if (fetchLimit <= 0) { stop = true; break; }
                 var neighbors = await AgeGraph.NeighborsAsync(tx, state.GraphName, active.At, scope,
                     request.Direction, cancellationToken, active.After, fetchLimit);
