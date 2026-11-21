@@ -48,11 +48,11 @@
 
 #### B8 — Cursor binds the traversal parameters
 
-**Given** a `nextCursor` issued for a traversal, **when** the reader submits it with a different start, direction, `maxDepth`, or `includeUnavailable` value, **then** the request fails with status 400 and code `invalidCursor`, and the error tells the client to restart the traversal from page one with its intended parameters.
+**Given** a `nextCursor` issued for a traversal, **when** the reader submits it with a different start, direction, `maxDepth`, or `includeUnavailable` value, **then** the request fails with status 422 and code `invalidCursor`, and the error tells the client to restart the traversal from page one with its intended parameters.
 
 #### B9 — Malformed cursors fail as `invalidCursor`
 
-**Given** a cursor value that is not a well-formed traversal cursor (not decodable, wrong shape, or tampered), **when** it is submitted, **then** the request fails with status 400 and code `invalidCursor` with the same restart instruction, and no traversal results are returned.
+**Given** a cursor value that is not a well-formed traversal cursor (not decodable, wrong shape, or tampered), **when** it is submitted, **then** the request fails with status 422 and code `invalidCursor` with the same restart instruction, and no traversal results are returned.
 
 #### B10 — Snapshot refresh makes the cursor stale
 
@@ -74,7 +74,7 @@
 
 #### B14 — Spec documents paging and keeps existing links
 
-**Given** the committed OpenAPI spec, **when** a client generates or inspects the `traverseGraph` operation, **then** the request schema includes the optional cursor field, the response schema includes `nextCursor`, the 400 `invalidCursor` and 409 `staleCursor` responses are documented for this operation, first-page and next-page request examples are present, and the success response links include `next` (to `traverseGraph`) alongside the existing `entityDetail` and `relationshipDetail` links.
+**Given** the committed OpenAPI spec, **when** a client generates or inspects the `traverseGraph` operation, **then** the request schema includes the optional cursor field, the response schema includes `nextCursor`, the 422 `invalidCursor` and 409 `staleCursor` responses are documented for this operation, first-page and next-page request examples are present, and the success response links include `next` (to `traverseGraph`) alongside the existing `entityDetail` and `relationshipDetail` links.
 
 #### B15 — Following the link reaches the next page
 
@@ -99,7 +99,7 @@
 | Id | Question | Decision or deferral | Basis |
 | --- | --- | --- | --- |
 | U1 | Is the page size fixed or client-requested? | **Decided:** fixed at the current 100 paths. The request gains only a cursor field; the cursor therefore does not bind a page size. | User decision, analyst phase, 21 November 2026. |
-| U2 | How are cursor failures coded? | **Decided:** reuse the existing codes — malformed or parameter-mismatched cursor: 400 `invalidCursor`; snapshot or workspace view moved on: 409 `staleCursor`. Both tell the client to restart from page one. | User decision, analyst phase, 21 November 2026; matches the history (`invalidCursor`) and inventory (`staleCursor`) precedents. |
+| U2 | How are cursor failures coded? | **Decided (amended after architect pushback):** reuse the existing codes and their existing statuses — malformed or parameter-mismatched cursor: 422 `invalidCursor`; snapshot or workspace view moved on: 409 `staleCursor`. Both tell the client to restart from page one. The original 400 wording misstated the precedent: `ProblemResponses.StatusFor` maps `invalidCursor` to 422 for history and inventory, and 400 is reserved for unreadable request bodies. | User decision, analyst phase, 21 November 2026; status corrected in amendment, 21 November 2026, following the architect's pushback and verified against `ProblemResponses.StatusFor`. |
 | U3 | Which workspace edits invalidate a cursor? | **Decided:** any contribution change (annotation or relationship create, edit, remove, codification) invalidates; the cursor binds the workspace journal position. Neighbourhood-scoped validity is deferred as out of scope unless a later phase raises pushback. | User decision, analyst phase, 21 November 2026. |
 | U4 | Does `truncated` keep its meaning on continued pages? | **Decided:** yes — `truncated: true` exactly when another page exists, on first and continued pages alike (B6). | Vision outcome 2 requires first-page compatibility; extending the same meaning is the smallest consistent reading. |
 | U5 | What does the runtime `next` link contain, given the continuation needs a request body? | **Decided:** the header names the target operation (`POST /api/traverse`) with the documented relation; the cursor itself travels in the response body's `nextCursor` field and is submitted with the original parameters (B13/B15). Encoding a body template in the header is deferred as out of scope. | Consistent with the PR #117 link conventions: headers name affordances, bodies carry values. |
