@@ -46,6 +46,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [36](#entry-docs-amend-105-design-for-refusal-bodies-and-no-server-address) | 2026-11-19 | docs: amend #105 design for refusal bodies and no server address | product | - **The vision allows one behaviour change.** The API's 400, 401 and 403 responses become problem details with fixed codes and titles: `unreadableRequest`, `authenticationRequired` and `roleRequired`. |
 | [37](#entry-docs-developer-plan-for-105-workspace-api-openapi-docs) | 2026-11-19 | docs: developer plan for #105 workspace API OpenAPI docs | product | - **Refusal responses come first (Task 2).** - `ProblemResponses.Refusals` holds the B22 codes and titles. |
 | [38](#entry-workspace-api-openapi-docs-105) | 2026-11-19 | Workspace API OpenAPI docs (#105) | product | Generate and commit the OpenAPI 3.1 contract with its source changes. Serve it and Swagger UI anonymously under `/api`. Use the deployment's existing SPA registration with authorization code and PKCE. |
+| [39](#entry-feat-agent-friendly-openapi-decorators-and-hateoas-for-the-workspace-api) | 2026-11-21 | feat: agent-friendly OpenAPI decorators and HATEOAS for the workspace API | product | Decorate every operation in the generator with a stable `operationId`, `x-agent-tool-name`, `x-agent-idempotent`, `x-agent-retryable`, `x-agent-side-effects` and input/output schema names; publish HATEOAS as OpenAPI `links` on every… |
 
 ---
 
@@ -975,3 +976,29 @@ Integrators can inspect the contract before signing in. Signed-in calls use the 
 ---
 
 AI-Fingerprint: sha256:2a591babf349
+
+---
+
+<a id="entry-feat-agent-friendly-openapi-decorators-and-hateoas-for-the-workspace-api"></a>
+
+## Entry 39 — 2026-11-21 — feat: agent-friendly OpenAPI decorators and HATEOAS for the workspace API
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The workspace API's generated OpenAPI spec described routes, roles (`x-workspace-role`) and error codes (`x-workspace-codes`), but gave an agent or tool-calling client no stable tool names, no indication of which operations are safe to retry, and no discoverable path from one operation to the next. Clients had to construct follow-on URLs themselves and guess at idempotency — the POST-shaped read queries (search, traverse, entity/relationship detail) are particularly ambiguous. The HTTP `QUERY` method (RFC 10008) was evaluated as a more semantic alternative for those reads.
+
+## Decision
+
+Decorate every operation in the generator with a stable `operationId`, `x-agent-tool-name`, `x-agent-idempotent`, `x-agent-retryable`, `x-agent-side-effects` and input/output schema names; publish HATEOAS as OpenAPI `links` on every success response and as RFC 8288 `Link` headers at runtime, so the spec and the live service tell the same story. The completeness checker now enforces these decorators, so a future undecorated operation fails CI. The `QUERY` verb was rejected for the read queries: although .NET 10 supports it end-to-end (verified locally), API Gateway offers no native `QUERY` method, its `ANY` route is not a reliable pass-through, and this deployment's CloudFront `allowed_methods` list would reject `QUERY` before the gateway.
+
+## Consequences
+
+Agents can enumerate the API as 13 stable tools, decide retries from the declared flags, and follow links instead of constructing URLs; the Blazor UI is unaffected because routes, bodies and status codes did not change. The trade-off is a larger spec and a generator table that must be kept in step with new routes — mitigated by the completeness check failing undecorated operations. Deliberately open: adopting `QUERY` if API Gateway and CloudFront add native support, and any client (including the UI) choosing to consume `Link` headers instead of constructing URLs.
+
+Re-review fixes (third commit): the `removeContribution` description now separates 409 `versionConflict` (inspect `current.removed` and review the current record, which may be another caller's edit to a still-active contribution) from 404 `contributionNotFound` (do not retry); workspace link relations moved from the unregistered URN namespace to absolute HTTPS identifiers under the project-controlled `https://github.com/jamiemitchellconsultants/division-ontology#link-relations/` namespace across runtime headers, `x-agent-discovery.linkRelations`, and the tests (the deployment-neutrality test now allows that one project namespace).
+
+---
+
+AI-Fingerprint: sha256:340cc23a776b
