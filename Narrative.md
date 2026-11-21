@@ -56,6 +56,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [46](#entry-docs-implementation-plan-for-traversal-cursor-pagination-123) | 2026-11-21 | docs: implementation plan for traversal cursor pagination (#123) | product | Six tasks, in dependency order: contract and cursor codec; page-bounded walk; snapshot/journal binding; examined-step budget (1000 per request); API surface, HATEOAS and the regenerated committed spec; then whole-feature verification… |
 | [47](#entry-feat-cursor-pagination-for-post-api-traverse-124) | 2026-11-21 | feat: cursor pagination for POST /api/traverse (#124) | product | Implement exactly as planned, in the plan's task order, each task test-first with its own commit. |
 | [48](#entry-vision-knowledge-graph-explorer) | 2026-11-21 | Vision: Knowledge Graph Explorer | product | Add a graph explorer centred on a published concept or node. Readers can follow directed relationships, inspect evidence and provenance, and return to their previous view. Managers can use existing contribution actions from the graph. |
+| [49](#entry-docs-traversal-cursor-pagination-user-acceptance-125) | 2026-11-21 | docs: traversal cursor pagination user acceptance (#125) | product | - **Deployed seeding.** Deployed acceptance creates its busy node through the manager API: 105 relationships, removed after each run. It does not publish a dedicated bundle or settle for small-walk checks. |
 
 ---
 
@@ -1235,3 +1236,32 @@ The first version uses navigation history to restore earlier views. The scope ex
 ---
 
 AI-Fingerprint: sha256:38095f8eaaa4
+
+---
+
+<a id="entry-docs-traversal-cursor-pagination-user-acceptance-125"></a>
+
+## Entry 49 — 2026-11-21 — docs: traversal cursor pagination user acceptance (#125)
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The User phase must show every traversal-paging behaviour from outside, in a local build and in the deployed home-lab workspace. The home-lab synthetic fixture has no node with more than 100 traversal paths, so paging could not be exercised there as it stood. B13's wording names an absolute workspace link relation, while the build emits the registered `rel="next"`.
+
+## Decision
+
+- **Deployed seeding.** Deployed acceptance creates its busy node through the manager API: 105 relationships, removed after each run. It does not publish a dedicated bundle or settle for small-walk checks. The active snapshot is never changed, and the removals stay in contribution history.
+- **B13.** `rel="next"`, which `x-agent-discovery.linkRelations` maps to `traverseGraph`, is accepted as meeting B13. The behaviour text is not amended.
+- **Local-only coverage.** The deployed criterion is accepted with B10, B17 and B19 covered only by the local suite. A snapshot change on the shared fixture, more than 1,000 filtered rows, and the real cursor limit are not reasonable to exercise on the home lab.
+- **How acceptance is run.** Where the expected result is known, a walkthrough is an automated run that reports only misses. The user approves the executable tests from a plain-language summary rather than from code.
+
+## Consequences
+
+- Every home-lab acceptance run now writes and removes 105 relationships, so the runner must target the synthetic acceptance fixture only. The runbook says so, and `--cleanup` recovers from an interrupted run.
+- The deployed run gives no evidence for snapshot staleness, the filtered-row budget or the oversized-frontier case. Those rely on the local tests.
+- If B13's wording is ever tightened, the acceptance record already states the interpretation.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+AI-Fingerprint: sha256:ad89f237e22e
