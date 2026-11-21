@@ -173,7 +173,7 @@ public sealed class GraphQueries(Db db)
                         var visited = new HashSet<string>(active.Visited, StringComparer.Ordinal) { nextKey };
                         queue.Enqueue(new WalkNode(nextKey, steps, [.. active.Refs, reference], visited));
                     }
-                    if (result.Count >= MaxPaths || examined >= ExaminedStepBudget) { stop = true; break; }
+                    if (result.Count >= MaxPaths) { stop = true; break; }
                 }
                 if (!stop && neighbors.Count < fetchLimit) { active.Scope++; active.After = ""; }
             }

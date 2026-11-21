@@ -177,6 +177,7 @@ public sealed class TraversalPagingTests
         Assert.Equal(0, filteredPaths);
         Assert.True(filteredPages >= 3, $"filtered rows should span budget pages, got {filteredPages}");
         Assert.Equal(30, examinedTotal);
+        Assert.True(examinedTotal <= 30, "no row is examined on two pages");
 
         s.Graph.ExaminedStepBudget = 1000;
         await s.ActivateTraversalAsync("busy");
