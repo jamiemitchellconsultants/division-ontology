@@ -564,7 +564,7 @@
           "Contributions"
         ],
         "summary": "Remove a contribution",
-        "description": "Removes a contribution at expectedVersion. Not idempotent: a repeat fails with versionConflict or contributionNotFound, which means the removal already happened or never existed; check history to tell which.",
+        "description": "Removes a contribution at expectedVersion. On a 409 versionConflict, inspect current.removed on the current record in the response body and review that record before deciding whether to retry: it may show another caller's edit to a still-active contribution (retry the removal with its version only if you still intend to remove it), or current.removed may already be true, in which case the removal has happened and no retry is needed. A 404 contributionNotFound is separate: no contribution with that id exists, so do not retry.",
         "operationId": "removeContribution",
         "parameters": [
           {
@@ -2761,17 +2761,17 @@
       "next": "listInventory or listHistory: the next page of the same listing (registered relation)",
       "service-desc": "this OpenAPI document at /api/openapi/v1.json (registered relation)",
       "service-doc": "the interactive docs at /api/docs (registered relation)",
-      "urn:jamiemitchellconsultants:division-ontology:link-relations:session": "getSession",
-      "urn:jamiemitchellconsultants:division-ontology:link-relations:inventory": "listInventory",
-      "urn:jamiemitchellconsultants:division-ontology:link-relations:history": "listHistory",
-      "urn:jamiemitchellconsultants:division-ontology:link-relations:search": "searchWorkspace",
-      "urn:jamiemitchellconsultants:division-ontology:link-relations:traverse": "traverseGraph",
-      "urn:jamiemitchellconsultants:division-ontology:link-relations:createAnnotation": "createAnnotation",
-      "urn:jamiemitchellconsultants:division-ontology:link-relations:entityDetail": "getEntityDetail",
-      "urn:jamiemitchellconsultants:division-ontology:link-relations:relationshipDetail": "getRelationshipDetail",
-      "urn:jamiemitchellconsultants:division-ontology:link-relations:edit": "editContribution",
-      "urn:jamiemitchellconsultants:division-ontology:link-relations:remove": "removeContribution",
-      "urn:jamiemitchellconsultants:division-ontology:link-relations:codifications": "associateCodification"
+      "https://github.com/jamiemitchellconsultants/division-ontology#link-relations/session": "getSession",
+      "https://github.com/jamiemitchellconsultants/division-ontology#link-relations/inventory": "listInventory",
+      "https://github.com/jamiemitchellconsultants/division-ontology#link-relations/history": "listHistory",
+      "https://github.com/jamiemitchellconsultants/division-ontology#link-relations/search": "searchWorkspace",
+      "https://github.com/jamiemitchellconsultants/division-ontology#link-relations/traverse": "traverseGraph",
+      "https://github.com/jamiemitchellconsultants/division-ontology#link-relations/createAnnotation": "createAnnotation",
+      "https://github.com/jamiemitchellconsultants/division-ontology#link-relations/entityDetail": "getEntityDetail",
+      "https://github.com/jamiemitchellconsultants/division-ontology#link-relations/relationshipDetail": "getRelationshipDetail",
+      "https://github.com/jamiemitchellconsultants/division-ontology#link-relations/edit": "editContribution",
+      "https://github.com/jamiemitchellconsultants/division-ontology#link-relations/remove": "removeContribution",
+      "https://github.com/jamiemitchellconsultants/division-ontology#link-relations/codifications": "associateCodification"
     }
   }
 }

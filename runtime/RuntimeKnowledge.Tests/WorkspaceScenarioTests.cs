@@ -71,7 +71,7 @@ public sealed class WorkspaceScenarioTests
             step.RuntimeId == edge.Id && !step.EndpointUnavailable && step.Contribution!.Associations.Count == 1);
     }
 
-    private const string RelBase = "urn:jamiemitchellconsultants:division-ontology:link-relations:";
+    private const string RelBase = "https://github.com/jamiemitchellconsultants/division-ontology#link-relations/";
 
     private static string NextHref(string links)
     {

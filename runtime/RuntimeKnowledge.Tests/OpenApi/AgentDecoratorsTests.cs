@@ -104,7 +104,7 @@ public sealed class AgentDecoratorsTests
         Assert.Equal("$response.body#/nextCursor", (string)inventory["next"]!["parameters"]!["cursor"]!);
     }
 
-    private const string RelBase = "urn:jamiemitchellconsultants:division-ontology:link-relations:";
+    private const string RelBase = "https://github.com/jamiemitchellconsultants/division-ontology#link-relations/";
 
     [Fact]
     public async Task SessionAndHealthCarryLinkHeaders()
@@ -162,6 +162,19 @@ public sealed class AgentDecoratorsTests
     }
 
     [Fact]
+    public async Task RemoveGuidanceDistinguishesConflictFromNotFound()
+    {
+        var op = (await Spec())["paths"]!["/api/contributions/{id}/remove"]!["post"]!;
+        var description = (string)op["description"]!;
+        Assert.Contains("409", description);
+        Assert.Contains("versionConflict", description);
+        Assert.Contains("current.removed", description);
+        Assert.Contains("still", description, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("404", description);
+        Assert.Contains("contributionNotFound", description);
+    }
+
+    [Fact]
     public async Task EditAndCodificationGuidanceReconcilesWithTheCurrentRecord()
     {
         var spec = await Spec();
@@ -198,7 +211,9 @@ public sealed class AgentDecoratorsTests
             .Concat(WorkspaceLinks.Contribution(id, codifiable: true)).Concat(WorkspaceLinks.ContributionHistory(id));
         var rels = headers.Select(h => h.Split("rel=\"")[1].TrimEnd('"')).Distinct().ToArray();
         var registered = new HashSet<string> { "next", "service-desc", "service-doc" };
-        Assert.All(rels, rel => Assert.True(registered.Contains(rel) || Uri.TryCreate(rel, UriKind.Absolute, out _), rel));
+        Assert.All(rels, rel => Assert.True(registered.Contains(rel) ||
+            rel.StartsWith("https://github.com/jamiemitchellconsultants/division-ontology#link-relations/", StringComparison.Ordinal), rel));
+        Assert.Equal("https://github.com/jamiemitchellconsultants/division-ontology#link-relations/", WorkspaceLinks.RelationBase);
         var mapping = (await Spec())["x-agent-discovery"]!["linkRelations"]!.AsObject();
         Assert.All(rels, rel => Assert.True(mapping.ContainsKey(rel), $"undocumented rel {rel}"));
     }

@@ -9,7 +9,7 @@ namespace RuntimeKnowledge.Api;
 /// </summary>
 internal static class WorkspaceLinks
 {
-    public const string RelationBase = "urn:jamiemitchellconsultants:division-ontology:link-relations:";
+    public const string RelationBase = "https://github.com/jamiemitchellconsultants/division-ontology#link-relations/";
 
     private static string Rel(string name) => RelationBase + name;
 
