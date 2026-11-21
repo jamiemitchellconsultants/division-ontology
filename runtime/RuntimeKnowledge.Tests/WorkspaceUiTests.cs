@@ -75,6 +75,31 @@ public sealed class WorkspaceUiTests
         });
     }
 
+    [Theory]
+    [InlineData(100, true, "More paths may exist beyond the 100 shown.")]
+    [InlineData(0, true, "More paths may exist beyond the 0 shown.")]
+    [InlineData(0, false, "No paths found for this selection.")]
+    public void TruncatedTraversalSaysMorePathsMayExistRatherThanALimitWasReached(int pathCount, bool truncated, string expected)
+    {
+        using var context = new BunitContext();
+        var start = new PublishedKey("source-a", "concept", "https://example.test/start");
+        var steps = Enumerable.Range(0, pathCount).Select(i => new TraversalPath([new TraversalStep(
+            new PublishedKey("source-a", "assertion", $"https://example.test/e{i}"), null, start,
+            new PublishedKey("source-a", "concept", $"https://example.test/leaf{i}"), "uses", "outgoing", "published",
+            new Provenance(start, "commit", "active", null, []))])).ToArray();
+        using var http = new HttpClient(new StubHandler((_, _) =>
+            Task.FromResult<object>(new TraversalResult("active", steps, [], truncated, [], truncated ? "cursor" : null))))
+            { BaseAddress = new Uri("https://workspace.test") };
+        context.Services.AddSingleton(new WorkspaceClient(http));
+
+        var panel = context.Render<TraversalPanel>(parameters => parameters.Add(component => component.Start, start));
+        panel.Find("form").Submit();
+
+        panel.WaitForAssertion(() => Assert.Contains(expected, panel.Markup));
+        Assert.DoesNotContain("Path limit reached", panel.Markup);
+        if (truncated) Assert.DoesNotContain("No paths found", panel.Markup);
+    }
+
     [Fact]
     public void ReaderSeesProvenanceAndCanRequestUnavailablePaths()
     {

@@ -195,33 +195,72 @@ public sealed class TraversalPagingTests
         Assert.Equal(150, busyExaminedTotal);
     }
 
-    [Fact]
-    public async Task WellFormedAlteredFrontierStaysWithinTheCallersReadScope()
+    private static string PublishedRef(string edge) =>
+        "p:" + new PublishedKey("fixture/T", "assertion", $"https://fixture.test/t#{edge}").StorageKey;
+
+    private static async Task<(TraversalCursorPayload Payload, TraversalRequest Request)> BranchesCursorAsync(Scenario s)
     {
-        await using var s = await Scenario.OpenAsync();
-        await s.ActivateTraversalAsync("busy");
-        var first = await s.Graph.TraverseAsync(new TraversalRequest(s.Hub, MaxDepth: 1), CancellationToken.None);
-        var journal = await JournalHeadAsync(s);
-        var payload = TraversalCursor.Decode(first.NextCursor!, new TraversalRequest(s.Hub, MaxDepth: 1), first.SnapshotId, journal);
-        var altered = payload with
+        var request = new TraversalRequest(s.Hub, MaxDepth: 3);
+        var first = await s.Graph.TraverseAsync(request, CancellationToken.None);
+        return (TraversalCursor.Decode(first.NextCursor!, request, first.SnapshotId, await JournalHeadAsync(s)), request);
+    }
+
+    private static string Altered(TraversalCursorPayload payload, string reference) =>
+        TraversalCursor.Encode(payload with { Resume = new TraversalResume([reference], [new TraversalPending([0])], null) });
+
+    [Fact]
+    public async Task ResolvableAlteredFrontierContinuesFromTheChosenPendingPath()
+    {
+        var s = await Scenario.OpenAsync();
+        await s.ActivateTraversalAsync("branches");
+        var (payload, request) = await BranchesCursorAsync(s);
+        await using var api = new ApiFixture(s, "Entra");
+        var reader = api.ClientWithToken(["ReadKnowledgeGraph"]);
+
+        using var response = await reader.PostAsJsonAsync("/api/traverse",
+            request with { Cursor = Altered(payload, PublishedRef("h-m1")) }, WorkspaceJson.Options);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var page = (await response.Content.ReadFromJsonAsync<TraversalResult>(WorkspaceJson.Options))!;
+        var expected = new List<string>();
+        for (var sub = 0; sub < 3; sub++)
+            expected.Add($"https://fixture.test/t#h-m1>https://fixture.test/t#m1-s{sub}");
+        for (var sub = 0; sub < 3; sub++)
+            for (var l = 0; l < 30; l++)
+                expected.Add($"https://fixture.test/t#h-m1>https://fixture.test/t#m1-s{sub}>https://fixture.test/t#s1{sub}-l{l:00}");
+        Assert.Equal(expected, page.Paths.Select(Signature));
+        Assert.False(page.Truncated);
+        Assert.Null(page.NextCursor);
+    }
+
+    [Fact]
+    public async Task UnresolvableAlteredFrontierFailsAsInvalidCursor()
+    {
+        var s = await Scenario.OpenAsync();
+        await s.ActivateTraversalAsync("branches");
+        var store = new ContributionStore(s.Db);
+        var removed = await store.ApplyAsync(s.Actor, new CreateRelationship(s.Hub, Scenario.TraversalKey("mid0"),
+            RelationshipMeaning.Custom("gone", "Removed before the cursor is altered.")), CancellationToken.None);
+        await store.ApplyAsync(s.Actor, new RemoveContribution(removed.Id, removed.Version), CancellationToken.None);
+        var (payload, request) = await BranchesCursorAsync(s);
+        await using var api = new ApiFixture(s, "Entra");
+        var reader = api.ClientWithToken(["ReadKnowledgeGraph"]);
+
+        foreach (var reference in new[]
+                 {
+                     PublishedRef("does-not-exist"),
+                     "r:" + Guid.NewGuid().ToString("D"),
+                     "r:" + removed.Id.ToString("D")
+                 })
         {
-            Resume = payload.Resume with
-            {
-                Pending = [new TraversalPending([0]), .. payload.Resume.Pending.Skip(1)]
-            }
-        };
-        TraversalResult continued;
-        try
-        {
-            continued = await s.Graph.TraverseAsync(
-                new TraversalRequest(s.Hub, MaxDepth: 1, Cursor: TraversalCursor.Encode(altered)), CancellationToken.None);
+            using var response = await reader.PostAsJsonAsync("/api/traverse",
+                request with { Cursor = Altered(payload, reference) }, WorkspaceJson.Options);
+            Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+            var problem = JsonSerializer.Deserialize<JsonElement>(await response.Content.ReadAsStringAsync());
+            Assert.Equal("invalidCursor", problem.GetProperty("code").GetString());
+            Assert.Contains("Restart the traversal from the first page", problem.GetProperty("title").GetString());
+            Assert.False(problem.TryGetProperty("paths", out _));
         }
-        catch (WorkspaceException error)
-        {
-            Assert.Equal("invalidCursor", error.Code);
-            return;
-        }
-        Assert.All(continued.Paths, path => Assert.Equal(s.Hub, path.Steps[0].From));
     }
 
     [Fact]
