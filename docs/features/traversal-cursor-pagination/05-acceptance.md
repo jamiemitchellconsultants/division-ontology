@@ -91,6 +91,9 @@ The fixture has 105 seeded runtime relationships plus a few published ones from 
 2. Run `--filter "Behaviour=B12"`. **Expect** a pass over the 6,040-path wide fixture across more than 60 pages.
 
 ### B13 — `next` link while more pages exist
+
+**Interpretation (accepted by the user, 21 November 2026):** B13 describes the relation as "the absolute HTTPS relation mapped to `traverseGraph`". The build uses the registered relation `rel="next"`, which `x-agent-discovery.linkRelations` maps to `traverseGraph`. That is the same convention inventory and history already use. Acceptance treats `rel="next"` as meeting B13, and the behaviour text is left unchanged.
+
 1. Send first page and open the response headers. **Expect** `Link` to include `</api/traverse>; rel="next"`.
 2. Send next page through to the final page. **Expect** no `rel="next"` on the final page, while the `entityDetail` and `relationshipDetail` links remain.
 
