@@ -22,7 +22,7 @@ internal static class WorkspaceRoutes
         api.MapGet("/inventory", async (string? cursor, int? limit, GraphQueries graph, HttpContext context, CancellationToken token) =>
             {
                 var page = await graph.InventoryAsync(new PageRequest(cursor, limit ?? 50), token);
-                WorkspaceLinks.Append(context, WorkspaceLinks.NextPage("/api/inventory", page.NextCursor));
+                WorkspaceLinks.Append(context, WorkspaceLinks.NextPage("/api/inventory", page.NextCursor, limit: limit));
                 WorkspaceLinks.Append(context, WorkspaceLinks.Inventory);
                 return page;
             })
@@ -65,8 +65,7 @@ internal static class WorkspaceRoutes
         api.MapGet("/history", async (Guid? contributionId, string? cursor, int? limit, ContributionStore store, HttpContext context, CancellationToken token) =>
             {
                 var page = await store.HistoryAsync(contributionId, new PageRequest(cursor, limit ?? 50), token);
-                WorkspaceLinks.Append(context, WorkspaceLinks.NextPage("/api/history", page.NextCursor));
-                WorkspaceLinks.Append(context, WorkspaceLinks.History(page));
+                WorkspaceLinks.Append(context, WorkspaceLinks.NextPage("/api/history", page.NextCursor, limit: limit, contributionId: contributionId));
                 return page;
             })
             .WithSummary("List contribution history").WithTags(Reading)

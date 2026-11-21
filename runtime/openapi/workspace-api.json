@@ -2,7 +2,7 @@
   "openapi": "3.1.1",
   "info": {
     "title": "Runtime knowledge workspace API",
-    "description": "A division knowledge workspace for humans and agents. Use each operation's operationId or x-agent-tool-name as its stable tool name, and its x-agent-idempotent, x-agent-retryable and x-agent-side-effects flags to decide whether a call may be repeated. Follow a success response's links (HATEOAS) for the next operations instead of constructing URLs. Errors are application/problem+json with a stable code (see x-workspace-codes); a versionConflict carries the current record. Listing endpoints use cursor pagination: pass nextCursor back as cursor and stop when it is null. Unless x-workspace-role is none, send a bearer JWT for that role.",
+    "description": "A division knowledge workspace for humans and agents. Use each operation's operationId or x-agent-tool-name as its stable tool name, and its x-agent-idempotent, x-agent-retryable and x-agent-side-effects flags to decide whether a call may be repeated. Follow a success response's links (HATEOAS) for the next operations instead of constructing URLs. Errors are application/problem+json with a stable code (see x-workspace-codes); a versionConflict carries the current record. Listing endpoints use cursor pagination: pass nextCursor back as cursor and stop when it is null. Unless x-workspace-role is none, send a bearer JWT for that role. /health is an internal probe only: the public ingress forwards only /api/*.",
     "version": "v1"
   },
   "paths": {
@@ -259,7 +259,7 @@
           "Contributions"
         ],
         "summary": "Edit an annotation or runtime relationship",
-        "description": "Edits an annotation or runtime relationship. Optimistic concurrency: expectedVersion must match the current version; on versionConflict re-read history and retry with the new version rather than repeating the same body.",
+        "description": "Edits an annotation or runtime relationship. Optimistic concurrency: expectedVersion must match the current version. On a 409 versionConflict, reconcile your intended changes with the current record returned in the response body's current field, then submit a revised edit using that record's version as expectedVersion; do not merely replace expectedVersion on your original changes, which would silently overwrite the other caller's edits.",
         "operationId": "editContribution",
         "parameters": [
           {
@@ -300,12 +300,26 @@
                 },
                 "description": "Read back the contribution's revisions."
               },
+              "editContribution": {
+                "operationId": "editContribution",
+                "parameters": {
+                  "id": "$response.body#/id"
+                },
+                "description": "Edit it again; supply id and the returned version as expectedVersion."
+              },
               "removeContribution": {
                 "operationId": "removeContribution",
                 "parameters": {
                   "id": "$response.body#/id"
                 },
                 "description": "Remove it; supply id and the returned version as expectedVersion."
+              },
+              "associateCodification": {
+                "operationId": "associateCodification",
+                "parameters": {
+                  "id": "$response.body#/id"
+                },
+                "description": "For a runtime relationship only: codify it against a published relationship; supply id and the returned version."
               }
             }
           },
@@ -398,7 +412,7 @@
           "Contributions"
         ],
         "summary": "Associate a runtime relationship with its codifying published relationship",
-        "description": "Associates a runtime relationship with the published relationship that codifies it, at expectedVersion. On versionConflict re-read history before retrying.",
+        "description": "Associates a runtime relationship with the published relationship that codifies it, at expectedVersion. On a 409 versionConflict, reconcile your intended association with the current record returned in the response body's current field before submitting a revised request; do not merely replace expectedVersion, which could discard the other caller's changes.",
         "operationId": "associateCodification",
         "parameters": [
           {
@@ -445,6 +459,20 @@
                   "id": "$response.body#/id"
                 },
                 "description": "Revise it; supply id and the returned version as expectedVersion."
+              },
+              "removeContribution": {
+                "operationId": "removeContribution",
+                "parameters": {
+                  "id": "$response.body#/id"
+                },
+                "description": "Remove it; supply id and the returned version as expectedVersion."
+              },
+              "associateCodification": {
+                "operationId": "associateCodification",
+                "parameters": {
+                  "id": "$response.body#/id"
+                },
+                "description": "Associate another codification; supply id and the returned version."
               }
             }
           },
@@ -744,7 +772,7 @@
           "Reading"
         ],
         "summary": "List contribution history",
-        "description": "Cursor-paginated contribution history. Filter with contributionId to follow one contribution's revisions; pass nextCursor for the next page.",
+        "description": "Cursor-paginated contribution history, ordered oldest first by journal position. Filter with contributionId to follow one contribution's revisions; pass nextCursor for the next page. Entries are historical revisions, so there is deliberately no edit follow-on here: edit only from a current contribution record (for example a create/edit response).",
         "operationId": "listHistory",
         "parameters": [
           {
@@ -789,16 +817,11 @@
               "next": {
                 "operationId": "listHistory",
                 "parameters": {
-                  "cursor": "$response.body#/nextCursor"
+                  "cursor": "$response.body#/nextCursor",
+                  "contributionId": "$request.query.contributionId",
+                  "limit": "$request.query.limit"
                 },
-                "description": "Fetch the next page using this page's nextCursor."
-              },
-              "editContribution": {
-                "operationId": "editContribution",
-                "parameters": {
-                  "id": "$response.body#/entries/0/contributionId"
-                },
-                "description": "Edit a listed contribution; supply its contributionId as id and its revision as expectedVersion."
+                "description": "Fetch the next page using this page's nextCursor, keeping the same contributionId filter and limit."
               }
             }
           },
@@ -886,9 +909,10 @@
               "next": {
                 "operationId": "listInventory",
                 "parameters": {
-                  "cursor": "$response.body#/nextCursor"
+                  "cursor": "$response.body#/nextCursor",
+                  "limit": "$request.query.limit"
                 },
-                "description": "Fetch the next page using this page's nextCursor."
+                "description": "Fetch the next page using this page's nextCursor, keeping the same limit."
               },
               "search": {
                 "operationId": "searchWorkspace",
@@ -1182,7 +1206,7 @@
               },
               "history": {
                 "operationId": "listHistory",
-                "description": "List contribution history, newest first."
+                "description": "List contribution history, oldest first."
               }
             }
           },
@@ -1331,7 +1355,7 @@
           "Health"
         ],
         "summary": "Report readiness",
-        "description": "Anonymous readiness check. Safe to poll; returns {\"status\":\"ready\"} when the workspace can serve requests.",
+        "description": "Internal readiness probe. The public ingress forwards only /api/*, so this endpoint is reachable inside the deployment, not from the public origin; do not use it for public discovery (use x-agent-discovery's /api/* URLs instead). Safe to poll internally; returns {\"status\":\"ready\"} when the workspace can serve requests.",
         "operationId": "getHealth",
         "responses": {
           "200": {
@@ -2725,10 +2749,29 @@
   "x-agent-discovery": {
     "spec": "/api/openapi/v1.json",
     "docs": "/api/docs",
-    "health": "/health",
+    "health": {
+      "path": "/health",
+      "scope": "internal only: the public ingress forwards only /api/*, so use the /api/* URLs above from the public origin"
+    },
     "auth": "bearer JWT; the required role is each operation's x-workspace-role",
-    "pagination": "cursor: pass nextCursor as cursor, stop when null",
+    "pagination": "cursor: pass nextCursor as cursor and keep the original contributionId and limit, stop when null",
     "errors": "application/problem+json with a stable code per operation's x-workspace-codes",
-    "hateoas": "follow each success response's links and the runtime Link response headers"
+    "hateoas": "follow each success response's links and the runtime Link response headers",
+    "linkRelations": {
+      "next": "listInventory or listHistory: the next page of the same listing (registered relation)",
+      "service-desc": "this OpenAPI document at /api/openapi/v1.json (registered relation)",
+      "service-doc": "the interactive docs at /api/docs (registered relation)",
+      "urn:jamiemitchellconsultants:division-ontology:link-relations:session": "getSession",
+      "urn:jamiemitchellconsultants:division-ontology:link-relations:inventory": "listInventory",
+      "urn:jamiemitchellconsultants:division-ontology:link-relations:history": "listHistory",
+      "urn:jamiemitchellconsultants:division-ontology:link-relations:search": "searchWorkspace",
+      "urn:jamiemitchellconsultants:division-ontology:link-relations:traverse": "traverseGraph",
+      "urn:jamiemitchellconsultants:division-ontology:link-relations:createAnnotation": "createAnnotation",
+      "urn:jamiemitchellconsultants:division-ontology:link-relations:entityDetail": "getEntityDetail",
+      "urn:jamiemitchellconsultants:division-ontology:link-relations:relationshipDetail": "getRelationshipDetail",
+      "urn:jamiemitchellconsultants:division-ontology:link-relations:edit": "editContribution",
+      "urn:jamiemitchellconsultants:division-ontology:link-relations:remove": "removeContribution",
+      "urn:jamiemitchellconsultants:division-ontology:link-relations:codifications": "associateCodification"
+    }
   }
 }

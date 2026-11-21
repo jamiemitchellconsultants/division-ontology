@@ -105,15 +105,16 @@ internal static class WorkspaceOpenApi
         new Dictionary<string, AgentOperation>(StringComparer.OrdinalIgnoreCase)
         {
             ["GET health"] = new("getHealth", "workspace_get_health", "none", true, true,
-                "Anonymous readiness check. Safe to poll; returns {\"status\":\"ready\"} when the workspace can serve requests.",
+                "Internal readiness probe. The public ingress forwards only /api/*, so this endpoint is reachable inside the deployment, not from the public origin; do not use it for public discovery (use x-agent-discovery's /api/* URLs instead). Safe to poll internally; returns {\"status\":\"ready\"} when the workspace can serve requests.",
                 [Link("session", "getSession", "Check what the caller's token may do next.")]),
             ["GET api/session"] = new("getSession", "workspace_get_session", "none", true, true,
                 "Returns whether the caller's bearer token can read (CanRead) and manage (CanManage) the workspace. Call this first to choose which other tools to offer.",
                 [Link("inventory", "listInventory", "List the published snapshot's entities, relationship types and relationships."),
-                 Link("history", "listHistory", "List contribution history, newest first.")]),
+                 Link("history", "listHistory", "List contribution history, oldest first.")]),
             ["GET api/inventory"] = new("listInventory", "workspace_list_inventory", "none", true, true,
                 "Cursor-paginated listing of the published snapshot. Pass the previous page's nextCursor as cursor; never invent a cursor. Treat nextCursor=null as the end.",
-                [Link("next", "listInventory", "Fetch the next page using this page's nextCursor.", FromBody("cursor", "$response.body#/nextCursor")),
+                [Link("next", "listInventory", "Fetch the next page using this page's nextCursor, keeping the same limit.",
+                    new Dictionary<string, string> { ["cursor"] = "$response.body#/nextCursor", ["limit"] = "$request.query.limit" }),
                  Link("search", "searchWorkspace", "Search the same snapshot by meaning; supply a SearchRequest body.")]),
             ["POST api/entities/detail"] = new("getEntityDetail", "workspace_get_entity_detail", "none", true, true,
                 "Read-only lookup despite POST: the published key is the request body. Returns the entity with its runtime annotations.",
@@ -130,9 +131,9 @@ internal static class WorkspaceOpenApi
                 [Link("entityDetail", "getEntityDetail", "Inspect an entity on a returned path; supply its key in an EntityDetailRequest body."),
                  Link("relationshipDetail", "getRelationshipDetail", "Inspect a traversed relationship in detail.")]),
             ["GET api/history"] = new("listHistory", "workspace_list_history", "none", true, true,
-                "Cursor-paginated contribution history. Filter with contributionId to follow one contribution's revisions; pass nextCursor for the next page.",
-                [Link("next", "listHistory", "Fetch the next page using this page's nextCursor.", FromBody("cursor", "$response.body#/nextCursor")),
-                 Link("editContribution", "editContribution", "Edit a listed contribution; supply its contributionId as id and its revision as expectedVersion.", FromBody("id", "$response.body#/entries/0/contributionId"))]),
+                "Cursor-paginated contribution history, ordered oldest first by journal position. Filter with contributionId to follow one contribution's revisions; pass nextCursor for the next page. Entries are historical revisions, so there is deliberately no edit follow-on here: edit only from a current contribution record (for example a create/edit response).",
+                [Link("next", "listHistory", "Fetch the next page using this page's nextCursor, keeping the same contributionId filter and limit.",
+                    new Dictionary<string, string> { ["cursor"] = "$response.body#/nextCursor", ["contributionId"] = "$request.query.contributionId", ["limit"] = "$request.query.limit" })]),
             ["POST api/contributions/annotations"] = new("createAnnotation", "workspace_create_annotation", "creates-contribution", false, false,
                 "Creates an annotation contribution and returns its id and version. Not idempotent: retrying creates another annotation. Follow history for the created id instead of retrying blindly.",
                 [Link("history", "listHistory", "Read back the created contribution.", FromBody("contributionId", "$response.body#/id")),
@@ -145,16 +146,20 @@ internal static class WorkspaceOpenApi
                  Link("removeContribution", "removeContribution", "Remove it; supply id and the current version as expectedVersion.", FromBody("id", "$response.body#/id")),
                  Link("associateCodification", "associateCodification", "Codify it against a published relationship; supply id and the current version.", FromBody("id", "$response.body#/id"))]),
             ["PUT api/contributions/{id}"] = new("editContribution", "workspace_edit_contribution", "updates-contribution", false, false,
-                "Edits an annotation or runtime relationship. Optimistic concurrency: expectedVersion must match the current version; on versionConflict re-read history and retry with the new version rather than repeating the same body.",
+                "Edits an annotation or runtime relationship. Optimistic concurrency: expectedVersion must match the current version. On a 409 versionConflict, reconcile your intended changes with the current record returned in the response body's current field, then submit a revised edit using that record's version as expectedVersion; do not merely replace expectedVersion on your original changes, which would silently overwrite the other caller's edits.",
                 [Link("history", "listHistory", "Read back the contribution's revisions.", FromBody("contributionId", "$response.body#/id")),
-                 Link("removeContribution", "removeContribution", "Remove it; supply id and the returned version as expectedVersion.", FromBody("id", "$response.body#/id"))]),
+                 Link("editContribution", "editContribution", "Edit it again; supply id and the returned version as expectedVersion.", FromBody("id", "$response.body#/id")),
+                 Link("removeContribution", "removeContribution", "Remove it; supply id and the returned version as expectedVersion.", FromBody("id", "$response.body#/id")),
+                 Link("associateCodification", "associateCodification", "For a runtime relationship only: codify it against a published relationship; supply id and the returned version.", FromBody("id", "$response.body#/id"))]),
             ["POST api/contributions/{id}/remove"] = new("removeContribution", "workspace_remove_contribution", "removes-contribution", false, false,
                 "Removes a contribution at expectedVersion. Not idempotent: a repeat fails with versionConflict or contributionNotFound, which means the removal already happened or never existed; check history to tell which.",
                 [Link("history", "listHistory", "Confirm the removal in history.", FromBody("contributionId", "$response.body#/id"))]),
             ["POST api/contributions/{id}/codifications"] = new("associateCodification", "workspace_associate_codification", "updates-contribution", false, false,
-                "Associates a runtime relationship with the published relationship that codifies it, at expectedVersion. On versionConflict re-read history before retrying.",
+                "Associates a runtime relationship with the published relationship that codifies it, at expectedVersion. On a 409 versionConflict, reconcile your intended association with the current record returned in the response body's current field before submitting a revised request; do not merely replace expectedVersion, which could discard the other caller's changes.",
                 [Link("history", "listHistory", "Read back the contribution with its codifications.", FromBody("contributionId", "$response.body#/id")),
-                 Link("editContribution", "editContribution", "Revise it; supply id and the returned version as expectedVersion.", FromBody("id", "$response.body#/id"))]),
+                 Link("editContribution", "editContribution", "Revise it; supply id and the returned version as expectedVersion.", FromBody("id", "$response.body#/id")),
+                 Link("removeContribution", "removeContribution", "Remove it; supply id and the returned version as expectedVersion.", FromBody("id", "$response.body#/id")),
+                 Link("associateCodification", "associateCodification", "Associate another codification; supply id and the returned version.", FromBody("id", "$response.body#/id"))]),
         };
 
     private static void AgentDecorations(OpenApiOperation operation, OpenApiOperationTransformerContext context)
@@ -249,7 +254,8 @@ internal static class WorkspaceOpenApi
                 "links (HATEOAS) for the next operations instead of constructing URLs. Errors are " +
                 "application/problem+json with a stable code (see x-workspace-codes); a versionConflict carries the " +
                 "current record. Listing endpoints use cursor pagination: pass nextCursor back as cursor and stop " +
-                "when it is null. Unless x-workspace-role is none, send a bearer JWT for that role."
+                "when it is null. Unless x-workspace-role is none, send a bearer JWT for that role. " +
+                "/health is an internal probe only: the public ingress forwards only /api/*."
         };
         document.Tags = new HashSet<OpenApiTag>
         {
@@ -262,11 +268,32 @@ internal static class WorkspaceOpenApi
         {
             ["spec"] = DocsUi.SpecPath,
             ["docs"] = "/api/docs",
-            ["health"] = "/health",
+            ["health"] = new JsonObject
+            {
+                ["path"] = "/health",
+                ["scope"] = "internal only: the public ingress forwards only /api/*, so use the /api/* URLs above from the public origin"
+            },
             ["auth"] = "bearer JWT; the required role is each operation's x-workspace-role",
-            ["pagination"] = "cursor: pass nextCursor as cursor, stop when null",
+            ["pagination"] = "cursor: pass nextCursor as cursor and keep the original contributionId and limit, stop when null",
             ["errors"] = "application/problem+json with a stable code per operation's x-workspace-codes",
-            ["hateoas"] = "follow each success response's links and the runtime Link response headers"
+            ["hateoas"] = "follow each success response's links and the runtime Link response headers",
+            ["linkRelations"] = new JsonObject
+            {
+                ["next"] = "listInventory or listHistory: the next page of the same listing (registered relation)",
+                ["service-desc"] = "this OpenAPI document at /api/openapi/v1.json (registered relation)",
+                ["service-doc"] = "the interactive docs at /api/docs (registered relation)",
+                [WorkspaceLinks.RelationBase + "session"] = "getSession",
+                [WorkspaceLinks.RelationBase + "inventory"] = "listInventory",
+                [WorkspaceLinks.RelationBase + "history"] = "listHistory",
+                [WorkspaceLinks.RelationBase + "search"] = "searchWorkspace",
+                [WorkspaceLinks.RelationBase + "traverse"] = "traverseGraph",
+                [WorkspaceLinks.RelationBase + "createAnnotation"] = "createAnnotation",
+                [WorkspaceLinks.RelationBase + "entityDetail"] = "getEntityDetail",
+                [WorkspaceLinks.RelationBase + "relationshipDetail"] = "getRelationshipDetail",
+                [WorkspaceLinks.RelationBase + "edit"] = "editContribution",
+                [WorkspaceLinks.RelationBase + "remove"] = "removeContribution",
+                [WorkspaceLinks.RelationBase + "codifications"] = "associateCodification"
+            }
         });
         document.Components ??= new OpenApiComponents();
         document.Components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>();

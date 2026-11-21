@@ -66,7 +66,7 @@ public sealed class AgentDecoratorsTests
         var discovery = spec["x-agent-discovery"]!;
         Assert.Equal("/api/openapi/v1.json", (string)discovery["spec"]!);
         Assert.Equal("/api/docs", (string)discovery["docs"]!);
-        Assert.Equal("/health", (string)discovery["health"]!);
+        Assert.Equal("/health", (string)discovery["health"]!["path"]!);
         var tags = spec["tags"]!.AsArray().ToDictionary(t => (string)t!["name"]!, t => (string)t!["description"]!);
         Assert.Equal(["Contributions", "Health", "Reading"], tags.Keys.Order(StringComparer.Ordinal));
         Assert.All(tags.Values, description => Assert.False(string.IsNullOrWhiteSpace(description)));
@@ -104,6 +104,8 @@ public sealed class AgentDecoratorsTests
         Assert.Equal("$response.body#/nextCursor", (string)inventory["next"]!["parameters"]!["cursor"]!);
     }
 
+    private const string RelBase = "urn:jamiemitchellconsultants:division-ontology:link-relations:";
+
     [Fact]
     public async Task SessionAndHealthCarryLinkHeaders()
     {
@@ -111,8 +113,8 @@ public sealed class AgentDecoratorsTests
         var reader = host.ClientWithToken(["ReadKnowledgeGraph"]);
         var session = await reader.GetAsync("/api/session");
         var sessionLinks = string.Join(",", session.Headers.GetValues("Link"));
-        Assert.Contains("</api/inventory>; rel=\"inventory\"", sessionLinks);
-        Assert.Contains("</api/history>; rel=\"history\"", sessionLinks);
+        Assert.Contains($"</api/inventory>; rel=\"{RelBase}inventory\"", sessionLinks);
+        Assert.Contains($"</api/history>; rel=\"{RelBase}history\"", sessionLinks);
     }
 
     [Fact]
@@ -120,27 +122,101 @@ public sealed class AgentDecoratorsTests
     {
         var id = Guid.Parse("11111111-1111-1111-1111-111111111111");
         var links = WorkspaceLinks.Contribution(id, codifiable: true);
-        Assert.Contains($"</api/history?contributionId={id:D}>; rel=\"history\"", links);
-        Assert.Contains($"</api/contributions/{id:D}/codifications>; rel=\"codifications\"", links);
+        Assert.Contains($"</api/history?contributionId={id:D}>; rel=\"{RelBase}history\"", links);
+        Assert.Contains($"</api/contributions/{id:D}/codifications>; rel=\"{RelBase}codifications\"", links);
         Assert.Equal([], WorkspaceLinks.NextPage("/api/inventory", null));
-        Assert.Equal(["</api/inventory?cursor=a%20b>; rel=\"next\""], WorkspaceLinks.NextPage("/api/inventory", "a b"));
+        Assert.Equal(["</api/inventory?cursor=a%20b&limit=1>; rel=\"next\""],
+            WorkspaceLinks.NextPage("/api/inventory", "a b", limit: 1));
+        Assert.Equal([$"</api/history?cursor=c&contributionId={id:D}&limit=5>; rel=\"next\""],
+            WorkspaceLinks.NextPage("/api/history", "c", limit: 5, contributionId: id));
         Assert.Contains("</api/openapi/v1.json>; rel=\"service-desc\"", WorkspaceLinks.Health);
     }
 
     [Fact]
     public void ReadOperationsLinkToTheirSpecFollowOns()
     {
-        Assert.Equal(["</api/search>; rel=\"search\""], WorkspaceLinks.Inventory);
-        Assert.Contains("</api/traverse>; rel=\"traverse\"", WorkspaceLinks.EntityDetail);
-        Assert.Contains("</api/contributions/annotations>; rel=\"createAnnotation\"", WorkspaceLinks.EntityDetail);
-        Assert.Equal(["</api/entities/detail>; rel=\"entityDetail\""], WorkspaceLinks.RelationshipDetail);
-        Assert.Equal(["</api/entities/detail>; rel=\"entityDetail\""], WorkspaceLinks.Search);
-        Assert.Contains("</api/relationships/detail>; rel=\"relationshipDetail\"", WorkspaceLinks.Traverse);
+        Assert.Equal([$"</api/search>; rel=\"{RelBase}search\""], WorkspaceLinks.Inventory);
+        Assert.Contains($"</api/traverse>; rel=\"{RelBase}traverse\"", WorkspaceLinks.EntityDetail);
+        Assert.Contains($"</api/contributions/annotations>; rel=\"{RelBase}createAnnotation\"", WorkspaceLinks.EntityDetail);
+        Assert.Equal([$"</api/entities/detail>; rel=\"{RelBase}entityDetail\""], WorkspaceLinks.RelationshipDetail);
+        Assert.Equal([$"</api/entities/detail>; rel=\"{RelBase}entityDetail\""], WorkspaceLinks.Search);
+        Assert.Contains($"</api/relationships/detail>; rel=\"{RelBase}relationshipDetail\"", WorkspaceLinks.Traverse);
         var id = Guid.Parse("11111111-1111-1111-1111-111111111111");
-        Assert.Equal([$"</api/contributions/{id:D}>; rel=\"editContribution\""], WorkspaceLinks.History(
-            new HistoryPage([new HistoryEntry(1, "created", new Actor("i", "s"), DateTimeOffset.UnixEpoch, id, 1, null,
-                null!, "snapshot")], null)));
-        Assert.Equal([], WorkspaceLinks.History(new HistoryPage([], null)));
-        Assert.Equal([$"</api/history?contributionId={id:D}>; rel=\"history\""], WorkspaceLinks.ContributionHistory(id));
+        Assert.Equal([$"</api/history?contributionId={id:D}>; rel=\"{RelBase}history\""], WorkspaceLinks.ContributionHistory(id));
+    }
+
+    [Fact]
+    public async Task PaginationLinksPreserveTheQueryAndHistoryHasNoEditAffordance()
+    {
+        var spec = await Spec();
+        var inventory = spec["paths"]!["/api/inventory"]!["get"]!["responses"]!["200"]!["links"]!;
+        Assert.Equal("$request.query.limit", (string)inventory["next"]!["parameters"]!["limit"]!);
+        var history = spec["paths"]!["/api/history"]!["get"]!;
+        var historyLinks = history["responses"]!["200"]!["links"]!.AsObject();
+        Assert.Equal(["next"], historyLinks.Select(l => l.Key));
+        Assert.Equal("$request.query.contributionId", (string)historyLinks["next"]!["parameters"]!["contributionId"]!);
+        Assert.Equal("$request.query.limit", (string)historyLinks["next"]!["parameters"]!["limit"]!);
+        Assert.Contains("oldest first", (string)history["description"]!);
+        var session = spec["paths"]!["/api/session"]!["get"]!["responses"]!["200"]!["links"]!;
+        Assert.Contains("oldest first", (string)session["history"]!["description"]!);
+    }
+
+    [Fact]
+    public async Task EditAndCodificationGuidanceReconcilesWithTheCurrentRecord()
+    {
+        var spec = await Spec();
+        foreach (var (path, method) in new[] { ("/api/contributions/{id}", "put"), ("/api/contributions/{id}/codifications", "post") })
+        {
+            var description = (string)spec["paths"]![path]![method]!["description"]!;
+            Assert.Contains("reconcile", description, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("current record", description);
+            Assert.Contains("409", description);
+        }
+    }
+
+    [Fact]
+    public async Task HealthIsInternalInTheAgentMetadata()
+    {
+        var spec = await Spec();
+        var health = spec["paths"]!["/health"]!["get"]!;
+        Assert.Contains("internal", (string)health["description"]!, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("/api/*", (string)health["description"]!);
+        var discovery = spec["x-agent-discovery"]!;
+        Assert.Equal("/health", (string)discovery["health"]!["path"]!);
+        Assert.Contains("internal", (string)discovery["health"]!["scope"]!, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("/api/openapi/v1.json", (string)discovery["spec"]!);
+        Assert.Equal("/api/docs", (string)discovery["docs"]!);
+    }
+
+    [Fact]
+    public async Task RuntimeRelationsAreRfc8288CompliantAndDocumentedInTheSpec()
+    {
+        var id = Guid.Parse("11111111-1111-1111-1111-111111111111");
+        var headers = WorkspaceLinks.Health.Concat(WorkspaceLinks.Session).Concat(WorkspaceLinks.Inventory)
+            .Concat(WorkspaceLinks.EntityDetail).Concat(WorkspaceLinks.RelationshipDetail).Concat(WorkspaceLinks.Search)
+            .Concat(WorkspaceLinks.Traverse).Concat(WorkspaceLinks.NextPage("/api/history", "c", 5, id))
+            .Concat(WorkspaceLinks.Contribution(id, codifiable: true)).Concat(WorkspaceLinks.ContributionHistory(id));
+        var rels = headers.Select(h => h.Split("rel=\"")[1].TrimEnd('"')).Distinct().ToArray();
+        var registered = new HashSet<string> { "next", "service-desc", "service-doc" };
+        Assert.All(rels, rel => Assert.True(registered.Contains(rel) || Uri.TryCreate(rel, UriKind.Absolute, out _), rel));
+        var mapping = (await Spec())["x-agent-discovery"]!["linkRelations"]!.AsObject();
+        Assert.All(rels, rel => Assert.True(mapping.ContainsKey(rel), $"undocumented rel {rel}"));
+    }
+
+    [Fact]
+    public async Task EditAndCodificationSpecLinksMatchTheRuntimeActionSets()
+    {
+        var spec = await Spec();
+        var expected = new[] { "associateCodification", "editContribution", "history", "removeContribution" };
+        foreach (var (path, method, status) in new[] { ("/api/contributions/{id}", "put", "200"), ("/api/contributions/{id}/codifications", "post", "200") })
+            Assert.Equal(expected, spec["paths"]![path]![method]!["responses"]![status]!["links"]!.AsObject()
+                .Select(l => l.Key).Order(StringComparer.Ordinal));
+        var id = Guid.Parse("11111111-1111-1111-1111-111111111111");
+        var targets = WorkspaceLinks.Contribution(id, codifiable: true)
+            .Select(h => h.Split('>')[0].TrimStart('<')).Order(StringComparer.Ordinal);
+        Assert.Equal([$"/api/contributions/{id:D}", $"/api/contributions/{id:D}/codifications",
+            $"/api/contributions/{id:D}/remove", $"/api/history?contributionId={id:D}"], targets);
+        Assert.DoesNotContain(WorkspaceLinks.Contribution(id, codifiable: false),
+            h => h.Contains("codifications", StringComparison.Ordinal));
     }
 }
