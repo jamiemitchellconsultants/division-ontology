@@ -54,6 +54,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [44](#entry-docs-amend-traversal-behaviours-after-dev-plan-pushback-121) | 2026-11-21 | docs: amend traversal behaviours after dev-plan pushback (#121) | product | Adopt "not proven finished" semantics for `truncated` and `nextCursor`; validate continuations (shape, parameters, view) before resolving the start entity; and keep cursors unsigned, treating a well-formed alteration as a client-chosen… |
 | [45](#entry-docs-amend-traversal-architecture-after-dev-plan-pushback-122) | 2026-11-21 | docs: amend traversal architecture after dev-plan pushback (#122) | product | Keep the stateless, cursor-carried frontier (the user's earlier decision stands) and make it survivable: shared-prefix dictionary coding plus compression, an issue-side decodability guarantee proven by a wide multi-page fixture… |
 | [46](#entry-docs-implementation-plan-for-traversal-cursor-pagination-123) | 2026-11-21 | docs: implementation plan for traversal cursor pagination (#123) | product | Six tasks, in dependency order: contract and cursor codec; page-bounded walk; snapshot/journal binding; examined-step budget (1000 per request); API surface, HATEOAS and the regenerated committed spec; then whole-feature verification… |
+| [47](#entry-vision-knowledge-graph-explorer) | 2026-11-21 | Vision: Knowledge Graph Explorer | product | Add a graph explorer centred on a published concept or node. Readers can follow directed relationships, inspect evidence and provenance, and return to their previous view. Managers can use existing contribution actions from the graph. |
 
 ---
 
@@ -1179,3 +1180,27 @@ Once this plan is reviewed and merged, the build phase (#124) can start without 
 ---
 
 AI-Fingerprint: sha256:d6d9f5d02b4a
+
+---
+
+<a id="entry-vision-knowledge-graph-explorer"></a>
+
+## Entry 47 — 2026-11-21 — Vision: Knowledge Graph Explorer
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+Workspace readers can traverse relationships as a list today. Following a cross-repository handoff and opening evidence can make it difficult to keep track of the current concept, previous steps and similarly named entities. The workspace already records the source and meaning of relationships and supports user-authored contributions.
+
+## Decision
+
+Add a graph explorer centred on a published concept or node. Readers can follow directed relationships, inspect evidence and provenance, and return to their previous view. Managers can use existing contribution actions from the graph. All user changes are stored only in the runtime workspace. Turtle files in the adopting repository and all source repositories are read-only inputs.
+
+## Consequences
+
+The first version uses navigation history to restore earlier views. The scope excludes a persistent route canvas and a whole-division map. The explorer depends on traversal pagination from #119 for busy nodes. The analyst will define behaviour for navigation, evidence inspection, loading additional results and workspace edits.
+
+---
+
+AI-Fingerprint: sha256:38095f8eaaa4
