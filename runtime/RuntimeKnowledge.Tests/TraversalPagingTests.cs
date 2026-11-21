@@ -1,3 +1,5 @@
+using System.Net;
+using System.Net.Http.Json;
 using System.Text.Json;
 using RuntimeKnowledge.Contracts;
 using RuntimeKnowledge.Store;
@@ -178,6 +180,41 @@ public sealed class TraversalPagingTests
             cursor = page.NextCursor;
         } while (cursor is not null);
         Assert.All(counts, count => Assert.True(count <= 202, $"examined {count}"));
+    }
+
+    [Fact]
+    public async Task HttpTraversalFollowsTheNextLinkAndRejectsAStaleCursorAfterAnEdit()
+    {
+        var scenario = await Scenario.OpenAsync();
+        await scenario.ActivateTraversalAsync("busy");
+        await using var api = new ApiFixture(scenario, "Entra");
+        var reader = api.ClientWithToken(["ReadKnowledgeGraph"]);
+        var manager = api.ClientWithToken(["ManageKnowledgeGraph"]);
+
+        using var firstResponse = await reader.PostAsJsonAsync("/api/traverse",
+            new TraversalRequest(scenario.Hub, MaxDepth: 1), WorkspaceJson.Options);
+        Assert.Equal(HttpStatusCode.OK, firstResponse.StatusCode);
+        Assert.Contains("</api/traverse>; rel=\"next\"",
+            string.Join(",", firstResponse.Headers.GetValues("Link")));
+        var first = (await firstResponse.Content.ReadFromJsonAsync<TraversalResult>(WorkspaceJson.Options))!;
+        Assert.Equal(100, first.Paths.Count);
+        Assert.NotNull(first.NextCursor);
+
+        using var secondResponse = await reader.PostAsJsonAsync("/api/traverse",
+            new TraversalRequest(scenario.Hub, MaxDepth: 1, Cursor: first.NextCursor), WorkspaceJson.Options);
+        Assert.Equal(HttpStatusCode.OK, secondResponse.StatusCode);
+        var second = (await secondResponse.Content.ReadFromJsonAsync<TraversalResult>(WorkspaceJson.Options))!;
+        Assert.NotEmpty(second.Paths);
+        Assert.Empty(first.Paths.Select(Signature).Intersect(second.Paths.Select(Signature)));
+
+        using var created = await manager.PostAsJsonAsync("/api/contributions/annotations",
+            new CreateAnnotation(Scenario.TraversalKey("leaf000"), "businessExplanation", "Edited after paging."));
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+        using var stale = await reader.PostAsJsonAsync("/api/traverse",
+            new TraversalRequest(scenario.Hub, MaxDepth: 1, Cursor: first.NextCursor), WorkspaceJson.Options);
+        Assert.Equal(HttpStatusCode.Conflict, stale.StatusCode);
+        var problem = JsonSerializer.Deserialize<JsonElement>(await stale.Content.ReadAsStringAsync());
+        Assert.Equal("staleCursor", problem.GetProperty("code").GetString());
     }
 
     [Fact]

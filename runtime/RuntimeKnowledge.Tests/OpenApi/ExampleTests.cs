@@ -14,10 +14,12 @@ public sealed class ExampleTests
     {
         var spec = OpenApiHost.CommittedSpec();
         var allowed = OpenApiExamples.All.Select(v => JsonSerializer.SerializeToNode(v, WorkspaceJson.Options)).ToArray();
-        var examples = Descendants(spec).Where(p => p.Key is "example").Select(p => p.Value).ToArray();
-        Assert.Equal(4, examples.Length);
+        var examples = Descendants(spec).Where(p => p.Key is "example").Select(p => p.Value)
+            .Concat(Descendants(spec).Where(p => p.Key is "examples")
+                .SelectMany(p => p.Value!.AsObject().Select(entry => entry.Value!["value"])))
+            .ToArray();
+        Assert.Equal(5, examples.Length);
         Assert.All(examples, e => Assert.Contains(allowed, a => JsonNode.DeepEquals(a, e)));
-        Assert.DoesNotContain(Descendants(spec), p => p.Key is "examples");
         foreach (var text in examples.SelectMany(Strings))
             if (Uri.TryCreate(text, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https")
                 Assert.Equal("example.test", uri.Host);

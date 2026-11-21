@@ -57,11 +57,12 @@ internal static class WorkspaceRoutes
             {
                 var result = await graph.TraverseAsync(request, token);
                 WorkspaceLinks.Append(context, WorkspaceLinks.Traverse);
+                if (result.NextCursor is not null) WorkspaceLinks.Append(context, WorkspaceLinks.TraverseNext);
                 return result;
             })
             .WithSummary("Traverse relationships from a published entity").WithTags(Reading)
-            .ProducesWorkspaceErrors("invalidTraversal", "entityNotFound", "snapshotUnavailable")
-            .WithMetadata(new RequestExample(OpenApiExamples.Traversal));
+            .ProducesWorkspaceErrors("invalidTraversal", "entityNotFound", "snapshotUnavailable", "invalidCursor", "staleCursor")
+            .WithMetadata(new RequestExamples([("firstPage", OpenApiExamples.Traversal), ("nextPage", OpenApiExamples.TraversalNextPage)]));
         api.MapGet("/history", async (Guid? contributionId, string? cursor, int? limit, ContributionStore store, HttpContext context, CancellationToken token) =>
             {
                 var page = await store.HistoryAsync(contributionId, new PageRequest(cursor, limit ?? 50), token);

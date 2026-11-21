@@ -84,6 +84,13 @@ internal static class WorkspaceOpenApi
         if (context.Description.ActionDescriptor.EndpointMetadata.OfType<RequestExample>().FirstOrDefault() is { } example &&
             operation.RequestBody?.Content?.TryGetValue("application/json", out var media) == true)
             media.Example = JsonSerializer.SerializeToNode(example.Value, example.Value.GetType(), WorkspaceJson.Options);
+        if (context.Description.ActionDescriptor.EndpointMetadata.OfType<RequestExamples>().FirstOrDefault() is { } examples &&
+            operation.RequestBody?.Content?.TryGetValue("application/json", out var namedMedia) == true)
+            namedMedia.Examples = examples.Values.ToDictionary(entry => entry.Name,
+                entry => (IOpenApiExample)new OpenApiExample
+                {
+                    Value = JsonSerializer.SerializeToNode(entry.Value, entry.Value.GetType(), WorkspaceJson.Options)
+                }, StringComparer.Ordinal);
         if (operation.RequestBody is not null || operation.Parameters is { Count: > 0 })
             operation.Responses["400"] = new OpenApiResponseReference("unreadableRequest", document);
         return Task.CompletedTask;
@@ -127,8 +134,9 @@ internal static class WorkspaceOpenApi
                 "Semantic (embedding) search over published entities and annotations despite POST; it changes nothing. Each hit names its entityKey for getEntityDetail.",
                 [Link("entityDetail", "getEntityDetail", "Open a hit; supply the hit's entityKey as key in an EntityDetailRequest body.")]),
             ["POST api/traverse"] = new("traverseGraph", "workspace_traverse_graph", "none", true, true,
-                "Read-only graph walk despite POST. Start from a published key, follow direction up to maxDepth; truncated=true means more paths exist.",
-                [Link("entityDetail", "getEntityDetail", "Inspect an entity on a returned path; supply its key in an EntityDetailRequest body."),
+                "Read-only graph walk despite POST, paged at 100 paths. Start from a published key, follow direction up to maxDepth. When another page exists the response carries nextCursor and truncated=true (the walk is not proven finished); submit nextCursor as cursor with the same start, direction, maxDepth and includeUnavailable to continue. A malformed or parameter-mismatched cursor fails 422 invalidCursor and a moved-on snapshot or workspace fails 409 staleCursor; both tell you to restart from the first page.",
+                [Link("next", "traverseGraph", "Continue the walk: submit this response's nextCursor as cursor with the original start, direction, maxDepth and includeUnavailable.", FromBody("cursor", "$response.body#/nextCursor")),
+                 Link("entityDetail", "getEntityDetail", "Inspect an entity on a returned path; supply its key in an EntityDetailRequest body."),
                  Link("relationshipDetail", "getRelationshipDetail", "Inspect a traversed relationship in detail.")]),
             ["GET api/history"] = new("listHistory", "workspace_list_history", "none", true, true,
                 "Cursor-paginated contribution history, ordered oldest first by journal position. Filter with contributionId to follow one contribution's revisions; pass nextCursor for the next page. Entries are historical revisions, so there is deliberately no edit follow-on here: edit only from a current contribution record (for example a create/edit response).",

@@ -13,6 +13,7 @@ internal static class OpenApiExamples
         new(Order, Invoice, new RelationshipMeaning(null, "is billed by", "Example: each accepted order is billed by one invoice."));
     public static readonly SearchRequest Search = new("example order lifecycle", 10);
     public static readonly TraversalRequest Traversal = new(Order, "outgoing", 2);
+    public static readonly TraversalRequest TraversalNextPage = new(Order, "outgoing", 2, Cursor: "opaque-continuation-cursor");
 
-    public static IReadOnlyList<object> All { get; } = [CreateAnnotation, CreateRelationship, Search, Traversal];
+    public static IReadOnlyList<object> All { get; } = [CreateAnnotation, CreateRelationship, Search, Traversal, TraversalNextPage];
 }
