@@ -54,6 +54,11 @@ internal static class WorkspaceLinks
         $"</api/relationships/detail>; rel=\"{Rel("relationshipDetail")}\""
     ];
 
+    public static readonly IReadOnlyList<string> TraverseNext =
+    [
+        "</api/traverse>; rel=\"next\""
+    ];
+
     public static IReadOnlyList<string> NextPage(string path, string? nextCursor, int? limit = null, Guid? contributionId = null)
     {
         if (nextCursor is null) return [];

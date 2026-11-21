@@ -22,7 +22,7 @@ public sealed class EndpointDescriptionTests
         { "post", "/api/search", "Search published entities and annotations by meaning", "Reading", Read, "200 SearchResult", "SearchRequest",
             ["invalidSearch", "searchUnavailable", "snapshotUnavailable"] },
         { "post", "/api/traverse", "Traverse relationships from a published entity", "Reading", Read, "200 TraversalResult", "TraversalRequest",
-            ["invalidTraversal", "entityNotFound", "snapshotUnavailable"] },
+            ["invalidTraversal", "entityNotFound", "snapshotUnavailable", "invalidCursor", "staleCursor"] },
         { "get", "/api/history", "List contribution history", "Reading", Read, "200 HistoryPage", null, ["invalidLimit", "invalidCursor"] },
         { "post", "/api/contributions/annotations", "Create an annotation", "Contributions", Manage, "201 ContributionResult", "CreateAnnotation",
             ["invalidAnnotation", "endpointUnavailable", "snapshotUnavailable", "writesPaused"] },
