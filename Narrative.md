@@ -48,6 +48,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [38](#entry-workspace-api-openapi-docs-105) | 2026-11-19 | Workspace API OpenAPI docs (#105) | product | Generate and commit the OpenAPI 3.1 contract with its source changes. Serve it and Swagger UI anonymously under `/api`. Use the deployment's existing SPA registration with authorization code and PKCE. |
 | [39](#entry-feat-agent-friendly-openapi-decorators-and-hateoas-for-the-workspace-api) | 2026-11-21 | feat: agent-friendly OpenAPI decorators and HATEOAS for the workspace API | product | Decorate every operation in the generator with a stable `operationId`, `x-agent-tool-name`, `x-agent-idempotent`, `x-agent-retryable`, `x-agent-side-effects` and input/output schema names; publish HATEOAS as OpenAPI `links` on every… |
 | [40](#entry-docs-vision-for-traversal-cursor-pagination-120) | 2026-11-21 | docs: vision for traversal cursor pagination (#120) | product | Adopt cursor pagination for traversal as a product capability: an opaque `nextCursor`, a HATEOAS `next` link whenever another page exists, pages that carry their own entity context, and cursors bound to the original traversal parameters… |
+| [41](#entry-docs-behaviours-for-traversal-cursor-pagination-121) | 2026-11-21 | docs: behaviours for traversal cursor pagination (#121) | product | Fix the behaviours before the mechanism. |
 
 ---
 
@@ -1027,3 +1028,27 @@ The analyst phase inherits five measurable outcomes — every path reachable exa
 ---
 
 AI-Fingerprint: sha256:65291fc94c11
+
+---
+
+<a id="entry-docs-behaviours-for-traversal-cursor-pagination-121"></a>
+
+## Entry 41 — 2026-11-21 — docs: behaviours for traversal cursor pagination (#121)
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The accepted vision (PR #126) left the observable behaviour of paged traversal unspecified: how continuation behaves at a multi-hop branch boundary, what a cursor binds, how each cursor failure presents, and how the bounded-work outcome would ever be measured. Without those behaviours, the architecture phase would have had to invent product semantics while designing the mechanism.
+
+## Decision
+
+Fix the behaviours before the mechanism. Continuation preserves today's breadth-first path order with a fixed 100-path page; `truncated` means "another page exists" on every page; each page carries its own endpoints' entity context; the runtime `next` link names `POST /api/traverse` while the cursor travels in the response body's `nextCursor`. Bounded work is specified as countable fixture measures (relationships examined per page, independent of page number and of filtered-out unavailable relationships), not as an implementation prescription. The frontier-resumption mechanism is explicitly deferred to the architect (U6), constrained by B2, B12, B16 and B17.
+
+## Consequences
+
+The architect inherits precise constraints: a cursor bound to parameters, snapshot and journal position; two failure codes with restart semantics; an exact-sequence multi-hop fixture; and per-page work bounds that a replay-earlier-pages design would fail. Deferred items are visible rather than implicit, so a design that cannot meet them must raise pushback against these behaviours instead of quietly diverging. New shared terms `TraversalCursor` and `TraversalPage` enter the division core with evidence traced to the vision and these behaviours.
+
+---
+
+AI-Fingerprint: sha256:fed47712b49e
