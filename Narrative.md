@@ -53,6 +53,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [43](#entry-docs-architecture-for-traversal-cursor-pagination-122) | 2026-11-21 | docs: architecture for traversal cursor pagination (#122) | product | [ADR 0019](docs/adr/0019-carry-the-traversal-frontier-in-the-cursor.md): the frontier rides in the cursor as compact edge-reference chains — at most 101 pending expansions at a page boundary, each re-deriving its endpoint, steps, and… |
 | [44](#entry-docs-amend-traversal-behaviours-after-dev-plan-pushback-121) | 2026-11-21 | docs: amend traversal behaviours after dev-plan pushback (#121) | product | Adopt "not proven finished" semantics for `truncated` and `nextCursor`; validate continuations (shape, parameters, view) before resolving the start entity; and keep cursors unsigned, treating a well-formed alteration as a client-chosen… |
 | [45](#entry-docs-amend-traversal-architecture-after-dev-plan-pushback-122) | 2026-11-21 | docs: amend traversal architecture after dev-plan pushback (#122) | product | Keep the stateless, cursor-carried frontier (the user's earlier decision stands) and make it survivable: shared-prefix dictionary coding plus compression, an issue-side decodability guarantee proven by a wide multi-page fixture… |
+| [46](#entry-docs-implementation-plan-for-traversal-cursor-pagination-123) | 2026-11-21 | docs: implementation plan for traversal cursor pagination (#123) | product | Six tasks, in dependency order: contract and cursor codec; page-bounded walk; snapshot/journal binding; examined-step budget (1000 per request); API surface, HATEOAS and the regenerated committed spec; then whole-feature verification… |
 
 ---
 
@@ -1154,3 +1155,27 @@ The revised developer plan (PR #134) already encodes every one of these decision
 ---
 
 AI-Fingerprint: sha256:9436208e84b0
+
+---
+
+<a id="entry-docs-implementation-plan-for-traversal-cursor-pagination-123"></a>
+
+## Entry 46 — 2026-11-21 — docs: implementation plan for traversal cursor pagination (#123)
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The accepted architecture (PR #132, ADR 0019/0020) fixes what the system must do and how it is shaped, but a builder — possibly a different agent — still needs the exact payload shapes, the resumption sequence, the fixture graphs, and the test that proves each of the 18 behaviours. This plan exists so the build re-decides nothing.
+
+## Decision
+
+Six tasks, in dependency order: contract and cursor codec; page-bounded walk; snapshot/journal binding; examined-step budget (1000 per request); API surface, HATEOAS and the regenerated committed spec; then whole-feature verification against a B1–B18 checklist. Each task is test-first and ends in one focused commit. Native in-session execution is recommended for the build (the tasks share tight interfaces through the codec and the plan carries the design); subagent-driven execution remains available.
+
+## Consequences
+
+Once this plan is reviewed and merged, the build phase (#124) can start without further design questions; any gap the build finds returns as pushback to the owning phase rather than an in-code invention. The user phase (#125) then verifies acceptance against the same behaviour list the scenario tests already prove.
+
+---
+
+AI-Fingerprint: sha256:d6d9f5d02b4a
