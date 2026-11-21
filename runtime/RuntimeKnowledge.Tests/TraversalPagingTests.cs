@@ -177,7 +177,6 @@ public sealed class TraversalPagingTests
         Assert.Equal(0, filteredPaths);
         Assert.True(filteredPages >= 3, $"filtered rows should span budget pages, got {filteredPages}");
         Assert.Equal(30, examinedTotal);
-        Assert.True(examinedTotal <= 30, "no row is examined on two pages");
 
         await s.ActivateTraversalAsync("busy");
         string? cursor = null;
@@ -259,6 +258,27 @@ public sealed class TraversalPagingTests
         }
         await tx.RollbackAsync();
         await connection.CloseAsync();
+    }
+
+    [Fact]
+    public async Task BudgetPagesEmitEveryFetchedRowAndExaminedTotalsMatch()
+    {
+        await using var s = await Scenario.OpenAsync();
+        await s.ActivateTraversalAsync("busy");
+        string? cursor = null;
+        var totalPaths = 0;
+        var totalExamined = 0;
+        do
+        {
+            var counters = new TraversalCounters { Budget = 10 };
+            var page = await s.Graph.TraverseAsync(new TraversalRequest(s.Hub, MaxDepth: 1, Cursor: cursor), CancellationToken.None, counters);
+            Assert.Equal(page.Paths.Count, counters.ExaminedSteps);
+            totalPaths += page.Paths.Count;
+            totalExamined += counters.ExaminedSteps;
+            cursor = page.NextCursor;
+        } while (cursor is not null);
+        Assert.Equal(150, totalPaths);
+        Assert.Equal(150, totalExamined);
     }
 
     [Fact]
