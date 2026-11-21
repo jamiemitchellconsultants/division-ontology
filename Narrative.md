@@ -59,6 +59,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [49](#entry-docs-traversal-cursor-pagination-user-acceptance-125) | 2026-11-21 | docs: traversal cursor pagination user acceptance (#125) | product | - **Deployed seeding.** Deployed acceptance creates its busy node through the manager API: 105 relationships, removed after each run. It does not publish a dedicated bundle or settle for small-walk checks. |
 | [50](#entry-behaviours-knowledge-graph-explorer) | 2026-11-21 | Behaviours: Knowledge Graph Explorer | product | Start with both directions and show one hop at a time. Preserve the previous view when users navigate Back, and offer the same exploration through a keyboard-accessible neighbour list. |
 | [51](#entry-architecture-knowledge-graph-explorer) | 2026-11-21 | Architecture: Knowledge Graph Explorer | product | Host the explorer in the existing authorized Blazor workspace and reuse its API client, contribution editor, and draft flow. |
+| [52](#entry-plan-knowledge-graph-explorer) | 2026-11-21 | Plan: Knowledge Graph Explorer | product | Build in six test-first tasks: neighbourhood projection, navigation and paging, the diagram, inspection, contribution editing, and browser verification. Pin the upstream Cytoscape 3.35.0 module and license by checksum. |
 
 ---
 
@@ -1319,3 +1320,30 @@ The existing static web packages carry the renderer and its license. The browser
 ---
 
 AI-Fingerprint: sha256:cf121adee991
+
+---
+
+<a id="entry-plan-knowledge-graph-explorer"></a>
+
+## Entry 52 — 2026-11-21 — Plan: Knowledge Graph Explorer
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The accepted architecture combines one-hop traversal, a local diagram, a keyboard-accessible list, and existing contribution flows. The build needs to preserve exact record identity and view state while making paging errors, evidence, and draft recovery observable in tests. CloudFront's existing SPA rewrite uses an explicit list of workspace route prefixes and needs to include the graph route.
+
+## Decision
+
+Build in six test-first tasks: neighbourhood projection, navigation and paging, the diagram, inspection, contribution editing, and browser verification. Pin the upstream Cytoscape 3.35.0 module and license by checksum. Reuse published traversal and the existing workspace APIs. Every edit stays in the runtime workspace, with Turtle files in the adopting and source repositories as read-only inputs.
+
+- [Task plan](https://github.com/jamiemitchellconsultants/division-ontology/blob/95a2ea5823a15ee8f87987fdbc4e4642e3f9af05/docs/superpowers/plans/knowledge-graph-explorer/plan.md)
+- [Detailed implementation plan](https://github.com/jamiemitchellconsultants/division-ontology/blob/95a2ea5823a15ee8f87987fdbc4e4642e3f9af05/docs/detailed-implementations/knowledge-graph-explorer/plan.md)
+
+## Consequences
+
+The build can be reviewed one task at a time. The final browser scenario exercises a realistic handoff, additional pages, stale reload, and a separate reader's view of manager contributions. The local fixture check compares every tracked Turtle file and repository revision before and after edits. Deployment checks include direct navigation and same-origin module delivery.
+
+---
+
+AI-Fingerprint: sha256:d5e8da1a810d
