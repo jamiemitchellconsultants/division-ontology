@@ -57,9 +57,10 @@ public partial class ApiProgram
         app.UseAuthorization();
         app.UseEndpoints(endpoints =>
         {
-            endpoints.MapGet("/health", async (Db db, CancellationToken token) =>
+            endpoints.MapGet("/health", async (Db db, HttpContext context, CancellationToken token) =>
             {
                 await using var connection = await db.OpenAsync(token);
+                WorkspaceLinks.Append(context, WorkspaceLinks.Health);
                 return TypedResults.Ok(new HealthStatus("ready"));
             }).AllowAnonymous().WithSummary("Report readiness").WithTags("Health");
             endpoints.MapWorkspaceRoutes();

@@ -28,7 +28,8 @@ public sealed class CommittedSpecTests
         Assert.DoesNotContain("workspaceSignIn", text);
         Assert.DoesNotContain("\"oauth2\"", text);
         foreach (Match url in Regex.Matches(text, @"https?://[^""\s]+"))
-            Assert.Equal("example.test", new Uri(url.Value).Host);
+            Assert.True(new Uri(url.Value).Host == "example.test" ||
+                        url.Value.StartsWith(WorkspaceLinks.RelationBase, StringComparison.Ordinal), url.Value);
     }
 
     [Fact]

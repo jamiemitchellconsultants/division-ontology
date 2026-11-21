@@ -52,7 +52,13 @@ internal static partial class SpecCompleteness
 
         var responses = operation["responses"]?.AsObject() ?? [];
         if (string.IsNullOrWhiteSpace((string?)operation["summary"])) yield return "no summary";
+        if (string.IsNullOrWhiteSpace((string?)operation["operationId"])) yield return "no operationId";
+        if (string.IsNullOrWhiteSpace((string?)operation["description"])) yield return "no description";
         if (operation["x-workspace-role"] is null) yield return "no x-workspace-role";
+        foreach (var extension in new[] { "x-agent-tool-name", "x-agent-idempotent", "x-agent-retryable", "x-agent-side-effects", "x-agent-input", "x-agent-output" })
+            if (operation[extension] is null) yield return $"no {extension}";
+        var success = responses.FirstOrDefault(r => r.Key.StartsWith('2')).Value;
+        if (success?["links"]?.AsObject().Count is not > 0) yield return "no success links";
 
         var accepts = endpoint.Metadata.GetMetadata<IAcceptsMetadata>();
         if (accepts?.RequestType is not null && operation["requestBody"]?["content"]?["application/json"]?["schema"] is null)
