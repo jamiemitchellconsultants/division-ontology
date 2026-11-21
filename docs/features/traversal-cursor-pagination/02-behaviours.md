@@ -64,7 +64,7 @@
 
 #### B12 — A valid cursor continues exactly once
 
-**Given** an unchanged snapshot and workspace, **when** the reader submits a valid `nextCursor` with the parameters it was issued for, **then** the next page continues the same walk with no path repeated from earlier pages and none skipped, however many times this is repeated to the final page.
+**Given** an unchanged snapshot and workspace, **when** the reader submits a valid `nextCursor` with the parameters it was issued for, **then** the next page continues the same walk with no path repeated from earlier pages and none skipped, however many times this is repeated to the final page — unless the remaining frontier exceeds the cursor size limit, in which case B19 applies instead. (Qualified after dev-build review.)
 
 ### Outcome 5 — Agents can drive paging without guesswork
 
@@ -89,6 +89,10 @@
 #### B17 — Filtered-out unavailable relationships do not grow the work without bound
 
 **Given** a traversal whose frontier includes a growing number of unavailable relationships that are excluded (default `includeUnavailable: false`), **when** a page is served, **then** the number of relationships examined to fill that page stays within the architect-stated bound as the number of unavailable relationships grows; the page is still filled with the next available paths in order.
+
+#### B19 — Remaining frontier exceeds the cursor size limit
+
+**Given** a traversal whose remaining frontier at a page boundary exceeds the maximum size of a TraversalCursor, **when** the server attempts to issue the next page, **then** the request fails with status 422 and code `invalidTraversal`, whose message instructs the client to restart with a smaller `maxDepth` or a more specific start entity; no oversized cursor is issued and no unhandled error leaks. (Added after dev-build review.)
 
 #### B18 — Traversal stays read-only
 
