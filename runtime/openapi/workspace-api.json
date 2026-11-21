@@ -2809,7 +2809,7 @@
     "errors": "application/problem+json with a stable code per operation's x-workspace-codes",
     "hateoas": "follow each success response's links and the runtime Link response headers",
     "linkRelations": {
-      "next": "listInventory or listHistory: the next page of the same listing (registered relation)",
+      "next": "listInventory, listHistory or traverseGraph: the next page of the same listing or walk (registered relation)",
       "service-desc": "this OpenAPI document at /api/openapi/v1.json (registered relation)",
       "service-doc": "the interactive docs at /api/docs (registered relation)",
       "https://github.com/jamiemitchellconsultants/division-ontology#link-relations/session": "getSession",

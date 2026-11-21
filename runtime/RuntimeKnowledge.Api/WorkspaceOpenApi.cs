@@ -287,7 +287,7 @@ internal static class WorkspaceOpenApi
             ["hateoas"] = "follow each success response's links and the runtime Link response headers",
             ["linkRelations"] = new JsonObject
             {
-                ["next"] = "listInventory or listHistory: the next page of the same listing (registered relation)",
+                ["next"] = "listInventory, listHistory or traverseGraph: the next page of the same listing or walk (registered relation)",
                 ["service-desc"] = "this OpenAPI document at /api/openapi/v1.json (registered relation)",
                 ["service-doc"] = "the interactive docs at /api/docs (registered relation)",
                 [WorkspaceLinks.RelationBase + "session"] = "getSession",

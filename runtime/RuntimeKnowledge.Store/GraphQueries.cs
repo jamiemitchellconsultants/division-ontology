@@ -70,19 +70,19 @@ public sealed class GraphQueries(Db db)
         if (request.Start is null || request.MaxDepth is < 1 or > 8 ||
             request.Direction is not ("outgoing" or "incoming" or "both"))
             throw new WorkspaceException("invalidTraversal", "Traversal requires a start, a valid direction and a depth from 1 to 8.");
-        LastTraversalExaminedSteps = 0;
+        var examined = 0;
         await using var connection = await db.OpenAsync(cancellationToken);
         await using var tx = await connection.BeginTransactionAsync(IsolationLevel.RepeatableRead, cancellationToken);
         var state = await ReadStateAsync(tx, cancellationToken);
         var snapshot = state.RequireSnapshot();
         var journalHead = (long)(await ScalarAsync(tx,
             "SELECT COALESCE(MAX(position), 0) FROM workspace_journal.events", cancellationToken) ?? 0);
-        if (request.Start.Kind is not ("concept" or "node" or "relationshipType"))
-            throw new WorkspaceException("invalidTraversal", "Choose a published entity to start traversal.");
-
         TraversalCursorPayload? resume = null;
         if (request.Cursor is not null)
             resume = TraversalCursor.Decode(request.Cursor, request, snapshot, journalHead);
+
+        if (request.Start.Kind is not ("concept" or "node" or "relationshipType"))
+            throw new WorkspaceException("invalidTraversal", "Choose a published entity to start traversal.");
 
         var origin = await ResolveAsync(request.Start);
         if (resume is null && (origin is null || (!request.IncludeUnavailable && !origin.Available)))
@@ -115,7 +115,7 @@ public sealed class GraphQueries(Db db)
         var exhausted = false;
         while (!exhausted)
         {
-            if (result.Count >= MaxPaths || LastTraversalExaminedSteps >= ExaminedStepBudget) break;
+            if (result.Count >= MaxPaths || examined >= ExaminedStepBudget) break;
             active ??= queue.TryDequeue(out var next) ? next : null;
             if (active is null) { exhausted = true; break; }
             if (!attempted.Contains(active.At)) attempted.Add(active.At);
@@ -124,11 +124,11 @@ public sealed class GraphQueries(Db db)
             while (active.Scope < 2 && !stop)
             {
                 var scope = active.Scope == 0 ? snapshot : "runtime";
-                var fetchLimit = Math.Min(101, ExaminedStepBudget - LastTraversalExaminedSteps);
+                var fetchLimit = Math.Min(101, ExaminedStepBudget - examined);
                 if (fetchLimit <= 0) { stop = true; break; }
                 var neighbors = await AgeGraph.NeighborsAsync(tx, state.GraphName, active.At, scope,
                     request.Direction, cancellationToken, active.After, fetchLimit);
-                LastTraversalExaminedSteps += neighbors.Count;
+                examined += neighbors.Count;
                 if (neighbors.Count == 0) { active.Scope++; active.After = ""; continue; }
                 foreach (var (edgeKey, nextKey) in neighbors)
                 {
@@ -173,7 +173,7 @@ public sealed class GraphQueries(Db db)
                         var visited = new HashSet<string>(active.Visited, StringComparer.Ordinal) { nextKey };
                         queue.Enqueue(new WalkNode(nextKey, steps, [.. active.Refs, reference], visited));
                     }
-                    if (result.Count >= MaxPaths || LastTraversalExaminedSteps >= ExaminedStepBudget) { stop = true; break; }
+                    if (result.Count >= MaxPaths || examined >= ExaminedStepBudget) { stop = true; break; }
                 }
                 if (!stop && neighbors.Count < fetchLimit) { active.Scope++; active.After = ""; }
             }
@@ -208,15 +208,19 @@ public sealed class GraphQueries(Db db)
             var notes = await ContributionStore.AnnotationsAsync(tx, state, endpoint.Key, cancellationToken);
             entities.Add(new TraversalEntity(endpoint.Key, endpoint.Label, endpoint.Provenance, endpoint.Available, notes));
         }
+        LastTraversalExaminedSteps = examined;
         return new TraversalResult(snapshot, result, await GapsAsync(tx, state, cancellationToken), truncated, entities, nextCursor);
 
         static string DirectionOf(PublishedKey from, string at) => from.StorageKey == at ? "outgoing" : "incoming";
 
-        PublishedKey? KeyFromStorage(string storage, PublishedKey sample)
+        static PublishedKey? KeyFromStorage(string storage, PublishedKey sample)
         {
-            if (storage == sample.StorageKey) return sample;
-            foreach (var entity in reached.Keys) if (entity.StorageKey == storage) return entity;
-            return null;
+            try
+            {
+                var parts = JsonSerializer.Deserialize<string[]>(storage, WorkspaceJson.Options);
+                return parts is { Length: 3 } ? new PublishedKey(parts[0], parts[1], parts[2]) : null;
+            }
+            catch (JsonException) { return null; }
         }
 
         string EncodeResume(TraversalRequest req, string snap, long journal, WalkNode? current, Queue<WalkNode> rest)

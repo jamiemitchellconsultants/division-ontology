@@ -103,6 +103,14 @@ public sealed class TraversalCursorTests
     }
 
     [Fact]
+    public void MissingBoundFieldFailsInvalidNotStale()
+    {
+        var cursor = TraversalCursor.Encode(Payload() with { Snapshot = null! });
+        Assert.Equal("invalidCursor",
+            Assert.Throws<WorkspaceException>(() => TraversalCursor.Decode(cursor, Request, "snapshot-1", 42)).Code);
+    }
+
+    [Fact]
     public void ParameterMismatchIsReportedBeforeStaleness()
     {
         var cursor = TraversalCursor.Encode(Payload());

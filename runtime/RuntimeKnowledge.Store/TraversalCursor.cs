@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using RuntimeKnowledge.Contracts;
 
 namespace RuntimeKnowledge.Store;
@@ -63,7 +64,12 @@ internal static class TraversalCursor
                 output.Write(buffer, 0, read);
                 if (output.Length > MaxJsonBytes) throw InvalidCursor();
             }
-            payload = JsonSerializer.Deserialize<TraversalCursorPayload>(output.ToArray(), WorkspaceJson.Options);
+            var json = JsonNode.Parse(output.ToArray());
+            if (json is not JsonObject fields || fields["version"] is null || fields["start"] is null ||
+                fields["direction"] is null || fields["maxDepth"] is null || fields["includeUnavailable"] is null ||
+                fields["snapshot"] is null || fields["journalPosition"] is null || fields["resume"] is null)
+                throw InvalidCursor();
+            payload = json.Deserialize<TraversalCursorPayload>(WorkspaceJson.Options);
         }
         catch (WorkspaceException) { throw; }
         catch (Exception ex) when (ex is FormatException or InvalidDataException or JsonException) { throw InvalidCursor(); }

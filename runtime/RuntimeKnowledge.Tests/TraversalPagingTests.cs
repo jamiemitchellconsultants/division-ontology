@@ -12,6 +12,15 @@ public sealed class TraversalPagingTests
     private static string Signature(TraversalPath path) => string.Join(">",
         path.Steps.Select(step => step.Key?.Identifier ?? step.RuntimeId!.Value.ToString("D")));
 
+    private static async Task<long> JournalHeadAsync(Scenario s)
+    {
+        await using var connection = new Npgsql.NpgsqlConnection(s.ConnectionString);
+        await connection.OpenAsync();
+        await using var command = new Npgsql.NpgsqlCommand(
+            "SELECT COALESCE(MAX(position), 0) FROM workspace_journal.events", connection);
+        return (long)(await command.ExecuteScalarAsync())!;
+    }
+
     private static async Task<List<TraversalResult>> PageAll(Scenario s, TraversalRequest request)
     {
         var pages = new List<TraversalResult>();
@@ -180,6 +189,48 @@ public sealed class TraversalPagingTests
             cursor = page.NextCursor;
         } while (cursor is not null);
         Assert.All(counts, count => Assert.True(count <= 202, $"examined {count}"));
+    }
+
+    [Fact]
+    public async Task WellFormedAlteredFrontierStaysWithinTheCallersReadScope()
+    {
+        await using var s = await Scenario.OpenAsync();
+        await s.ActivateTraversalAsync("busy");
+        var first = await s.Graph.TraverseAsync(new TraversalRequest(s.Hub, MaxDepth: 1), CancellationToken.None);
+        var journal = await JournalHeadAsync(s);
+        var payload = TraversalCursor.Decode(first.NextCursor!, new TraversalRequest(s.Hub, MaxDepth: 1), first.SnapshotId, journal);
+        var altered = payload with
+        {
+            Resume = payload.Resume with
+            {
+                Pending = [new TraversalPending([0]), .. payload.Resume.Pending.Skip(1)]
+            }
+        };
+        TraversalResult continued;
+        try
+        {
+            continued = await s.Graph.TraverseAsync(
+                new TraversalRequest(s.Hub, MaxDepth: 1, Cursor: TraversalCursor.Encode(altered)), CancellationToken.None);
+        }
+        catch (WorkspaceException error)
+        {
+            Assert.Equal("invalidCursor", error.Code);
+            return;
+        }
+        Assert.All(continued.Paths, path => Assert.Equal(s.Hub, path.Steps[0].From));
+    }
+
+    [Fact]
+    public async Task BothDirectionsPageExactlyOnceAndPagingIsReadOnly()
+    {
+        await using var s = await Scenario.OpenAsync();
+        await s.ActivateTraversalAsync("busy");
+        var journalBefore = await JournalHeadAsync(s);
+        var pages = await PageAll(s, new TraversalRequest(s.Hub, "both", 1));
+        Assert.Equal(journalBefore, await JournalHeadAsync(s));
+        var signatures = pages.SelectMany(page => page.Paths).Select(Signature).ToArray();
+        Assert.Equal(150, signatures.Length);
+        Assert.Equal(signatures.Length, signatures.Distinct(StringComparer.Ordinal).Count());
     }
 
     [Fact]

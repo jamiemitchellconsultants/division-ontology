@@ -123,6 +123,7 @@ public sealed class AgentDecoratorsTests
         Assert.Null(examples["firstPage"]!["value"]!["cursor"]);
         var links = op["responses"]!["200"]!["links"]!.AsObject();
         Assert.Equal("traverseGraph", (string)links["next"]!["operationId"]!);
+        Assert.Contains("traverseGraph", (string)spec["x-agent-discovery"]!["linkRelations"]!["next"]!);
         Assert.Contains("entityDetail", links.Select(l => l.Key));
         Assert.Contains("relationshipDetail", links.Select(l => l.Key));
     }
