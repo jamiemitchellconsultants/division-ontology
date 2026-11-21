@@ -99,6 +99,44 @@ public sealed class TraversalPagingTests
     }
 
     [Fact]
+    public async Task SnapshotRefreshThatRemovesTheStartYieldsStaleCursor()
+    {
+        await using var s = await Scenario.OpenAsync();
+        await s.ActivateTraversalAsync("busy");
+        var first = await s.Graph.TraverseAsync(new TraversalRequest(s.Hub, MaxDepth: 1), CancellationToken.None);
+        await s.ActivateAsync("initial");
+        var error = await Assert.ThrowsAsync<WorkspaceException>(() =>
+            s.Graph.TraverseAsync(new TraversalRequest(s.Hub, MaxDepth: 1, Cursor: first.NextCursor), CancellationToken.None));
+        Assert.Equal("staleCursor", error.Code);
+    }
+
+    [Fact]
+    public async Task WorkspaceEditYieldsStaleCursor()
+    {
+        await using var s = await Scenario.OpenAsync();
+        await s.ActivateTraversalAsync("busy");
+        var first = await s.Graph.TraverseAsync(new TraversalRequest(s.Hub, MaxDepth: 1), CancellationToken.None);
+        var store = new ContributionStore(s.Db);
+        await store.ApplyAsync(s.Actor, new CreateAnnotation(Scenario.TraversalKey("leaf000"), "businessRbac", "Changed."),
+            CancellationToken.None);
+        var error = await Assert.ThrowsAsync<WorkspaceException>(() =>
+            s.Graph.TraverseAsync(new TraversalRequest(s.Hub, MaxDepth: 1, Cursor: first.NextCursor), CancellationToken.None));
+        Assert.Equal("staleCursor", error.Code);
+    }
+
+    [Fact]
+    public async Task ChangedUnavailableStartYieldsInvalidCursorBeforeResolution()
+    {
+        await using var s = await Scenario.OpenAsync();
+        await s.ActivateTraversalAsync("busy");
+        var first = await s.Graph.TraverseAsync(new TraversalRequest(s.Hub, MaxDepth: 1), CancellationToken.None);
+        var changed = new TraversalRequest(Scenario.TraversalKey("does-not-exist"), MaxDepth: 1, Cursor: first.NextCursor);
+        var error = await Assert.ThrowsAsync<WorkspaceException>(() =>
+            s.Graph.TraverseAsync(changed, CancellationToken.None));
+        Assert.Equal("invalidCursor", error.Code);
+    }
+
+    [Fact]
     public async Task EmptyFirstPageRetainsTheStartEntityAndSerializesWithoutNextCursor()
     {
         await using var s = await Scenario.OpenAsync();
