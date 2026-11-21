@@ -189,10 +189,7 @@ public sealed class GraphQueries(Db db)
         var truncated = false;
         if (!exhausted)
         {
-            var pending = new List<WalkNode>();
-            if (active is not null) pending.Add(active);
-            pending.AddRange(queue);
-            if (pending.Count > 0 || active is not null)
+            if (active is not null || queue.Count > 0)
             {
                 nextCursor = EncodeResume(request, snapshot, journalHead, active, queue);
                 truncated = true;
@@ -230,19 +227,17 @@ public sealed class GraphQueries(Db db)
         string EncodeResume(TraversalRequest req, string snap, long journal, WalkNode? current, Queue<WalkNode> rest)
         {
             var refs = new List<string>();
-            var Index = new Dictionary<string, int>(StringComparer.Ordinal);
+            var index = new Dictionary<string, int>(StringComparer.Ordinal);
             int RefIndex(string reference)
             {
-                if (!Index.TryGetValue(reference, out var index)) { index = refs.Count; refs.Add(reference); Index[reference] = index; }
-                return index;
+                if (!index.TryGetValue(reference, out var idx)) { idx = refs.Count; refs.Add(reference); index[reference] = idx; }
+                return idx;
             }
             TraversalCurrent? encodedCurrent = null;
             if (current is not null)
                 encodedCurrent = new TraversalCurrent(current.Refs.Select(RefIndex).ToArray(),
                     current.Scope == 1 ? "runtime" : "snapshot", current.After);
             var pendingEncoded = rest.Select(node => new TraversalPending(node.Refs.Select(RefIndex).ToArray())).ToArray();
-            // References used only by the current node must be indexed before the current chain is consumed;
-            // rebuild the payload in chain order to keep indexes stable.
             return TraversalCursor.Encode(new TraversalCursorPayload(1, req.Start.StorageKey, req.Direction,
                 req.MaxDepth, req.IncludeUnavailable, snap, journal,
                 new TraversalResume(refs, pendingEncoded, encodedCurrent)));
