@@ -6,6 +6,19 @@
 :_meta a owl:Ontology ;
     owl:versionInfo "0.4.0" .
 
+# Scope and source evidence for the following traversal paging concepts:
+# docs/features/traversal-cursor-pagination/01-vision.md, outcomes 1, 4 and 6;
+# docs/features/traversal-cursor-pagination/02-behaviours.md, Terms.
+# These definitions add no equivalence links and change no existing term meaning.
+
+:TraversalCursor a owl:Class ;
+    rdfs:label "TraversalCursor" ;
+    rdfs:comment "An opaque continuation token issued with a non-final page of a graph traversal. It binds the traversal's start, direction, depth and unavailable-endpoint option, the published knowledge snapshot it was issued under, and the workspace journal position at issue. Submitting it to the same traversal continues the walk; it is not meaningful for any other traversal." .
+
+:TraversalPage a owl:Class ;
+    rdfs:label "TraversalPage" ;
+    rdfs:comment "One bounded page of a graph traversal result, together with the entity context for the endpoints appearing in its paths. A non-final page carries a traversal cursor and reports truncation; the final page carries neither." .
+
 :StaffId a owl:Class ;
     rdfs:subClassOf kit:ValueObject ;
     rdfs:label "StaffId" ;
