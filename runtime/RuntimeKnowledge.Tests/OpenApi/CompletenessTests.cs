@@ -18,9 +18,12 @@ public sealed class CompletenessTests
     static JsonNode Spec(string json) => JsonNode.Parse(json)!;
 
     const string Complete = """
-        {"paths":{"/api/x/{id}":{"get":{"summary":"X","x-workspace-role":"ReadKnowledgeGraph",
+        {"paths":{"/api/x/{id}":{"get":{"summary":"X","description":"X in detail.","operationId":"getX","x-workspace-role":"ReadKnowledgeGraph",
+          "x-agent-tool-name":"workspace_get_x","x-agent-idempotent":true,"x-agent-retryable":true,"x-agent-side-effects":"none",
+          "x-agent-input":"parameters","x-agent-output":"X",
           "parameters":[{"name":"id","in":"path"}],
-          "responses":{"200":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/X"}}}},
+          "responses":{"200":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/X"}}},
+            "links":{"self":{"operationId":"getX"}}},
             "400":{},"401":{},"403":{},"404":{},"500":{}}}}}}
         """;
 
@@ -65,7 +68,7 @@ public sealed class CompletenessTests
         responses.Remove("400");
         responses.Remove("500");
         responses["200"] = new JsonObject();
-        Assert.Equal(["GET /api/x/{id}: no 400 response", "GET /api/x/{id}: no 500 response", "GET /api/x/{id}: no success response schema"],
+        Assert.Equal(["GET /api/x/{id}: no 400 response", "GET /api/x/{id}: no 500 response", "GET /api/x/{id}: no success links", "GET /api/x/{id}: no success response schema"],
             SpecCompleteness.Find([Endpoint("GET", "/api/x/{id:guid}", Protected)], spec));
     }
 

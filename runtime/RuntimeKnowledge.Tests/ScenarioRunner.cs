@@ -59,6 +59,24 @@ internal sealed class ScenarioRunner : IAsyncDisposable
         return (await response.Content.ReadFromJsonAsync<T>(WorkspaceJson.Options))!;
     }
 
+    public async Task<(T Body, string Links)> ReadWithLinks<T>(string path)
+    {
+        using var response = await _reader.GetAsync(path);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var links = response.Headers.TryGetValues("Link", out var values) ? string.Join(",", values) : "";
+        return ((await response.Content.ReadFromJsonAsync<T>(WorkspaceJson.Options))!, links);
+    }
+
+    public async Task<(T? Body, string Links)> SendWithLinks<T>(HttpMethod method, string path, object body,
+        HttpStatusCode status = HttpStatusCode.OK, bool reader = false)
+    {
+        using var request = new HttpRequestMessage(method, path) { Content = JsonContent.Create(body, options: WorkspaceJson.Options) };
+        using var response = await (reader ? _reader : _manager).SendAsync(request);
+        Assert.Equal(status, response.StatusCode);
+        var links = response.Headers.TryGetValues("Link", out var values) ? string.Join(",", values) : "";
+        return (response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<T>(WorkspaceJson.Options) : default, links);
+    }
+
     public async Task<T> Query<T>(string path, object body) =>
         (await Send<T>(HttpMethod.Post, path, body, reader: true))!;
 

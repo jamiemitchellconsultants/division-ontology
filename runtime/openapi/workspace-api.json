@@ -2,6 +2,7 @@
   "openapi": "3.1.1",
   "info": {
     "title": "Runtime knowledge workspace API",
+    "description": "A division knowledge workspace for humans and agents. Use each operation's operationId or x-agent-tool-name as its stable tool name, and its x-agent-idempotent, x-agent-retryable and x-agent-side-effects flags to decide whether a call may be repeated. Follow a success response's links (HATEOAS) for the next operations instead of constructing URLs. Errors are application/problem+json with a stable code (see x-workspace-codes); a versionConflict carries the current record. Listing endpoints use cursor pagination: pass nextCursor back as cursor and stop when it is null. Unless x-workspace-role is none, send a bearer JWT for that role.",
     "version": "v1"
   },
   "paths": {
@@ -11,6 +12,8 @@
           "Contributions"
         ],
         "summary": "Create an annotation",
+        "description": "Creates an annotation contribution and returns its id and version. Not idempotent: retrying creates another annotation. Follow history for the created id instead of retrying blindly.",
+        "operationId": "createAnnotation",
         "requestBody": {
           "content": {
             "application/json": {
@@ -38,6 +41,29 @@
                 "schema": {
                   "$ref": "#/components/schemas/ContributionResult"
                 }
+              }
+            },
+            "links": {
+              "history": {
+                "operationId": "listHistory",
+                "parameters": {
+                  "contributionId": "$response.body#/id"
+                },
+                "description": "Read back the created contribution."
+              },
+              "editContribution": {
+                "operationId": "editContribution",
+                "parameters": {
+                  "id": "$response.body#/id"
+                },
+                "description": "Revise it; supply id and the returned version as expectedVersion."
+              },
+              "removeContribution": {
+                "operationId": "removeContribution",
+                "parameters": {
+                  "id": "$response.body#/id"
+                },
+                "description": "Remove it; supply id and the current version as expectedVersion."
               }
             }
           },
@@ -87,7 +113,13 @@
             "bearer": [ ]
           }
         ],
-        "x-workspace-role": "ManageKnowledgeGraph"
+        "x-workspace-role": "ManageKnowledgeGraph",
+        "x-agent-tool-name": "workspace_create_annotation",
+        "x-agent-idempotent": false,
+        "x-agent-retryable": false,
+        "x-agent-side-effects": "creates-contribution",
+        "x-agent-input": "CreateAnnotation",
+        "x-agent-output": "ContributionResult"
       }
     },
     "/api/contributions/relationships": {
@@ -96,6 +128,8 @@
           "Contributions"
         ],
         "summary": "Create a runtime relationship",
+        "description": "Creates a runtime relationship contribution and returns its id and version. Not idempotent: retrying creates another relationship. Follow history for the created id instead of retrying blindly.",
+        "operationId": "createRelationship",
         "requestBody": {
           "content": {
             "application/json": {
@@ -131,6 +165,36 @@
                 "schema": {
                   "$ref": "#/components/schemas/ContributionResult"
                 }
+              }
+            },
+            "links": {
+              "history": {
+                "operationId": "listHistory",
+                "parameters": {
+                  "contributionId": "$response.body#/id"
+                },
+                "description": "Read back the created contribution."
+              },
+              "editContribution": {
+                "operationId": "editContribution",
+                "parameters": {
+                  "id": "$response.body#/id"
+                },
+                "description": "Revise it; supply id and the returned version as expectedVersion."
+              },
+              "removeContribution": {
+                "operationId": "removeContribution",
+                "parameters": {
+                  "id": "$response.body#/id"
+                },
+                "description": "Remove it; supply id and the current version as expectedVersion."
+              },
+              "associateCodification": {
+                "operationId": "associateCodification",
+                "parameters": {
+                  "id": "$response.body#/id"
+                },
+                "description": "Codify it against a published relationship; supply id and the current version."
               }
             }
           },
@@ -180,7 +244,13 @@
             "bearer": [ ]
           }
         ],
-        "x-workspace-role": "ManageKnowledgeGraph"
+        "x-workspace-role": "ManageKnowledgeGraph",
+        "x-agent-tool-name": "workspace_create_relationship",
+        "x-agent-idempotent": false,
+        "x-agent-retryable": false,
+        "x-agent-side-effects": "creates-contribution",
+        "x-agent-input": "CreateRelationship",
+        "x-agent-output": "ContributionResult"
       }
     },
     "/api/contributions/{id}": {
@@ -189,6 +259,8 @@
           "Contributions"
         ],
         "summary": "Edit an annotation or runtime relationship",
+        "description": "Edits an annotation or runtime relationship. Optimistic concurrency: expectedVersion must match the current version; on versionConflict re-read history and retry with the new version rather than repeating the same body.",
+        "operationId": "editContribution",
         "parameters": [
           {
             "name": "id",
@@ -218,6 +290,22 @@
                 "schema": {
                   "$ref": "#/components/schemas/ContributionResult"
                 }
+              }
+            },
+            "links": {
+              "history": {
+                "operationId": "listHistory",
+                "parameters": {
+                  "contributionId": "$response.body#/id"
+                },
+                "description": "Read back the contribution's revisions."
+              },
+              "removeContribution": {
+                "operationId": "removeContribution",
+                "parameters": {
+                  "id": "$response.body#/id"
+                },
+                "description": "Remove it; supply id and the returned version as expectedVersion."
               }
             }
           },
@@ -295,7 +383,13 @@
             "bearer": [ ]
           }
         ],
-        "x-workspace-role": "ManageKnowledgeGraph"
+        "x-workspace-role": "ManageKnowledgeGraph",
+        "x-agent-tool-name": "workspace_edit_contribution",
+        "x-agent-idempotent": false,
+        "x-agent-retryable": false,
+        "x-agent-side-effects": "updates-contribution",
+        "x-agent-input": "EditContributionRequest",
+        "x-agent-output": "ContributionResult"
       }
     },
     "/api/contributions/{id}/codifications": {
@@ -304,6 +398,8 @@
           "Contributions"
         ],
         "summary": "Associate a runtime relationship with its codifying published relationship",
+        "description": "Associates a runtime relationship with the published relationship that codifies it, at expectedVersion. On versionConflict re-read history before retrying.",
+        "operationId": "associateCodification",
         "parameters": [
           {
             "name": "id",
@@ -333,6 +429,22 @@
                 "schema": {
                   "$ref": "#/components/schemas/ContributionResult"
                 }
+              }
+            },
+            "links": {
+              "history": {
+                "operationId": "listHistory",
+                "parameters": {
+                  "contributionId": "$response.body#/id"
+                },
+                "description": "Read back the contribution with its codifications."
+              },
+              "editContribution": {
+                "operationId": "editContribution",
+                "parameters": {
+                  "id": "$response.body#/id"
+                },
+                "description": "Revise it; supply id and the returned version as expectedVersion."
               }
             }
           },
@@ -409,7 +521,13 @@
             "bearer": [ ]
           }
         ],
-        "x-workspace-role": "ManageKnowledgeGraph"
+        "x-workspace-role": "ManageKnowledgeGraph",
+        "x-agent-tool-name": "workspace_associate_codification",
+        "x-agent-idempotent": false,
+        "x-agent-retryable": false,
+        "x-agent-side-effects": "updates-contribution",
+        "x-agent-input": "CodificationRequest",
+        "x-agent-output": "ContributionResult"
       }
     },
     "/api/contributions/{id}/remove": {
@@ -418,6 +536,8 @@
           "Contributions"
         ],
         "summary": "Remove a contribution",
+        "description": "Removes a contribution at expectedVersion. Not idempotent: a repeat fails with versionConflict or contributionNotFound, which means the removal already happened or never existed; check history to tell which.",
+        "operationId": "removeContribution",
         "parameters": [
           {
             "name": "id",
@@ -447,6 +567,15 @@
                 "schema": {
                   "$ref": "#/components/schemas/ContributionResult"
                 }
+              }
+            },
+            "links": {
+              "history": {
+                "operationId": "listHistory",
+                "parameters": {
+                  "contributionId": "$response.body#/id"
+                },
+                "description": "Confirm the removal in history."
               }
             }
           },
@@ -508,7 +637,13 @@
             "bearer": [ ]
           }
         ],
-        "x-workspace-role": "ManageKnowledgeGraph"
+        "x-workspace-role": "ManageKnowledgeGraph",
+        "x-agent-tool-name": "workspace_remove_contribution",
+        "x-agent-idempotent": false,
+        "x-agent-retryable": false,
+        "x-agent-side-effects": "removes-contribution",
+        "x-agent-input": "RemoveContributionRequest",
+        "x-agent-output": "ContributionResult"
       }
     },
     "/api/entities/detail": {
@@ -517,6 +652,8 @@
           "Reading"
         ],
         "summary": "Get one published entity with its annotations",
+        "description": "Read-only lookup despite POST: the published key is the request body. Returns the entity with its runtime annotations.",
+        "operationId": "getEntityDetail",
         "requestBody": {
           "content": {
             "application/json": {
@@ -535,6 +672,16 @@
                 "schema": {
                   "$ref": "#/components/schemas/EntityDetail"
                 }
+              }
+            },
+            "links": {
+              "traverse": {
+                "operationId": "traverseGraph",
+                "description": "Walk relationships from this entity; supply its key as start in a TraversalRequest body."
+              },
+              "createAnnotation": {
+                "operationId": "createAnnotation",
+                "description": "Annotate this entity; supply its key as target in a CreateAnnotation body."
               }
             }
           },
@@ -582,7 +729,13 @@
             "bearer": [ ]
           }
         ],
-        "x-workspace-role": "ReadKnowledgeGraph"
+        "x-workspace-role": "ReadKnowledgeGraph",
+        "x-agent-tool-name": "workspace_get_entity_detail",
+        "x-agent-idempotent": true,
+        "x-agent-retryable": true,
+        "x-agent-side-effects": "none",
+        "x-agent-input": "EntityDetailRequest",
+        "x-agent-output": "EntityDetail"
       }
     },
     "/api/history": {
@@ -591,6 +744,8 @@
           "Reading"
         ],
         "summary": "List contribution history",
+        "description": "Cursor-paginated contribution history. Filter with contributionId to follow one contribution's revisions; pass nextCursor for the next page.",
+        "operationId": "listHistory",
         "parameters": [
           {
             "name": "contributionId",
@@ -629,6 +784,22 @@
                   "$ref": "#/components/schemas/HistoryPage"
                 }
               }
+            },
+            "links": {
+              "next": {
+                "operationId": "listHistory",
+                "parameters": {
+                  "cursor": "$response.body#/nextCursor"
+                },
+                "description": "Fetch the next page using this page's nextCursor."
+              },
+              "editContribution": {
+                "operationId": "editContribution",
+                "parameters": {
+                  "id": "$response.body#/entries/0/contributionId"
+                },
+                "description": "Edit a listed contribution; supply its contributionId as id and its revision as expectedVersion."
+              }
             }
           },
           "400": {
@@ -663,7 +834,13 @@
             "bearer": [ ]
           }
         ],
-        "x-workspace-role": "ReadKnowledgeGraph"
+        "x-workspace-role": "ReadKnowledgeGraph",
+        "x-agent-tool-name": "workspace_list_history",
+        "x-agent-idempotent": true,
+        "x-agent-retryable": true,
+        "x-agent-side-effects": "none",
+        "x-agent-input": "parameters",
+        "x-agent-output": "HistoryPage"
       }
     },
     "/api/inventory": {
@@ -672,6 +849,8 @@
           "Reading"
         ],
         "summary": "List published entities, relationship types and relationships",
+        "description": "Cursor-paginated listing of the published snapshot. Pass the previous page's nextCursor as cursor; never invent a cursor. Treat nextCursor=null as the end.",
+        "operationId": "listInventory",
         "parameters": [
           {
             "name": "cursor",
@@ -701,6 +880,19 @@
                 "schema": {
                   "$ref": "#/components/schemas/InventoryPage"
                 }
+              }
+            },
+            "links": {
+              "next": {
+                "operationId": "listInventory",
+                "parameters": {
+                  "cursor": "$response.body#/nextCursor"
+                },
+                "description": "Fetch the next page using this page's nextCursor."
+              },
+              "search": {
+                "operationId": "searchWorkspace",
+                "description": "Search the same snapshot by meaning; supply a SearchRequest body."
               }
             }
           },
@@ -762,7 +954,13 @@
             "bearer": [ ]
           }
         ],
-        "x-workspace-role": "ReadKnowledgeGraph"
+        "x-workspace-role": "ReadKnowledgeGraph",
+        "x-agent-tool-name": "workspace_list_inventory",
+        "x-agent-idempotent": true,
+        "x-agent-retryable": true,
+        "x-agent-side-effects": "none",
+        "x-agent-input": "parameters",
+        "x-agent-output": "InventoryPage"
       }
     },
     "/api/relationships/detail": {
@@ -771,6 +969,8 @@
           "Reading"
         ],
         "summary": "Get one published or runtime relationship",
+        "description": "Read-only lookup despite POST. Identify the relationship by published key or by runtime contribution id in the request body.",
+        "operationId": "getRelationshipDetail",
         "requestBody": {
           "content": {
             "application/json": {
@@ -789,6 +989,12 @@
                 "schema": {
                   "$ref": "#/components/schemas/RelationshipDetail"
                 }
+              }
+            },
+            "links": {
+              "entityDetail": {
+                "operationId": "getEntityDetail",
+                "description": "Inspect an endpoint entity; supply its published key as key in an EntityDetailRequest body."
               }
             }
           },
@@ -849,7 +1055,13 @@
             "bearer": [ ]
           }
         ],
-        "x-workspace-role": "ReadKnowledgeGraph"
+        "x-workspace-role": "ReadKnowledgeGraph",
+        "x-agent-tool-name": "workspace_get_relationship_detail",
+        "x-agent-idempotent": true,
+        "x-agent-retryable": true,
+        "x-agent-side-effects": "none",
+        "x-agent-input": "RelationshipDetailRequest",
+        "x-agent-output": "RelationshipDetail"
       }
     },
     "/api/search": {
@@ -858,6 +1070,8 @@
           "Reading"
         ],
         "summary": "Search published entities and annotations by meaning",
+        "description": "Semantic (embedding) search over published entities and annotations despite POST; it changes nothing. Each hit names its entityKey for getEntityDetail.",
+        "operationId": "searchWorkspace",
         "requestBody": {
           "content": {
             "application/json": {
@@ -880,6 +1094,12 @@
                 "schema": {
                   "$ref": "#/components/schemas/SearchResult"
                 }
+              }
+            },
+            "links": {
+              "entityDetail": {
+                "operationId": "getEntityDetail",
+                "description": "Open a hit; supply the hit's entityKey as key in an EntityDetailRequest body."
               }
             }
           },
@@ -928,7 +1148,13 @@
             "bearer": [ ]
           }
         ],
-        "x-workspace-role": "ReadKnowledgeGraph"
+        "x-workspace-role": "ReadKnowledgeGraph",
+        "x-agent-tool-name": "workspace_search",
+        "x-agent-idempotent": true,
+        "x-agent-retryable": true,
+        "x-agent-side-effects": "none",
+        "x-agent-input": "SearchRequest",
+        "x-agent-output": "SearchResult"
       }
     },
     "/api/session": {
@@ -937,6 +1163,8 @@
           "Reading"
         ],
         "summary": "Show the caller's workspace access",
+        "description": "Returns whether the caller's bearer token can read (CanRead) and manage (CanManage) the workspace. Call this first to choose which other tools to offer.",
+        "operationId": "getSession",
         "responses": {
           "200": {
             "description": "OK",
@@ -945,6 +1173,16 @@
                 "schema": {
                   "$ref": "#/components/schemas/WorkspaceSession"
                 }
+              }
+            },
+            "links": {
+              "inventory": {
+                "operationId": "listInventory",
+                "description": "List the published snapshot's entities, relationship types and relationships."
+              },
+              "history": {
+                "operationId": "listHistory",
+                "description": "List contribution history, newest first."
               }
             }
           },
@@ -963,7 +1201,13 @@
             "bearer": [ ]
           }
         ],
-        "x-workspace-role": "ReadKnowledgeGraph"
+        "x-workspace-role": "ReadKnowledgeGraph",
+        "x-agent-tool-name": "workspace_get_session",
+        "x-agent-idempotent": true,
+        "x-agent-retryable": true,
+        "x-agent-side-effects": "none",
+        "x-agent-input": "none",
+        "x-agent-output": "WorkspaceSession"
       }
     },
     "/api/traverse": {
@@ -972,6 +1216,8 @@
           "Reading"
         ],
         "summary": "Traverse relationships from a published entity",
+        "description": "Read-only graph walk despite POST. Start from a published key, follow direction up to maxDepth; truncated=true means more paths exist.",
+        "operationId": "traverseGraph",
         "requestBody": {
           "content": {
             "application/json": {
@@ -1000,6 +1246,16 @@
                 "schema": {
                   "$ref": "#/components/schemas/TraversalResult"
                 }
+              }
+            },
+            "links": {
+              "entityDetail": {
+                "operationId": "getEntityDetail",
+                "description": "Inspect an entity on a returned path; supply its key in an EntityDetailRequest body."
+              },
+              "relationshipDetail": {
+                "operationId": "getRelationshipDetail",
+                "description": "Inspect a traversed relationship in detail."
               }
             }
           },
@@ -1060,7 +1316,13 @@
             "bearer": [ ]
           }
         ],
-        "x-workspace-role": "ReadKnowledgeGraph"
+        "x-workspace-role": "ReadKnowledgeGraph",
+        "x-agent-tool-name": "workspace_traverse_graph",
+        "x-agent-idempotent": true,
+        "x-agent-retryable": true,
+        "x-agent-side-effects": "none",
+        "x-agent-input": "TraversalRequest",
+        "x-agent-output": "TraversalResult"
       }
     },
     "/health": {
@@ -1069,6 +1331,8 @@
           "Health"
         ],
         "summary": "Report readiness",
+        "description": "Anonymous readiness check. Safe to poll; returns {\"status\":\"ready\"} when the workspace can serve requests.",
+        "operationId": "getHealth",
         "responses": {
           "200": {
             "description": "OK",
@@ -1078,6 +1342,12 @@
                   "$ref": "#/components/schemas/HealthStatus"
                 }
               }
+            },
+            "links": {
+              "session": {
+                "operationId": "getSession",
+                "description": "Check what the caller's token may do next."
+              }
             }
           },
           "500": {
@@ -1085,7 +1355,13 @@
           }
         },
         "security": [ ],
-        "x-workspace-role": "none"
+        "x-workspace-role": "none",
+        "x-agent-tool-name": "workspace_get_health",
+        "x-agent-idempotent": true,
+        "x-agent-retryable": true,
+        "x-agent-side-effects": "none",
+        "x-agent-input": "none",
+        "x-agent-output": "HealthStatus"
       }
     }
   },
@@ -2434,13 +2710,25 @@
   },
   "tags": [
     {
-      "name": "Health"
+      "name": "Health",
+      "description": "Anonymous readiness."
     },
     {
-      "name": "Reading"
+      "name": "Reading",
+      "description": "Read-only queries over the published snapshot and contribution history (ReadKnowledgeGraph)."
     },
     {
-      "name": "Contributions"
+      "name": "Contributions",
+      "description": "Writes that create, edit, remove or codify runtime contributions (ManageKnowledgeGraph)."
     }
-  ]
+  ],
+  "x-agent-discovery": {
+    "spec": "/api/openapi/v1.json",
+    "docs": "/api/docs",
+    "health": "/health",
+    "auth": "bearer JWT; the required role is each operation's x-workspace-role",
+    "pagination": "cursor: pass nextCursor as cursor, stop when null",
+    "errors": "application/problem+json with a stable code per operation's x-workspace-codes",
+    "hateoas": "follow each success response's links and the runtime Link response headers"
+  }
 }

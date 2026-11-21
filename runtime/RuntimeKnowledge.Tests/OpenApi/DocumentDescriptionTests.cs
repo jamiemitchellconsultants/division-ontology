@@ -22,7 +22,9 @@ public sealed class DocumentDescriptionTests
         var info = (await Spec())["info"]!;
         Assert.Equal("Runtime knowledge workspace API", (string)info["title"]!);
         Assert.Equal("v1", (string)info["version"]!);
-        Assert.Equal(2, info.AsObject().Count);
+        Assert.Equal(3, info.AsObject().Count);
+        Assert.Contains("x-agent-tool-name", (string)info["description"]!);
+        Assert.Contains("links", (string)info["description"]!);
     }
 
     [Fact]
