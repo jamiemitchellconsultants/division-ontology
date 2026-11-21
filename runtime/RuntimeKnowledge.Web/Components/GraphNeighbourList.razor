@@ -1,0 +1,39 @@
+<section aria-label="Graph neighbours">
+    <h2>Neighbours</h2>
+    <ul>
+        @foreach (var edge in Neighbourhood.Edges)
+        {
+            var step = edge.Step;
+            var neighbour = step.From == Neighbourhood.Query.Focus ? step.To : step.From;
+            var nodeId = WorkspaceLinks.GraphNodeId(neighbour);
+            var qualifiedNeighbour = Name(neighbour);
+            var direction = step.From == Neighbourhood.Query.Focus ? "Outgoing" : "Incoming";
+            var origin = step.RuntimeId is null ? $"Published · {step.Key!.SourceId}" : "Workspace relationship";
+            <li @key="edge.Id" data-graph-edge="@edge.Id">
+                <strong>@step.Label</strong> · @direction · @origin
+                <div>@Name(step.From) → @Name(step.To)</div>
+                <div class="actions">
+                    <button type="button" data-graph-inspect-node="@nodeId" aria-label="Inspect @qualifiedNeighbour"
+                        aria-pressed="@Pressed(nodeId)" @onclick="() => OnInspect.InvokeAsync(nodeId)">Inspect</button>
+                    <button type="button" data-graph-inspect-edge="@edge.Id" aria-label="Inspect relationship @step.Label · @origin · @qualifiedNeighbour"
+                        aria-pressed="@Pressed(edge.Id)" @onclick="() => OnInspect.InvokeAsync(edge.Id)">Inspect relationship</button>
+                    @if (WorkspaceLinks.CanGraph(neighbour))
+                    {
+                        <button type="button" data-graph-follow="@nodeId" aria-label="Follow @qualifiedNeighbour"
+                            @onclick="() => OnFollow.InvokeAsync(neighbour)">Follow</button>
+                    }
+                </div>
+            </li>
+        }
+    </ul>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public GraphNeighbourhood Neighbourhood { get; set; } = default!;
+    [Parameter] public string? SelectedId { get; set; }
+    [Parameter] public EventCallback<PublishedKey> OnFollow { get; set; }
+    [Parameter] public EventCallback<string> OnInspect { get; set; }
+
+    private string Pressed(string id) => id == SelectedId ? "true" : "false";
+    private string Name(PublishedKey key) => $"{Neighbourhood.Nodes.GetValueOrDefault(key)?.Label ?? key.Identifier} · {key.SourceId}";
+}

@@ -8,13 +8,16 @@ namespace RuntimeKnowledge.Web.Services;
 
 public sealed class WorkspaceClient(HttpClient http) : IDisposable
 {
-    public Task<WorkspaceSession> Session() => Get<WorkspaceSession>("api/session");
+    public Task<WorkspaceSession> Session(CancellationToken cancellationToken = default) =>
+        Send<WorkspaceSession>(HttpMethod.Get, "api/session", cancellationToken: cancellationToken);
     public Task<InventoryPage> Inventory(string? cursor = null) =>
         Get<InventoryPage>(cursor is null ? "api/inventory" : $"api/inventory?cursor={Uri.EscapeDataString(cursor)}");
-    public Task<EntityDetail> Entity(PublishedKey key) => Post<EntityDetail>("api/entities/detail", new EntityDetailRequest(key));
-    public Task<RelationshipDetail> Relationship(RelationshipDetailRequest request) =>
-        Post<RelationshipDetail>("api/relationships/detail", request);
-    public Task<TraversalResult> Traverse(TraversalRequest request) => Post<TraversalResult>("api/traverse", request);
+    public Task<EntityDetail> Entity(PublishedKey key, CancellationToken cancellationToken = default) =>
+        Post<EntityDetail>("api/entities/detail", new EntityDetailRequest(key), cancellationToken);
+    public Task<RelationshipDetail> Relationship(RelationshipDetailRequest request, CancellationToken cancellationToken = default) =>
+        Post<RelationshipDetail>("api/relationships/detail", request, cancellationToken);
+    public Task<TraversalResult> Traverse(TraversalRequest request, CancellationToken cancellationToken = default) =>
+        Post<TraversalResult>("api/traverse", request, cancellationToken);
     public Task<SearchResult> Search(string query) => Post<SearchResult>("api/search", new SearchRequest(query));
     public Task<HistoryPage> History(Guid? id, string? cursor = null)
     {
@@ -37,22 +40,23 @@ public sealed class WorkspaceClient(HttpClient http) : IDisposable
     public void Dispose() => http.Dispose();
 
     private Task<T> Get<T>(string path) => Send<T>(HttpMethod.Get, path);
-    private Task<T> Post<T>(string path, object body) => Send<T>(HttpMethod.Post, path, body);
+    private Task<T> Post<T>(string path, object body, CancellationToken cancellationToken = default) =>
+        Send<T>(HttpMethod.Post, path, body, cancellationToken);
 
-    private async Task<T> Send<T>(HttpMethod method, string path, object? body = null)
+    private async Task<T> Send<T>(HttpMethod method, string path, object? body = null, CancellationToken cancellationToken = default)
     {
         using var request = new HttpRequestMessage(method, path);
         if (body is not null)
             request.Content = JsonContent.Create(body, options: WorkspaceJson.Options);
         try
         {
-            using var response = await http.SendAsync(request);
+            using var response = await http.SendAsync(request, cancellationToken);
             if (response.IsSuccessStatusCode)
-                return (await response.Content.ReadFromJsonAsync<T>(WorkspaceJson.Options))!;
+                return (await response.Content.ReadFromJsonAsync<T>(WorkspaceJson.Options, cancellationToken))!;
             Problem? problem = null;
             try
             {
-                problem = await response.Content.ReadFromJsonAsync<Problem>(WorkspaceJson.Options);
+                problem = await response.Content.ReadFromJsonAsync<Problem>(WorkspaceJson.Options, cancellationToken);
             }
             catch (Exception error) when (error is JsonException or NotSupportedException)
             {

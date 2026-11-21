@@ -6,6 +6,10 @@ namespace RuntimeKnowledge.Web.Services;
 public static class WorkspaceLinks
 {
     public static string Entity(PublishedKey key) => $"entity/{Encode(key)}";
+    public static string Graph(PublishedKey key) => $"graph/{Encode(key)}";
+    public static string GraphNodeId(PublishedKey key) => $"n:{Encode(key)}";
+    public static bool CanGraph(PublishedKey key) => key.Kind is "concept" or "node" &&
+        !string.IsNullOrWhiteSpace(key.SourceId) && !string.IsNullOrWhiteSpace(key.Identifier);
     public static string Relationship(TraversalStep step) => step.RuntimeId is { } id
         ? $"relationship/runtime/{id:D}"
         : Relationship(step.Key!);

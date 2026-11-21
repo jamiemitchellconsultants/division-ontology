@@ -25,6 +25,10 @@
                 {
                     <li>
                         <a href="@WorkspaceLinks.Entity(hit.EntityKey)">@hit.MatchedText</a>
+                        @if (WorkspaceLinks.CanGraph(hit.EntityKey))
+                        {
+                            <a href="@WorkspaceLinks.Graph(hit.EntityKey)" aria-label="Open graph for @hit.MatchedText · @hit.EntityKey.SourceId">Graph</a>
+                        }
                         <OriginEvidence Origin="hit.Provenance" />
                         @if (hit.Annotation is { } annotation) { <ContributionRecord Record="annotation" /> }
                     </li>

@@ -1,0 +1,275 @@
+@page "/graph/{Key}"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@implements IDisposable
+@inject WorkspaceClient Api
+
+<PageTitle>Knowledge graph</PageTitle>
+<h1>@Heading</h1>
+
+@if (invalidEntry)
+{
+    <p role="alert">This graph link does not identify a published concept or node.</p>
+    <a href="./">Back to search</a>
+}
+else
+{
+    <div class="actions" aria-label="Graph navigation">
+        @if (history.Count > 0)
+        {
+            <button type="button" @onclick="Back">Back</button>
+        }
+        @if (frame is not null)
+        {
+            <label>Direction
+                <select aria-label="Direction" value="@(pending?.Query.Direction ?? frame.View.Query.Direction)" @onchange="ChangeDirection">
+                    <option value="both">Both</option>
+                    <option value="incoming">Incoming</option>
+                    <option value="outgoing">Outgoing</option>
+                </select>
+            </label>
+            @if (frame.Stale)
+            {
+                <button type="button" disabled="@(pending is not null)" @onclick="Reload">Reload</button>
+            }
+            else if (frame.View.NextCursor is not null)
+            {
+                <button type="button" disabled="@(pending is not null)" @onclick="LoadMore">Load more</button>
+            }
+        }
+    </div>
+
+    <div role="status">
+        @if (pending is { } loading)
+        {
+            <p>@(loading.Kind == ReadKind.Append ? "Loading more connections…" : $"Loading {Name(loading.Query.Focus)}…")</p>
+        }
+        @if (frame?.Stale == true)
+        {
+            <p>These graph results are out of date. Reload to check for changes.</p>
+        }
+        @if (refreshed)
+        {
+            <p>The saved graph view was refreshed.</p>
+        }
+    </div>
+
+    @if (error is not null && failed is { } attempted)
+    {
+        <p>Could not load the graph for @Name(attempted.Query.Focus).</p>
+        <ApiError Error="error" />
+        @if (error.Status == System.Net.HttpStatusCode.NotFound)
+        {
+            <a href="./">Back to search</a>
+        }
+        else
+        {
+            <button type="button" @onclick="() => Read(attempted)">Retry</button>
+        }
+        @if (frame is not null && attempted.Query != frame.View.Query)
+        {
+            <button type="button" @onclick="DismissError">Return to current view</button>
+        }
+    }
+
+    @if (frame is { View: var view } current)
+    {
+        @if (view.RelevantGaps.Count > 0)
+        {
+            <p role="status">Source coverage is incomplete for this neighbourhood.</p>
+            <CoverageGaps Gaps="view.RelevantGaps" />
+        }
+        @if (view.OtherGaps.Count > 0)
+        {
+            <p>@view.OtherGaps.Count coverage gaps elsewhere in the division. <a href="./">View division coverage</a></p>
+        }
+        @if (!current.Stale)
+        {
+            @if (view.NextCursor is null && view.TraversalIncomplete)
+            {
+                <p role="status">Results are incomplete and further paging is unavailable.</p>
+            }
+            else if (view.Edges.Count == 0 && view.NextCursor is not null)
+            {
+                <p role="status">Check more results for visible connections.</p>
+            }
+            else if (view.Edges.Count == 0 && view.RelevantGaps.Count == 0)
+            {
+                <p role="status">No visible connections in this direction.</p>
+            }
+        }
+
+        <GraphNeighbourList Neighbourhood="view" SelectedId="@current.SelectedId" OnFollow="Follow" OnInspect="Inspect" />
+    }
+}
+
+@code {
+    [Parameter] public string Key { get; set; } = "";
+
+    private enum ReadKind { First, Direction, Follow, Back, Reload, Append }
+    private sealed record GraphRead(GraphQuery Query, ReadKind Kind, string? Cursor = null);
+    private sealed record Frame(GraphNeighbourhood View, string SelectedId, bool Stale = false);
+
+    private readonly Stack<Frame> history = new();
+    private Frame? frame;
+    private GraphRead? pending, failed;
+    private WorkspaceApiException? error;
+    private WorkspaceSession? session;
+    private CancellationTokenSource? request;
+    private long requestId;
+    private string? entry;
+    private bool invalidEntry, refreshed;
+
+    private string Heading => frame is null ? "Knowledge graph" : Name(frame.View.Query.Focus);
+    private string Name(PublishedKey key) => $"{frame?.View.Nodes.GetValueOrDefault(key)?.Label ?? key.Identifier} · {key.SourceId}";
+
+    protected override Task OnParametersSetAsync()
+    {
+        if (entry == Key) return Task.CompletedTask;
+        entry = Key;
+        CancelRead();
+        history.Clear();
+        frame = null;
+        session = null;
+        refreshed = false;
+        DismissError();
+        var key = WorkspaceLinks.Decode(Key);
+        invalidEntry = key is null || !WorkspaceLinks.CanGraph(key);
+        return invalidEntry ? Task.CompletedTask : Read(new(new(key!, "both"), ReadKind.First));
+    }
+
+    private Task ChangeDirection(ChangeEventArgs args) =>
+        frame is not null && args.Value is string direction && direction is "both" or "incoming" or "outgoing"
+            ? Read(new(frame.View.Query with { Direction = direction }, ReadKind.Direction))
+            : Task.CompletedTask;
+
+    private Task Follow(PublishedKey key) => frame is not null && key != frame.View.Query.Focus && WorkspaceLinks.CanGraph(key)
+        ? Read(new(frame.View.Query with { Focus = key }, ReadKind.Follow))
+        : Task.CompletedTask;
+
+    private void Inspect(string id)
+    {
+        if (frame is not null) frame = frame with { SelectedId = id };
+    }
+
+    private Task LoadMore() => pending is null && frame is { Stale: false, View.NextCursor: { } cursor }
+        ? Read(new(frame.View.Query, ReadKind.Append, cursor))
+        : Task.CompletedTask;
+
+    private Task Reload() => frame is null ? Task.CompletedTask : Read(new(frame.View.Query, ReadKind.Reload));
+
+    private Task Back()
+    {
+        if (!history.TryPeek(out var previous)) return Task.CompletedTask;
+        if (previous.Stale) return Read(new(previous.View.Query, ReadKind.Back));
+        CancelRead();
+        DismissError();
+        refreshed = false;
+        frame = history.Pop();
+        return Task.CompletedTask;
+    }
+
+    private async Task Read(GraphRead read)
+    {
+        CancelRead();
+        var id = requestId;
+        using var cancellation = new CancellationTokenSource();
+        request = cancellation;
+        pending = read;
+        refreshed = false;
+        DismissError();
+        try
+        {
+            if (session is null)
+            {
+                var capability = await Api.Session(cancellation.Token);
+                if (id != requestId) return;
+                if (!capability.CanRead)
+                    throw new WorkspaceApiException(System.Net.HttpStatusCode.Forbidden, detail: "Graph read access is required.");
+                session = capability;
+            }
+
+            var page = await Api.Traverse(read.Query.ToRequest(read.Cursor), cancellation.Token);
+            if (id != requestId) return;
+            ApplyPage(read, page);
+        }
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+        {
+            // A later read owns the current view.
+        }
+        catch (WorkspaceApiException problem) when (id == requestId)
+        {
+            if (read.Kind == ReadKind.Append && problem.Code is "staleCursor" or "invalidCursor")
+                MarkStale();
+            else
+            {
+                error = problem;
+                failed = read;
+            }
+        }
+        catch (WorkspaceApiException)
+        {
+            // A superseded error no longer describes the current view.
+        }
+        finally
+        {
+            if (id == requestId)
+            {
+                pending = null;
+                request = null;
+            }
+        }
+    }
+
+    private void ApplyPage(GraphRead read, TraversalResult page)
+    {
+        if (read.Kind == ReadKind.Append && frame is { } active)
+        {
+            if (page.SnapshotId != active.View.SnapshotId)
+                MarkStale();
+            else
+                frame = active with { View = active.View.Append(page) };
+            return;
+        }
+
+        if (frame is not null && page.SnapshotId != frame.View.SnapshotId)
+            MarkStale();
+        var selection = WorkspaceLinks.GraphNodeId(read.Query.Focus);
+        if (read.Kind == ReadKind.Follow && frame is not null)
+            history.Push(frame);
+        if (read.Kind == ReadKind.Back)
+        {
+            history.Pop();
+            refreshed = true;
+        }
+        frame = new(GraphNeighbourhood.FromPage(read.Query, page), selection);
+    }
+
+    private void MarkStale()
+    {
+        if (frame is not null) frame = frame with { Stale = true };
+        var frames = history.ToArray();
+        history.Clear();
+        foreach (var previous in frames.Reverse())
+            history.Push(previous with { Stale = true });
+    }
+
+    private void DismissError()
+    {
+        error = null;
+        failed = null;
+    }
+
+    private void CancelRead()
+    {
+        requestId++;
+        request?.Cancel();
+        request = null;
+        pending = null;
+    }
+
+    public void Dispose()
+    {
+        CancelRead();
+        history.Clear();
+    }
+}
