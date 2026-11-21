@@ -189,6 +189,9 @@ async function main() {
       });
     }
     await step('initial browser', () => browser('browser-initial.log'));
+    await step('traversal paging', () => run(process.execPath,
+      [fileURLToPath(new URL('verify-traversal-paging.mjs', import.meta.url)), 'home-lab'],
+      { env, log: 'traversal-paging.log', showBrowserError: true }));
     await step('restart and health', async () => {
       await describeFixture(replay, snapshot);
       await run('docker', [...compose, 'restart', '--no-deps', 'db', 'api'], { log: 'restart.log' });
