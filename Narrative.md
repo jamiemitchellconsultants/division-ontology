@@ -49,6 +49,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [39](#entry-feat-agent-friendly-openapi-decorators-and-hateoas-for-the-workspace-api) | 2026-11-21 | feat: agent-friendly OpenAPI decorators and HATEOAS for the workspace API | product | Decorate every operation in the generator with a stable `operationId`, `x-agent-tool-name`, `x-agent-idempotent`, `x-agent-retryable`, `x-agent-side-effects` and input/output schema names; publish HATEOAS as OpenAPI `links` on every… |
 | [40](#entry-docs-vision-for-traversal-cursor-pagination-120) | 2026-11-21 | docs: vision for traversal cursor pagination (#120) | product | Adopt cursor pagination for traversal as a product capability: an opaque `nextCursor`, a HATEOAS `next` link whenever another page exists, pages that carry their own entity context, and cursors bound to the original traversal parameters… |
 | [41](#entry-docs-behaviours-for-traversal-cursor-pagination-121) | 2026-11-21 | docs: behaviours for traversal cursor pagination (#121) | product | Fix the behaviours before the mechanism. |
+| [42](#entry-docs-align-traversal-cursor-errors-with-the-422-precedent-121) | 2026-11-21 | docs: align traversal cursor errors with the 422 precedent (#121) | product | Amend the behaviours to the existing contract: 422 `invalidCursor` for malformed or parameter-mismatched cursors, 409 `staleCursor` for a moved-on snapshot or workspace view, both instructing restart from page one. |
 
 ---
 
@@ -1052,3 +1053,27 @@ The architect inherits precise constraints: a cursor bound to parameters, snapsh
 ---
 
 AI-Fingerprint: sha256:fed47712b49e
+
+---
+
+<a id="entry-docs-align-traversal-cursor-errors-with-the-422-precedent-121"></a>
+
+## Entry 42 — 2026-11-21 — docs: align traversal cursor errors with the 422 precedent (#121)
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The architect, checking how traversal would declare its cursor errors, found that B8/B9 specified 400 `invalidCursor` while the repository's single code-to-status map assigns that code 422 for history and inventory, with 400 reserved for unreadable request bodies. The phase decision had been taken on a misstated precedent, so the architect raised pushback rather than reinterpreting the behaviours.
+
+## Decision
+
+Amend the behaviours to the existing contract: 422 `invalidCursor` for malformed or parameter-mismatched cursors, 409 `staleCursor` for a moved-on snapshot or workspace view, both instructing restart from page one. Rejected: giving traversal the same code at a different status (inconsistent client contract), and changing the shared status map to 400 (would alter the existing history and inventory endpoints, outside this feature's scope).
+
+## Consequences
+
+The architecture phase can now trace B8/B9/B14 exactly as written, reusing `ProblemResponses.StatusFor` with no changes to existing endpoints. Once this amendment merges, the pushback is cleared (`feature.mjs clear-pushback`) and the architect resumes; the cursor-carried frontier decision the user already took (stateless cursor, no server-retained walk state) is unaffected and is the first decision the resumed architecture records.
+
+---
+
+AI-Fingerprint: sha256:b3b13c008897
