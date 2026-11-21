@@ -4,6 +4,7 @@ using System.Text.Json;
 using RuntimeKnowledge.Contracts;
 using RuntimeKnowledge.Store;
 using Xunit;
+using static RuntimeKnowledge.Store.WorkspaceSql;
 
 namespace RuntimeKnowledge.Tests;
 
@@ -231,6 +232,29 @@ public sealed class TraversalPagingTests
         var signatures = pages.SelectMany(page => page.Paths).Select(Signature).ToArray();
         Assert.Equal(150, signatures.Length);
         Assert.Equal(signatures.Length, signatures.Distinct(StringComparer.Ordinal).Count());
+    }
+
+    [Fact]
+    public async Task NeighbourReadsReturnASelfLoopOncePerDirection()
+    {
+        // AGE returns a both-matched self-loop as a single row in every direction, so edge-key
+        // resume (r.key > after) can never skip its second row; this pins that assumption.
+        await using var scenario = await Scenario.OpenAsync();
+        await using var source = Npgsql.NpgsqlDataSource.Create(scenario.ConnectionString);
+        var store = new Db(source);
+        await using var connection = await store.OpenAsync(CancellationToken.None);
+        await using var tx = connection.BeginTransaction();
+        await ExecuteAsync(tx, "SELECT ag_catalog.create_graph('workspace_g1234abcd')", CancellationToken.None);
+        await AgeGraph.AddVertexAsync(tx, "workspace_g1234abcd", "a", CancellationToken.None);
+        await AgeGraph.AddEdgeAsync(tx, "workspace_g1234abcd", "e1", "a", "a", "snapshot", CancellationToken.None);
+        foreach (var direction in new[] { "outgoing", "incoming", "both" })
+        {
+            var rows = await AgeGraph.NeighborsAsync(tx, "workspace_g1234abcd", "a", "snapshot",
+                direction, CancellationToken.None, "", 10);
+            Assert.Single(rows);
+        }
+        await tx.RollbackAsync();
+        await connection.CloseAsync();
     }
 
     [Fact]
