@@ -41,7 +41,7 @@ public sealed record InventoryPage(string SnapshotId, IReadOnlyList<PublishedEnt
     IReadOnlyList<RelationshipType> RelationshipTypes, IReadOnlyList<CoverageGap> Gaps, string? NextCursor,
     IReadOnlyList<PublishedEdge> Relationships);
 public sealed record TraversalRequest(PublishedKey Start, string Direction = "outgoing",
-    int MaxDepth = 2, bool IncludeUnavailable = false);
+    int MaxDepth = 2, bool IncludeUnavailable = false, string? Cursor = null);
 public sealed record TraversalPath(IReadOnlyList<TraversalStep> Steps);
 public sealed record TraversalStep(PublishedKey? Key, Guid? RuntimeId, PublishedKey From, PublishedKey To,
     string Label, string Direction, string Origin, Provenance? Provenance,
@@ -49,7 +49,8 @@ public sealed record TraversalStep(PublishedKey? Key, Guid? RuntimeId, Published
     RuntimeContribution? Contribution = null, EndpointContext? FromEndpoint = null, EndpointContext? ToEndpoint = null,
     IReadOnlyList<RuntimeContribution>? CodifyingContributions = null);
 public sealed record TraversalResult(string SnapshotId, IReadOnlyList<TraversalPath> Paths,
-    IReadOnlyList<CoverageGap> Gaps, bool Truncated, IReadOnlyList<TraversalEntity> Entities);
+    IReadOnlyList<CoverageGap> Gaps, bool Truncated, IReadOnlyList<TraversalEntity> Entities,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? NextCursor = null);
 
 public sealed class WorkspaceException(string code, string message, Exception? inner = null, RuntimeContribution? current = null)
     : Exception(message, inner)
