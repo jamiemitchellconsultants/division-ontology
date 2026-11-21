@@ -90,13 +90,13 @@
 
 **Given** a traversal whose frontier includes a growing number of unavailable relationships that are excluded (default `includeUnavailable: false`), **when** a page is served, **then** the number of relationships examined to fill that page stays within the architect-stated bound as the number of unavailable relationships grows; the page is still filled with the next available paths in order.
 
-#### B19 — Remaining frontier exceeds the cursor size limit
-
-**Given** a traversal whose remaining frontier at a page boundary exceeds the maximum size of a TraversalCursor, **when** the server attempts to issue the next page, **then** the request fails with status 422 and code `invalidTraversal`, whose message instructs the client to restart with a smaller `maxDepth` or a more specific start entity; no oversized cursor is issued and no unhandled error leaks. (Added after dev-build review.)
-
 #### B18 — Traversal stays read-only
 
 **Given** any paging sequence, **when** pages are requested and cursors are submitted (valid, malformed, mismatched, or stale), **then** no published record, workspace contribution, or Turtle file in this or any source repository is created, modified, or deleted by the traversal.
+
+#### B19 — Remaining frontier exceeds the cursor size limit
+
+**Given** a traversal whose remaining frontier at a page boundary exceeds the maximum size of a TraversalCursor, **when** the server attempts to issue the next page, **then** the request fails with status 422 and code `invalidTraversal`, whose message instructs the client to restart with a smaller `maxDepth` or a more specific start entity; no oversized cursor is issued and no unhandled error leaks. (Added after dev-build review.)
 
 ## Uncertainties
 
