@@ -159,7 +159,7 @@ public sealed class TraversalPagingTests
                 RelationshipMeaning.Custom($"r{i}", "Filtered after refresh.")), CancellationToken.None);
         await s.ActivateAsync("missing");
 
-        s.Graph.ExaminedStepBudget = 10;
+        var filteredCounters = new TraversalCounters { Budget = 10 };
         var examinedTotal = 0;
         var filteredPaths = 0;
         string? filteredCursor = null;
@@ -167,9 +167,9 @@ public sealed class TraversalPagingTests
         do
         {
             var page = await s.Graph.TraverseAsync(
-                new TraversalRequest(s.A, MaxDepth: 1, Cursor: filteredCursor), CancellationToken.None);
-            Assert.True(s.Graph.LastTraversalExaminedSteps <= 10);
-            examinedTotal += s.Graph.LastTraversalExaminedSteps;
+                new TraversalRequest(s.A, MaxDepth: 1, Cursor: filteredCursor), CancellationToken.None, filteredCounters);
+            Assert.True(filteredCounters.ExaminedSteps <= 10);
+            examinedTotal += filteredCounters.ExaminedSteps;
             filteredPaths += page.Paths.Count;
             filteredCursor = page.NextCursor;
             filteredPages++;
@@ -179,15 +179,15 @@ public sealed class TraversalPagingTests
         Assert.Equal(30, examinedTotal);
         Assert.True(examinedTotal <= 30, "no row is examined on two pages");
 
-        s.Graph.ExaminedStepBudget = 1000;
         await s.ActivateTraversalAsync("busy");
         string? cursor = null;
         var counts = new List<int>();
         do
         {
-            var page = await s.Graph.TraverseAsync(new TraversalRequest(s.Hub, MaxDepth: 1, Cursor: cursor), CancellationToken.None);
-            counts.Add(s.Graph.LastTraversalExaminedSteps);
-            Assert.True(s.Graph.LastTraversalExaminedSteps <= 1000);
+            var counters = new TraversalCounters();
+            var page = await s.Graph.TraverseAsync(new TraversalRequest(s.Hub, MaxDepth: 1, Cursor: cursor), CancellationToken.None, counters);
+            counts.Add(counters.ExaminedSteps);
+            Assert.True(counters.ExaminedSteps <= 1000);
             cursor = page.NextCursor;
         } while (cursor is not null);
         Assert.All(counts, count => Assert.True(count <= 202, $"examined {count}"));

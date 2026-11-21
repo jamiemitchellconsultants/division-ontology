@@ -10,6 +10,8 @@ public sealed class GraphQueries(Db db)
 {
     private const int MaxPaths = 100;
 
+    private const int MaxExaminedSteps = 1000;
+
     public async Task<InventoryPage> InventoryAsync(PageRequest request, CancellationToken cancellationToken)
     {
         if (request.Limit is < 1 or > 100)
@@ -61,12 +63,14 @@ public sealed class GraphQueries(Db db)
         return new InventoryPage(snapshot, entities, types, await GapsAsync(tx, state, cancellationToken), cursor, relationships);
     }
 
-    internal int LastTraversalExaminedSteps { get; private set; }
+    public async Task<TraversalResult> TraverseAsync(TraversalRequest request, CancellationToken cancellationToken) =>
+        await TraverseAsync(request, cancellationToken, null);
 
-    internal int ExaminedStepBudget { get; set; } = 1000;
-
-    public async Task<TraversalResult> TraverseAsync(TraversalRequest request, CancellationToken cancellationToken)
+    internal async Task<TraversalResult> TraverseAsync(TraversalRequest request, CancellationToken cancellationToken,
+        TraversalCounters? counters)
     {
+        var budget = counters?.Budget ?? MaxExaminedSteps;
+        var counter = counters ?? new TraversalCounters();
         if (request.Start is null || request.MaxDepth is < 1 or > 8 ||
             request.Direction is not ("outgoing" or "incoming" or "both"))
             throw new WorkspaceException("invalidTraversal", "Traversal requires a start, a valid direction and a depth from 1 to 8.");
@@ -115,7 +119,7 @@ public sealed class GraphQueries(Db db)
         var exhausted = false;
         while (!exhausted)
         {
-            if (result.Count >= MaxPaths || examined >= ExaminedStepBudget) break;
+            if (result.Count >= MaxPaths || examined >= budget) break;
             active ??= queue.TryDequeue(out var next) ? next : null;
             if (active is null) { exhausted = true; break; }
             if (!attempted.Contains(active.At)) attempted.Add(active.At);
@@ -124,7 +128,7 @@ public sealed class GraphQueries(Db db)
             while (active.Scope < 2 && !stop)
             {
                 var scope = active.Scope == 0 ? snapshot : "runtime";
-                var fetchLimit = Math.Min(101, ExaminedStepBudget - examined);
+                var fetchLimit = Math.Min(101, budget - examined);
                 if (fetchLimit <= 0) { stop = true; break; }
                 var neighbors = await AgeGraph.NeighborsAsync(tx, state.GraphName, active.At, scope,
                     request.Direction, cancellationToken, active.After, fetchLimit);
@@ -208,7 +212,7 @@ public sealed class GraphQueries(Db db)
             var notes = await ContributionStore.AnnotationsAsync(tx, state, endpoint.Key, cancellationToken);
             entities.Add(new TraversalEntity(endpoint.Key, endpoint.Label, endpoint.Provenance, endpoint.Available, notes));
         }
-        LastTraversalExaminedSteps = examined;
+        counter.ExaminedSteps = examined;
         return new TraversalResult(snapshot, result, await GapsAsync(tx, state, cancellationToken), truncated, entities, nextCursor);
 
         static string DirectionOf(PublishedKey from, string at) => from.StorageKey == at ? "outgoing" : "incoming";

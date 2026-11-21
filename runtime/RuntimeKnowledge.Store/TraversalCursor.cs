@@ -90,3 +90,10 @@ internal static class TraversalCursor
     private static WorkspaceException Invalid(string message) => new("invalidCursor", message);
     private static WorkspaceException InvalidCursor() => Invalid("The traversal cursor is not valid. " + Restart);
 }
+
+/// <summary>Test-only examination counts for the traversal walk; the API never passes one.</summary>
+internal sealed class TraversalCounters
+{
+    public int Budget { get; set; } = 1000;
+    public int ExaminedSteps { get; set; }
+}
