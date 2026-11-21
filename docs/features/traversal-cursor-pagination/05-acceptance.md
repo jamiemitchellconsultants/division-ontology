@@ -123,28 +123,59 @@ The fixture has 105 seeded runtime relationships plus a few published ones from 
 1. Run `--filter "Behaviour=B19"`. **Expect** a pass: the walk fails `invalidTraversal` with “Restart with a smaller maxDepth or a more specific start entity”, and the spec lists `invalidTraversal` under `422`.
 2. The deployed layer only checks that the spec lists `invalidTraversal`, because the real 262,144-character cap needs a much larger graph than the fixture.
 
+## What the executable tests check
+
+There are two layers:
+
+- **Test suite.** `TraversalPaginationAcceptanceTests` runs against a throwaway database. Its **hub** fixture is one entity with 150 published relationships, `e000`–`e149`.
+- **Real stack.** `verify-traversal-paging.mjs` signs in through Keycloak as the fixture manager and reader. It adds 105 relationships from Ecommerce **Order** to Warehouse **Order**, runs its checks, and removes them afterwards.
+
+| Behaviour | Test suite: set-up, action, must be true | Real stack: must be true |
+| --- | --- | --- |
+| B1 | Hub plus one workspace relationship. Page through one hop. There are exactly two pages, and the first has 100 paths. Together they hold `e000`–`e149` then the workspace relationship, each once. The workspace one is not on page one. The last page has no cursor. | Every one of the 105 added relationships appears exactly once. Page one has 100 paths. The last page has no cursor and `truncated: false`. |
+| B2 | A three-level tree: 2 branches, 3 sub-branches each, 30 leaves each. Page through depth 3. The paths equal the expected breadth-first list exactly, and page one ends part-way through a branch that page two continues. | A depth-2 walk repeats no path, and path length never goes down across page breaks. |
+| B3 | 110 workspace relationships pointing *into* the hub. Incoming paging returns all 110 once. `both` returns 260 paths with none repeated, published first. A new snapshot then removes 51 leaves, which strands 120 workspace relationships. With unavailable endpoints included, every stranded step on every page is marked unavailable with the old snapshot id. Without them, only the 99 remaining published paths come back. | Incoming from Warehouse **Order** returns all 105 once. `both` repeats nothing. Turning on unavailable endpoints changes nothing, because all endpoints are available. |
+| B4 | Two workspace relationships. Paging twice gives the identical sequence, with all 150 published paths before the two workspace ones. | All published paths come before the first workspace path. |
+| B5 | Busy hub: page one is `e000`–`e099`, `truncated: true`, a cursor, and exactly the fields `snapshotId, paths, gaps, truncated, entities, nextCursor`. Exactly 100 paths with more to explore: a cursor, then an empty final page. A 99-path walk: `truncated: false` and no `nextCursor` field at all. | Page one has 100 paths, `truncated: true` and a cursor. |
+| B6 | 99 published plus 30 filtered-out relationships, with a 10-row budget per page. `truncated` is true exactly when there is a cursor. At least one middle page is empty but still has a cursor. The final page is not truncated. All 99 published paths come through in order. | On every page, `truncated` matches whether there is a cursor. |
+| B7 | A note on `leaf120` and a workspace relationship to `leaf005`. On every page, each endpoint of each path has an entity with label, provenance and availability. Page two carries `leaf120` with its note and `leaf005`. Page one does not carry `leaf120`. | Every page has label, provenance, availability and annotations for every endpoint on it. |
+| B8 | Reuse page one's cursor with a different start, a never-published start, `both`, depth 2, and unavailable on. Each fails with 422 `invalidCursor` saying "Restart the traversal from the first page", with no paths. After a snapshot change it fails 409 `staleCursor` instead. | Changed direction, depth, unavailable option and start each fail 422 `invalidCursor` with the restart message. |
+| B9 | Gibberish, half a real cursor, a fake cursor, and an oversized string. Each fails 422 `invalidCursor` with the restart message and no paths. | Gibberish and half a real cursor each fail 422 `invalidCursor`. |
+| B10 | Activate a new snapshot. The old cursor fails 409 `staleCursor` with the restart message, and a fresh page one works. | Not run: it would replace the fixture. |
+| B11 | For each of these, take a fresh cursor, make the change as manager, and the cursor then fails 409 `staleCursor`: create a note far from the walk, edit it, remove it, create a relationship, codify it against `e000`. | Adding a note to Warehouse **Order** makes an open cursor fail 409 `staleCursor`. The note is then removed. |
+| B12 | A 6,040-path wide graph, more than 60 pages. Every cursor is followed, and the paths equal the expected list exactly. Sending the same cursor twice gives the same page. | Sending page one's cursor twice gives identical results, equal to page two. |
+| B13 | The spec maps `next` to `traverseGraph`. Page one has `Link: </api/traverse>; rel="next"`. The final page has no `next` link but keeps `entityDetail`. | Every non-final page has the `next` link and the final page does not. |
+| B14 | In both the served and the committed spec: the `cursor` and `nextCursor` fields, 422 `invalidCursor`, 409 `staleCursor`, a `firstPage` example without a cursor and a `nextPage` example with one, and `next`, `entityDetail` and `relationshipDetail` links with `next` pointing to `traverseGraph`. | The same in the served spec, plus 422 lists `invalidTraversal`. |
+| B15 | A client that only follows the `Link` header target and the returned cursor reaches the last page in at most three calls, and collects `e000`–`e149` plus the workspace relationship. | Following only the `Link` headers reaches the last page. |
+| B16 | Page the 6,040-path wide graph and count the rows examined per page. Every page examines at most 1,000. The total equals 6,040, so nothing is re-read. Late pages examine no more than early ones (allowing 101). | Records each page's response time. Not checked against a limit. |
+| B17 | 99 published plus 100, then 1,200, filtered-out relationships. Every page examines at most 1,000 rows. The 99 published paths arrive in order, all on page one. | Not run. |
+| B18 | Page through everything, then send a bad cursor and a mismatched one. The journal position, the published and contribution tables, and every `.ttl` file in the repository are unchanged. | The newest history position is unchanged after reader paging and the rejected cursors. |
+| B19 | The wide graph with a tiny cursor limit. The walk fails `invalidTraversal` with "Restart with a smaller maxDepth or a more specific start entity", and the committed spec lists `invalidTraversal` under 422. | The served spec lists `invalidTraversal` under 422. |
+
 ## Results
 
 Each row records: walkthrough result / executable result, the date, and the person who did the walkthrough.
 
+**Local build: 21 November 2026, James Mitchell, on M5MBP.** By the user's standing instruction, every walkthrough with a known expected result is automated and reports only misses. The walkthrough result is the automated run that James Mitchell launched and confirmed, and the executable result is the same run. That run, on the demo workspace (`http://workspace.localhost:8087`, snapshot `cba0b960c07ba22fba44461caf5fc4e7fc76ad7ca03a93b27bc32e4bc0fdd821`), gave `PAGING: OK` and `TESTS: OK`, then removed the 105 walkthrough relationships. James Mitchell approved the executable tests from the plain-language summary above. Separately, `acceptance.sh local` passed repository (246), runtime (213), home-lab-config and local-browser, including the paging verifier.
+
 | Behaviour | Local build | Home lab |
 | --- | --- | --- |
-| B1 | pending | pending |
-| B2 | pending | pending |
-| B3 | pending | pending |
-| B4 | pending | pending |
-| B5 | pending | pending |
-| B6 | pending | pending |
-| B7 | pending | pending |
-| B8 | pending | pending |
-| B9 | pending | pending |
-| B10 | pending | pending |
-| B11 | pending | pending |
-| B12 | pending | pending |
-| B13 | pending | pending |
-| B14 | pending | pending |
-| B15 | pending | pending |
-| B16 | pending | pending |
-| B17 | pending | pending |
-| B18 | pending | pending |
-| B19 | pending | pending |
+| B1 | Pass / Pass (suite and real stack) | pending |
+| B2 | Pass / Pass (suite and real stack) | pending |
+| B3 | Pass / Pass (suite and real stack) | pending |
+| B4 | Pass / Pass (suite and real stack) | pending |
+| B5 | Pass / Pass (suite and real stack) | pending |
+| B6 | Pass / Pass (suite and real stack) | pending |
+| B7 | Pass / Pass (suite and real stack) | pending |
+| B8 | Pass / Pass (suite and real stack) | pending |
+| B9 | Pass / Pass (suite and real stack) | pending |
+| B10 | Pass / Pass (suite only; real stack does not cover it) | pending |
+| B11 | Pass / Pass (suite and real stack) | pending |
+| B12 | Pass / Pass (suite and real stack) | pending |
+| B13 | Pass / Pass (suite and real stack) | pending |
+| B14 | Pass / Pass (suite and real stack) | pending |
+| B15 | Pass / Pass (suite and real stack) | pending |
+| B16 | Pass / Pass (suite and real stack) | pending |
+| B17 | Pass / Pass (suite only; real stack does not cover it) | pending |
+| B18 | Pass / Pass (suite and real stack) | pending |
+| B19 | Pass / Pass (suite only; real stack does not cover it) | pending |
