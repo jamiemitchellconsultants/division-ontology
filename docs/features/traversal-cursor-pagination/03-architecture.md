@@ -24,7 +24,7 @@ Encodes and decodes the cursor payload of ADR 0019/0020: version, bound paramete
 
 ### Neighbour reader (RuntimeKnowledge.Store — AgeGraph)
 
-Nearly unchanged: its keyset read (`r.key > after`, ordered, per node and scope) gains a validated fetch limit so each batch is capped at the page's remaining examined allowance (at most 101) — that, plus counting every returned row, is what makes mid-node resumption and the examined counting of B16/B17 enforceable rather than approximate. The paged traversal supplies the resume positions (last processed key, emitted or filtered) from the cursor. (Amended after developer-plan pushback.) Serves: B2, B12, B16, B17.
+Nearly unchanged: its keyset read (`r.key > after`, ordered, per node and scope) gains a validated fetch limit so each batch is capped at the page's remaining examined allowance (at most 101) — that, plus counting every returned row, is what makes mid-node resumption and the examined counting of B16/B17 enforceable rather than approximate. Edge-key resume is safe because AGE returns each edge exactly once per direction (self-loops included, pinned by a paging test), so the ordering cannot produce two rows per edge at a page boundary. The paged traversal supplies the resume positions (last processed key, emitted or filtered) from the cursor and checks the budget only before each fetch, processing every row already fetched so no row is ever re-examined. (Amended after developer-plan pushback; amended after dev-build review.) Serves: B2, B12, B16, B17.
 
 ### Workspace view (RuntimeKnowledge.Store — projection state and journal)
 
@@ -61,7 +61,7 @@ A first-page request carries no cursor: the walk starts fresh and the first page
 
 ## Deployment and runtime
 
-No new components, tables, migrations, or background jobs. The change is confined to the Contracts, Store, and Api projects and their tests; the API's Lambda/API Gateway deployment, the Blazor UI (out of scope), and the read-only `RepeatableRead` transaction pattern are unchanged. Traversal remains a read operation: no journal appends, no projection writes, and no Turtle file in any repository is read or written by this feature. Cursor size is bounded by ADR 0019 as amended: dictionary-coded, deflate-compressed payloads, a 262144-character cap on the compressed form asserted again at issue time so no server-issued cursor is undecodable, and an 8388608-byte decompressed guard; over-cap or otherwise unresolvable payloads are `invalidCursor`.
+No new components, tables, migrations, or background jobs. The change is confined to the Contracts, Store, and Api projects and their tests; the API's Lambda/API Gateway deployment, the Blazor UI (out of scope), and the read-only `RepeatableRead` transaction pattern are unchanged. Traversal remains a read operation: no journal appends, no projection writes, and no Turtle file in any repository is read or written by this feature. Cursor size is bounded by ADR 0019 as amended: dictionary-coded, deflate-compressed payloads, a 262144-character cap on the compressed form enforced at issue time as a declared 422 `invalidTraversal` failure (never an unhandled error) so no server-issued cursor is undecodable, and an 8388608-byte decompressed guard; over-cap or otherwise unresolvable submitted payloads are `invalidCursor`. (Amended after dev-build review.)
 
 ## Traceability
 
