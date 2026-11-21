@@ -17,7 +17,7 @@
 - **Order and identity.** Breadth-first order, published steps before runtime steps within a node, is preserved across pages (B4). Published steps keep their published key; runtime steps keep their runtime id (B1).
 - **Cursor failures reuse existing codes at existing statuses** via `ProblemResponses.StatusFor`: `invalidCursor` 422, `staleCursor` 409 (U2 as amended). No new error codes; no status changes to history or inventory. Continuations are validated before the start entity is resolved, so a removed start after refresh is `staleCursor` and a changed, unavailable start is `invalidCursor`. Cursors stay unsigned by decision (amended B9/ADR 0020): a well-formed alteration is a client-chosen continuation inside the caller's existing read scope, pinned by a regression test.
 - **Any contribution change invalidates** a cursor (journal-head binding, U3/ADR 0020). Snapshot activation invalidates via the snapshot binding (B10).
-- **Bounded work.** At most 100 paths returned and at most 1000 examined rows per request, enforced at fetch time: each neighbour fetch is limited to the remaining allowance, and every row returned (emitted or filtered) counts. Exhausting the budget ends the page early with a cursor whose resume position already points past every processed row, so the next page never re-examines one. No replay of earlier pages (B16); no production telemetry — examined counts are observed in tests through the store's internal counter.
+- **Bounded work.** At most 100 paths returned and at most 1000 examined rows per request, enforced at fetch time: each neighbour fetch is limited to the remaining allowance, and every row returned (emitted or filtered) counts. Exhausting the budget ends the page early with a cursor whose resume position already points past every processed row, so the next page never re-examines one. No replay of earlier pages (B16); no production telemetry — examined counts are observed in tests through a counters object each test passes in. (Amended after dev-build review.)
 - **Truncation means "not proven finished".** `nextCursor` is issued (and `truncated` is true) whenever resumption state remains, even if the remaining frontier may yield no further path; a final page may therefore be empty. An empty first-page walk still exhausts in one request and returns the start entity, as today. `nextCursor` is omitted — the property absent, not null — on the final page (amended B5/B6).
 - **Stateless and read-only.** No new tables, migrations, sessions, or background jobs; traversal opens only its existing `RepeatableRead` transaction and appends nothing (B18). Turtle files are never touched.
 - **Spec discipline.** The spec changes in the same commits as the API code that changes it; regenerate with `dotnet build runtime/RuntimeKnowledge.Api` and commit `runtime/openapi/workspace-api.json`; examples use only invented values (`example-` sources, `https://example.test/` IRIs, a placeholder cursor string).
@@ -38,7 +38,7 @@ The build phase stays gated on those amendments merging as well as on this plan'
 | --- | --- |
 | `runtime/RuntimeKnowledge.Contracts/Published.cs` (modify) | `TraversalRequest(..., string? Cursor = null)`; `TraversalResult(..., string? NextCursor = null)` — additive optional fields only. |
 | `runtime/RuntimeKnowledge.Store/TraversalCursor.cs` (create) | Cursor payload records, `Encode`/`Decode` with ADR 0020 validation order, 256 KiB compressed cap with an 8 MiB decompressed guard, `WorkspaceException`s. Internal. |
-| `runtime/RuntimeKnowledge.Store/GraphQueries.cs` (modify) | Page-bounded `TraverseAsync`: start or resume, examined-step budget and internal counter, per-page entity context, `nextCursor` issue. |
+| `runtime/RuntimeKnowledge.Store/GraphQueries.cs` (modify) | Page-bounded `TraverseAsync`: start or resume, examined-step budget, per-page entity context, `nextCursor` issue. (Amended after dev-build review.) |
 | `runtime/RuntimeKnowledge.Store/WorkspaceSql.cs` (read only) | `AgeGraph.NeighborsAsync` keyset reads; journal head read inside the walk's transaction (detailed plan settles the exact query). |
 | `runtime/RuntimeKnowledge.Api/WorkspaceRoutes.cs` (modify) | Traverse route passes `Cursor`, declares `invalidCursor`/`staleCursor`, appends the `next` Link header when a cursor is returned. |
 | `runtime/RuntimeKnowledge.Api/WorkspaceOpenApi.cs`, `OpenApiExamples.cs` (modify) | `traverseGraph`: named `firstPage`/`nextPage` examples, `next` success link, cursor text in the agent description; example-mechanism extension for named examples. |
@@ -76,11 +76,11 @@ The build phase stays gated on those amendments merging as well as on this plan'
 
 **Files:** modify `GraphQueries.cs`, `Scenario.cs`; create `TraversalPagingTests.cs`.
 
-**Interfaces:** consumes Task 1's codec; produces a `TraverseAsync` that pages, and `GraphQueries.LastTraversalExaminedSteps` (internal, for Task 4's measures).
+**Interfaces:** consumes Task 1's codec; produces a `TraverseAsync` that pages, and accepts an internal test-passed counters object (`TraversalCounters`, for Task 4's measures). (Amended after dev-build review.)
 
 - [ ] Step 1: Extend the scenario fixtures (busy hub, multi-hop chain, unavailable endpoints, and the wide 6,040-path graph) and write failing paging tests: busy one-hop (B1), branch-boundary and wide multi-page exact sequences with every cursor submitted and within cap (B2), first-page parity, exactly-100-with-pending-leaves, filtered-only tail, and empty-first-page start entity (B5/B6/B7).
 - [ ] Step 2: Run the DB-backed focused tests via `test-db.sh` — they fail on the hard 100-path stop.
-- [ ] Step 3: Implement the page-bounded walk per the detailed plan (resume from frontier + keyset positions, per-page entity resolution, budget counter at its initial no-op bound).
+- [ ] Step 3: Implement the page-bounded walk per the detailed plan (resume from frontier + keyset positions, per-page entity resolution, budget check before each fetch (initially without the shrinkable test seam)).
 - [ ] Step 4: Re-run focused tests, the full scenario class, and the OpenApi category.
 - [ ] Step 5: Commit `feat: page-bounded traversal walk` and push.
 
