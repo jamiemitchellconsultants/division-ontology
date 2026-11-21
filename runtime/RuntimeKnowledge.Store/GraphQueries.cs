@@ -191,7 +191,7 @@ public sealed class GraphQueries(Db db)
         {
             if (active is not null || queue.Count > 0)
             {
-                nextCursor = EncodeResume(request, snapshot, journalHead, active, queue);
+                nextCursor = EncodeResume(request, snapshot, journalHead, active, queue, counters?.MaxCursorChars ?? TraversalCursor.MaxCursorChars);
                 truncated = true;
             }
         }
@@ -224,7 +224,7 @@ public sealed class GraphQueries(Db db)
             catch (JsonException) { return null; }
         }
 
-        string EncodeResume(TraversalRequest req, string snap, long journal, WalkNode? current, Queue<WalkNode> rest)
+        string EncodeResume(TraversalRequest req, string snap, long journal, WalkNode? current, Queue<WalkNode> rest, int maxCursorChars)
         {
             var refs = new List<string>();
             var index = new Dictionary<string, int>(StringComparer.Ordinal);
@@ -240,7 +240,7 @@ public sealed class GraphQueries(Db db)
             var pendingEncoded = rest.Select(node => new TraversalPending(node.Refs.Select(RefIndex).ToArray())).ToArray();
             return TraversalCursor.Encode(new TraversalCursorPayload(1, req.Start.StorageKey, req.Direction,
                 req.MaxDepth, req.IncludeUnavailable, snap, journal,
-                new TraversalResume(refs, pendingEncoded, encodedCurrent)));
+                new TraversalResume(refs, pendingEncoded, encodedCurrent)), maxCursorChars);
         }
 
         async Task<WalkNode> RebuildAsync(IReadOnlyList<int> path, IReadOnlyList<string> refs)

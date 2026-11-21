@@ -23,14 +23,14 @@ internal static class TraversalCursor
     internal const int MaxJsonBytes = 8388608;
     private const string Restart = "Restart the traversal from the first page.";
 
-    internal static string Encode(TraversalCursorPayload payload)
+    internal static string Encode(TraversalCursorPayload payload, int maxCursorChars = MaxCursorChars)
     {
         var json = JsonSerializer.SerializeToUtf8Bytes(payload, WorkspaceJson.Options);
         using var output = new MemoryStream();
         using (var deflate = new DeflateStream(output, CompressionLevel.SmallestSize, leaveOpen: true))
             deflate.Write(json, 0, json.Length);
         var cursor = Convert.ToBase64String(output.ToArray());
-        if (cursor.Length > MaxCursorChars)
+        if (cursor.Length > maxCursorChars)
             throw new WorkspaceException("invalidTraversal",
                 "The traversal's remaining frontier exceeds the cursor size limit. Restart with a smaller maxDepth or a more specific start entity.");
         return cursor;
@@ -97,4 +97,6 @@ internal sealed class TraversalCounters
 {
     public int? Budget { get; set; }
     public int ExaminedSteps { get; set; }
+    /// <summary>Test-only seam for the issue-time cursor cap; the API never sets it.</summary>
+    public int? MaxCursorChars { get; set; }
 }

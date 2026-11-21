@@ -1240,7 +1240,7 @@
           "Reading"
         ],
         "summary": "Traverse relationships from a published entity",
-        "description": "Read-only graph walk despite POST, paged at 100 paths. Start from a published key, follow direction up to maxDepth. When another page exists the response carries nextCursor and truncated=true (the walk is not proven finished); submit nextCursor as cursor with the same start, direction, maxDepth and includeUnavailable to continue. A malformed or parameter-mismatched cursor fails 422 invalidCursor and a moved-on snapshot or workspace fails 409 staleCursor; both tell you to restart from the first page.",
+        "description": "Read-only graph walk despite POST, paged at 100 paths. Start from a published key, follow direction up to maxDepth. When another page exists the response carries nextCursor and truncated=true (the walk is not proven finished); submit nextCursor as cursor with the same start, direction, maxDepth and includeUnavailable to continue. A malformed or parameter-mismatched cursor fails 422 invalidCursor and a moved-on snapshot or workspace fails 409 staleCursor; both tell you to restart from the first page. A walk whose remaining frontier exceeds the cursor size limit fails 422 invalidTraversal and tells you to restart with a smaller maxDepth or a more specific start.",
         "operationId": "traverseGraph",
         "requestBody": {
           "content": {

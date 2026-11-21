@@ -282,6 +282,18 @@ public sealed class TraversalPagingTests
     }
 
     [Fact]
+    public async Task OversizedFrontierFailsTheWalkWithInvalidTraversal()
+    {
+        await using var s = await Scenario.OpenAsync();
+        await s.ActivateTraversalAsync("wide");
+        var counters = new TraversalCounters { MaxCursorChars = 200 };
+        var error = await Assert.ThrowsAsync<WorkspaceException>(() =>
+            s.Graph.TraverseAsync(new TraversalRequest(s.Hub, MaxDepth: 2), CancellationToken.None, counters));
+        Assert.Equal("invalidTraversal", error.Code);
+        Assert.Contains("Restart", error.Message);
+    }
+
+    [Fact]
     public async Task HttpTraversalFollowsTheNextLinkAndRejectsAStaleCursorAfterAnEdit()
     {
         var scenario = await Scenario.OpenAsync();
