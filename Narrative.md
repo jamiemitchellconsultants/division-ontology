@@ -57,6 +57,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [47](#entry-feat-cursor-pagination-for-post-api-traverse-124) | 2026-11-21 | feat: cursor pagination for POST /api/traverse (#124) | product | Implement exactly as planned, in the plan's task order, each task test-first with its own commit. |
 | [48](#entry-vision-knowledge-graph-explorer) | 2026-11-21 | Vision: Knowledge Graph Explorer | product | Add a graph explorer centred on a published concept or node. Readers can follow directed relationships, inspect evidence and provenance, and return to their previous view. Managers can use existing contribution actions from the graph. |
 | [49](#entry-docs-traversal-cursor-pagination-user-acceptance-125) | 2026-11-21 | docs: traversal cursor pagination user acceptance (#125) | product | - **Deployed seeding.** Deployed acceptance creates its busy node through the manager API: 105 relationships, removed after each run. It does not publish a dedicated bundle or settle for small-walk checks. |
+| [50](#entry-behaviours-knowledge-graph-explorer) | 2026-11-21 | Behaviours: Knowledge Graph Explorer | product | Start with both directions and show one hop at a time. Preserve the previous view when users navigate Back, and offer the same exploration through a keyboard-accessible neighbour list. |
 
 ---
 
@@ -1265,3 +1266,27 @@ The User phase must show every traversal-paging behaviour from outside, in a loc
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
 AI-Fingerprint: sha256:ad89f237e22e
+
+---
+
+<a id="entry-behaviours-knowledge-graph-explorer"></a>
+
+## Entry 50 — 2026-11-21 — Behaviours: Knowledge Graph Explorer
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The accepted vision calls for a graph centred on a published entity, with readable provenance and workspace-only editing. The explorer needs predictable navigation and a way to explain empty, incomplete, or stale results. The traversal API can issue a continuation after an empty page and invalidate it when the published snapshot or workspace changes.
+
+## Decision
+
+Start with both directions and show one hop at a time. Preserve the previous view when users navigate Back, and offer the same exploration through a keyboard-accessible neighbour list. Keep published and workspace relationships independently inspectable. On a stale continuation, mark the displayed view out of date and offer a reload from page one. Use the existing manager actions for annotations and runtime relationships. All user edits are stored only in the runtime workspace. Turtle files in the adopting and source repositories are read-only inputs.
+
+## Consequences
+
+The architecture must account for focus, viewport and paging state, overlapping requests, and accessible relationship selection. Acceptance will use the Order Fulfilment journey alongside busy-node, stale-page, and manager contribution cases. The scenarios preserve existing authorisation, validation, and contribution history.
+
+---
+
+AI-Fingerprint: sha256:8c6c150c96f8
