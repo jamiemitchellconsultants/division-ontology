@@ -8,7 +8,7 @@
 
 **Tech Stack:** .NET 10 (SDK pinned by `runtime/global.json`), Postgres with Apache AGE (`AgeGraph.NeighborsAsync` keyset reads), xUnit (`OpenApi` category via `OpenApiHost`; DB-backed scenario via `deploy/workspace/database/test-db.sh`), Node test runner for `test/api-contract.test.mjs`.
 
-**Spec:** [`01-vision.md`](../../../features/traversal-cursor-pagination/01-vision.md), [`02-behaviours.md`](../../../features/traversal-cursor-pagination/02-behaviours.md) (B1–B18, U1–U7), [`03-architecture.md`](../../../features/traversal-cursor-pagination/03-architecture.md) (components and B1–B18 traceability), ADRs [0019](../../../adr/0019-carry-the-traversal-frontier-in-the-cursor.md) and [0020](../../../adr/0020-bind-traversal-cursors-to-snapshot-and-journal.md). Exact signatures, payload shapes, fixtures, and test code are in [`docs/detailed-implementations/traversal-cursor-pagination/plan.md`](../../../detailed-implementations/traversal-cursor-pagination/plan.md).
+**Spec:** [`01-vision.md`](../../../features/traversal-cursor-pagination/01-vision.md), [`02-behaviours.md`](../../../features/traversal-cursor-pagination/02-behaviours.md) (B1–B19, U1–U7), [`03-architecture.md`](../../../features/traversal-cursor-pagination/03-architecture.md) (components and B1–B18 traceability), ADRs [0019](../../../adr/0019-carry-the-traversal-frontier-in-the-cursor.md) and [0020](../../../adr/0020-bind-traversal-cursors-to-snapshot-and-journal.md). Exact signatures, payload shapes, fixtures, and test code are in [`docs/detailed-implementations/traversal-cursor-pagination/plan.md`](../../../detailed-implementations/traversal-cursor-pagination/plan.md).
 
 ## Global constraints
 
@@ -125,5 +125,5 @@ The build phase stays gated on those amendments merging as well as on this plan'
 **Files:** none (verification only; fixes return to the owning task).
 
 - [ ] Step 1: Run the full verification set from the detailed plan (solution build, OpenApi category, DB-backed scenario + traversal tests, `npm test`, `node --test test/api-contract.test.mjs`, spec byte-stability, `git diff` review against B1–B18).
-- [ ] Step 2: Walk the B1–B18 checklist in the detailed plan and record which test proves each behaviour; anything unproven returns to its owning task as a new failing test.
+- [ ] Step 2: Walk the B1–B19 checklist (amended after third dev-build review) in the detailed plan and record which test proves each behaviour; anything unproven returns to its owning task as a new failing test.
 - [ ] Step 3: Commit any verification fixes under their owning task's message pattern and push.
