@@ -69,7 +69,7 @@ public sealed class GraphQueries(Db db)
     internal async Task<TraversalResult> TraverseAsync(TraversalRequest request, CancellationToken cancellationToken,
         TraversalCounters? counters)
     {
-        var budget = counters?.Budget ?? MaxExaminedSteps; // single default; see TraversalCounters
+        var budget = counters?.Budget ?? MaxExaminedSteps;
         var counter = counters ?? new TraversalCounters();
         if (request.Start is null || request.MaxDepth is < 1 or > 8 ||
             request.Direction is not ("outgoing" or "incoming" or "both"))
@@ -129,7 +129,10 @@ public sealed class GraphQueries(Db db)
             while (active.Scope < 2 && !stop)
             {
                 var scope = active.Scope == 0 ? snapshot : "runtime";
-                var fetchLimit = Math.Min(101, Math.Min(budget - examined, MaxPaths - result.Count));
+                var fetchLimit = Math.Min(101, budget - examined);
+                // Filtered rows take no path slot, so slot-capping them costs a round trip per row.
+                if (active.Scope == 0 || request.IncludeUnavailable)
+                    fetchLimit = Math.Min(fetchLimit, MaxPaths - result.Count);
                 if (fetchLimit <= 0) { stop = true; break; }
                 var neighbors = await AgeGraph.NeighborsAsync(tx, state.GraphName, active.At, scope,
                     request.Direction, cancellationToken, active.After, fetchLimit);
