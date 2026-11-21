@@ -38,14 +38,14 @@ async function login(role) {
   const password = process.env[`WORKSPACE_${homeLab ? 'VERIFY' : 'DEV'}_${account}_PASSWORD`];
   assert.ok(username && password, `Provide the controlled ${role} fixture credentials in the environment.`);
   await page.goto(origin);
-  const session = page.waitForRequest(request =>
-    new URL(request.url()).pathname === '/api/session' && /^Bearer /.test(request.headers().authorization ?? ''));
   await page.getByRole('button', { name: 'Sign in to the workspace' }).click();
   await page.locator('#username').fill(username);
   await page.locator('#password').fill(password);
   await page.locator('#kc-login').click();
   await page.getByRole('heading', { name: 'Published inventory' }).waitFor({ timeout: 15_000 });
-  const authorization = (await session).headers().authorization;
+  const session = page.waitForRequest(request => new URL(request.url()).pathname === '/api/session');
+  await page.goto(`${origin}/entity/${Buffer.from(JSON.stringify(from)).toString('base64url')}`);
+  const authorization = (await (await session).allHeaders()).authorization;
   assert.match(authorization ?? '', /^Bearer [^ ]+$/, `${role} session token`);
   return {
     close: () => context.close(),
@@ -72,7 +72,7 @@ async function journalHead(client) {
   let cursor = null;
   let head = 0;
   do {
-    const query = new URLSearchParams({ limit: '200' });
+    const query = new URLSearchParams({ limit: '100' });
     if (cursor) query.set('cursor', cursor);
     const page = (await expectStatus(client, `/api/history?${query}`, undefined, 200)).data;
     for (const entry of page.entries) head = Math.max(head, entry.position);
@@ -112,7 +112,7 @@ if (process.argv[3] === '--cleanup') {
   const latest = new Map();
   let cursor = null;
   do {
-    const query = new URLSearchParams({ limit: '200' });
+    const query = new URLSearchParams({ limit: '100' });
     if (cursor) query.set('cursor', cursor);
     const page = (await expectStatus(cleaner, `/api/history?${query}`, undefined, 200)).data;
     for (const entry of page.entries) latest.set(entry.contributionId, entry.after);
@@ -155,7 +155,7 @@ try {
     assert.ok(op.responses['422']['x-workspace-codes'].includes('invalidCursor'));
     assert.ok(op.responses['422']['x-workspace-codes'].includes('invalidTraversal'));
     assert.ok(op.responses['409']['x-workspace-codes'].includes('staleCursor'));
-    assert.equal(op.requestBody.content['application/json'].examples.firstPage.value.cursor, undefined);
+    assert.ok(op.requestBody.content['application/json'].examples.firstPage.value.cursor == null, 'firstPage has no cursor');
     assert.ok(op.requestBody.content['application/json'].examples.nextPage.value.cursor);
     for (const link of ['next', 'entityDetail', 'relationshipDetail']) assert.ok(op.responses['200'].links[link], `${link} link`);
     assert.match(spec['x-agent-discovery'].linkRelations.next, /traverseGraph/);
