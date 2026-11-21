@@ -25,7 +25,7 @@
 
 ## Outstanding phase amendments
 
-Two pushbacks from this plan's review are recorded on #119 and must be answered before the build starts; this plan is already written to the decisions taken with the user on 21 November 2026:
+Two pushbacks from this plan's review are recorded on #119 and are answered by amendment PRs #135 (analyst) and #136 (architect), which must merge before the build starts; this plan is already written to the decisions taken with the user on 21 November 2026:
 
 - **Analyst (B5, B6, B8, B9):** truncation/nextCursor as "not proven finished" semantics (including exactly-100-with-pending-leaves, the filtered-only tail, and a possibly empty final page); validation before start-entity resolution; B9 narrowed to malformed/unresolvable payloads with the well-formed-alteration stance pinned by a regression test.
 - **Architect (ADR 0019, ADR 0020, 03-architecture.md):** dictionary-coded deflate-compressed cursor with the cap on the compressed form and an issue-side decodability guarantee; fetch-time budget enforcement from the remaining allowance; resume past every processed (including filtered) row; the unsigned-cursor decision with its read-scope rationale.
