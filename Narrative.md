@@ -51,6 +51,8 @@ This document records what was asked, what was decided, why, and what followed.
 | [41](#entry-docs-behaviours-for-traversal-cursor-pagination-121) | 2026-11-21 | docs: behaviours for traversal cursor pagination (#121) | product | Fix the behaviours before the mechanism. |
 | [42](#entry-docs-align-traversal-cursor-errors-with-the-422-precedent-121) | 2026-11-21 | docs: align traversal cursor errors with the 422 precedent (#121) | product | Amend the behaviours to the existing contract: 422 `invalidCursor` for malformed or parameter-mismatched cursors, 409 `staleCursor` for a moved-on snapshot or workspace view, both instructing restart from page one. |
 | [43](#entry-docs-architecture-for-traversal-cursor-pagination-122) | 2026-11-21 | docs: architecture for traversal cursor pagination (#122) | product | [ADR 0019](docs/adr/0019-carry-the-traversal-frontier-in-the-cursor.md): the frontier rides in the cursor as compact edge-reference chains — at most 101 pending expansions at a page boundary, each re-deriving its endpoint, steps, and… |
+| [44](#entry-docs-amend-traversal-behaviours-after-dev-plan-pushback-121) | 2026-11-21 | docs: amend traversal behaviours after dev-plan pushback (#121) | product | Adopt "not proven finished" semantics for `truncated` and `nextCursor`; validate continuations (shape, parameters, view) before resolving the start entity; and keep cursors unsigned, treating a well-formed alteration as a client-chosen… |
+| [45](#entry-docs-amend-traversal-architecture-after-dev-plan-pushback-122) | 2026-11-21 | docs: amend traversal architecture after dev-plan pushback (#122) | product | Keep the stateless, cursor-carried frontier (the user's earlier decision stands) and make it survivable: shared-prefix dictionary coding plus compression, an issue-side decodability guarantee proven by a wide multi-page fixture… |
 
 ---
 
@@ -1104,3 +1106,51 @@ The developer can plan without re-deciding structure: contract additions are add
 ---
 
 AI-Fingerprint: sha256:b31d95e4a3cb
+
+---
+
+<a id="entry-docs-amend-traversal-behaviours-after-dev-plan-pushback-121"></a>
+
+## Entry 44 — 2026-11-21 — docs: amend traversal behaviours after dev-plan pushback (#121)
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+Planning the build exposed three gaps in the accepted behaviours: the truncation semantics had no answer for a frontier that might yield nothing further, the validation order against start-entity resolution was unspecified, and B9 demanded tamper rejection that an unsigned cursor cannot provide. Each was settled with the user before this amendment was written.
+
+## Decision
+
+Adopt "not proven finished" semantics for `truncated` and `nextCursor`; validate continuations (shape, parameters, view) before resolving the start entity; and keep cursors unsigned, treating a well-formed alteration as a client-chosen continuation within the caller's existing read scope — traversal is read-only and any start is directly requestable, so no privilege is gained. Signing was considered and rejected as machinery disproportionate to a read-only continuation token.
+
+## Consequences
+
+The architect amendment (ADR 0019/0020) and the revised developer plan in PR #134 already encode these decisions, so this amendment brings the behaviour contract back in line with them. Later items tracing to the changes: B14/B16/B17 test specifications in the plan (cursor errors, counting, tamper regression), which the build must now satisfy exactly as amended. Once merged, clear the analyst pushback on #119.
+
+---
+
+AI-Fingerprint: sha256:88d35902faca
+
+---
+
+<a id="entry-docs-amend-traversal-architecture-after-dev-plan-pushback-122"></a>
+
+## Entry 45 — 2026-11-21 — docs: amend traversal architecture after dev-plan pushback (#122)
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+Writing the developer plan stress-tested the accepted architecture and found four structural gaps: the cursor size argument did not survive a wide depth-2 walk, resumption after filtered rows was implicit, the examined budget could be overshot at fetch time by full 101-row batches, and the unsigned-cursor decision contradicted the behaviours' tamper wording. The findings were settled with the user and recorded as pushback rather than worked around in the plan.
+
+## Decision
+
+Keep the stateless, cursor-carried frontier (the user's earlier decision stands) and make it survivable: shared-prefix dictionary coding plus compression, an issue-side decodability guarantee proven by a wide multi-page fixture, fetch-time budget enforcement, and resume past processed rows. Keep cursors unsigned: alteration cannot exceed the holder's existing read access on a read-only endpoint, and that residual is pinned by a regression test in the amended behaviours.
+
+## Consequences
+
+The revised developer plan (PR #134) already encodes every one of these decisions, so the plan, the ADRs, and (once the analyst amendment merges) the behaviours describe the same system. The build must now prove the guarantees the amendments state — every issued cursor within cap across a 61-page walk, no page over its fetch allowance, no row re-examined — or raise fresh pushback. Once merged, clear the architect pushback on #119.
+
+---
+
+AI-Fingerprint: sha256:9436208e84b0
