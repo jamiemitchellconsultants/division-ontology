@@ -75,6 +75,7 @@ public sealed class GraphQueries(Db db)
             request.Direction is not ("outgoing" or "incoming" or "both"))
             throw new WorkspaceException("invalidTraversal", "Traversal requires a start, a valid direction and a depth from 1 to 8.");
         var examined = 0;
+        var queries = 0;
         await using var connection = await db.OpenAsync(cancellationToken);
         await using var tx = await connection.BeginTransactionAsync(IsolationLevel.RepeatableRead, cancellationToken);
         var state = await ReadStateAsync(tx, cancellationToken);
@@ -132,6 +133,7 @@ public sealed class GraphQueries(Db db)
                 if (fetchLimit <= 0) { stop = true; break; }
                 var neighbors = await AgeGraph.NeighborsAsync(tx, state.GraphName, active.At, scope,
                     request.Direction, cancellationToken, active.After, fetchLimit);
+                queries++;
                 examined += neighbors.Count;
                 if (neighbors.Count == 0) { active.Scope++; active.After = ""; continue; }
                 foreach (var (edgeKey, nextKey) in neighbors)
@@ -210,6 +212,7 @@ public sealed class GraphQueries(Db db)
             entities.Add(new TraversalEntity(endpoint.Key, endpoint.Label, endpoint.Provenance, endpoint.Available, notes));
         }
         counter.ExaminedSteps = examined;
+        counter.NeighbourQueries = queries;
         return new TraversalResult(snapshot, result, await GapsAsync(tx, state, cancellationToken), truncated, entities, nextCursor);
 
         static string DirectionOf(PublishedKey from, string at) => from.StorageKey == at ? "outgoing" : "incoming";

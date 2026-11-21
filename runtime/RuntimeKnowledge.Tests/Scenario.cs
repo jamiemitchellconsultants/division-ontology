@@ -153,6 +153,9 @@ internal sealed class MemoryBundles : IBundleObjects
             case "busy":
                 for (var i = 0; i < 150; i++) { Entity($"leaf{i:000}"); Edge($"e{i:000}", "hub", $"leaf{i:000}"); }
                 break;
+            case "trimmed":
+                for (var i = 0; i < 99; i++) { Entity($"leaf{i:000}"); Edge($"e{i:000}", "hub", $"leaf{i:000}"); }
+                break;
             case "exact":
                 for (var i = 0; i < 100; i++) { Entity($"mid{i:000}"); Edge($"e{i:000}", "hub", $"mid{i:000}"); }
                 break;

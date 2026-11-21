@@ -97,6 +97,7 @@ internal sealed class TraversalCounters
 {
     public int? Budget { get; set; }
     public int ExaminedSteps { get; set; }
+    public int NeighbourQueries { get; set; }
     /// <summary>Test-only seam for the issue-time cursor cap; the API never sets it.</summary>
     public int? MaxCursorChars { get; set; }
 }

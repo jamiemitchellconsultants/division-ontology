@@ -282,6 +282,30 @@ public sealed class TraversalPagingTests
     }
 
     [Fact]
+    public async Task FilteredTailLateInAPageIsReadInFullBatches()
+    {
+        await using var s = await Scenario.OpenAsync();
+        await s.ActivateTraversalAsync("busy");
+        var store = new ContributionStore(s.Db);
+        for (var i = 0; i < 250; i++)
+            await store.ApplyAsync(s.Actor, new CreateRelationship(s.Hub, Scenario.TraversalKey("leaf149"),
+                RelationshipMeaning.Custom($"gone{i}", "Filtered after refresh.")), CancellationToken.None);
+        await s.ActivateTraversalAsync("trimmed");
+
+        var counters = new TraversalCounters();
+        var page = await s.Graph.TraverseAsync(new TraversalRequest(s.Hub, MaxDepth: 1), CancellationToken.None, counters);
+        Assert.Equal(99, page.Paths.Count);
+        Assert.Null(page.NextCursor);
+        Assert.Equal(349, counters.ExaminedSteps);
+        Assert.True(counters.NeighbourQueries <= 5, $"neighbour queries {counters.NeighbourQueries}");
+
+        var unfiltered = await PageAll(s, new TraversalRequest(s.Hub, MaxDepth: 1, IncludeUnavailable: true));
+        var signatures = unfiltered.SelectMany(p => p.Paths).Select(Signature).ToArray();
+        Assert.Equal(349, signatures.Length);
+        Assert.Equal(signatures.Length, signatures.Distinct(StringComparer.Ordinal).Count());
+    }
+
+    [Fact]
     public async Task OversizedFrontierFailsTheWalkWithInvalidTraversal()
     {
         await using var s = await Scenario.OpenAsync();
