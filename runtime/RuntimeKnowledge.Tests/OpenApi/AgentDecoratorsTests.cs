@@ -107,6 +107,28 @@ public sealed class AgentDecoratorsTests
     private const string RelBase = "https://github.com/jamiemitchellconsultants/division-ontology#link-relations/";
 
     [Fact]
+    public async Task TraverseDocumentsCursorPaging()
+    {
+        var spec = await Spec();
+        var request = spec["components"]!["schemas"]!["TraversalRequest"]!;
+        Assert.Contains("cursor", request["properties"]!.AsObject().Select(p => p.Key));
+        var result = spec["components"]!["schemas"]!["TraversalResult"]!;
+        Assert.Contains("nextCursor", result["properties"]!.AsObject().Select(p => p.Key));
+        var op = spec["paths"]!["/api/traverse"]!["post"]!;
+        Assert.Contains("invalidCursor", op["responses"]!["422"]!["x-workspace-codes"]!.AsArray().Select(n => (string)n!));
+        Assert.Equal(["staleCursor"], op["responses"]!["409"]!["x-workspace-codes"]!.AsArray().Select(n => (string)n!));
+        var examples = op["requestBody"]!["content"]!["application/json"]!["examples"]!.AsObject();
+        Assert.Equal(["firstPage", "nextPage"], examples.Select(e => e.Key).Order(StringComparer.Ordinal));
+        Assert.NotNull(examples["nextPage"]!["value"]!["cursor"]);
+        Assert.Null(examples["firstPage"]!["value"]!["cursor"]);
+        var links = op["responses"]!["200"]!["links"]!.AsObject();
+        Assert.Equal("traverseGraph", (string)links["next"]!["operationId"]!);
+        Assert.Contains("traverseGraph", (string)spec["x-agent-discovery"]!["linkRelations"]!["next"]!);
+        Assert.Contains("entityDetail", links.Select(l => l.Key));
+        Assert.Contains("relationshipDetail", links.Select(l => l.Key));
+    }
+
+    [Fact]
     public async Task SessionAndHealthCarryLinkHeaders()
     {
         await using var host = OpenApiHost.Start();

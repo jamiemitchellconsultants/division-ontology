@@ -50,6 +50,17 @@ internal sealed class Scenario : IAsyncDisposable
         return id;
     }
 
+    public static PublishedKey TraversalKey(string name) => new("fixture/T", "node", $"https://fixture.test/t#{name}");
+    public PublishedKey Hub => TraversalKey("hub");
+
+    public async Task<string> ActivateTraversalAsync(string kind)
+    {
+        var id = Bundles.AddTraversalSnapshot(kind);
+        await _import.StageAsync(id, CancellationToken.None);
+        await _import.ActivateAsync(id, CancellationToken.None);
+        return id;
+    }
+
     public Task<SnapshotCandidate> StageCorruptBundleAsync() =>
         _import.StageAsync(Bundles.AddSnapshot("corrupt", corrupt: true), CancellationToken.None);
 
@@ -118,6 +129,70 @@ internal sealed class MemoryBundles : IBundleObjects
         var id = Digest(body);
         _objects[$"manifests/{id}.json"] = body;
         if (corrupt) _objects[$"blobs/{files[^1].Sha256}"] = [1, 2, 3];
+        return id;
+    }
+
+    public string AddTraversalSnapshot(string kind)
+    {
+        var commit = new string('a', 40);
+        static Provenance Prov(PublishedKey key, string commit) => new(key, commit, null, null, []);
+        var entities = new List<PublishedEntity>();
+        var edges = new List<PublishedEdge>();
+        void Entity(string name) => entities.Add(new PublishedEntity(Scenario.TraversalKey(name), name, null, [], Prov(Scenario.TraversalKey(name), commit)));
+        var typeKey = new PublishedKey("fixture/T", "relationshipType", "https://fixture.test/t#uses");
+        void Edge(string id, string from, string to)
+        {
+            var key = new PublishedKey("fixture/T", "assertion", $"https://fixture.test/t#{id}");
+            var provenance = new Provenance(key, commit, null, "direct",
+                [new Evidence("docs/source.md", 1, 2, new string('e', 40), "implementation")]);
+            edges.Add(new PublishedEdge(key, Scenario.TraversalKey(from), Scenario.TraversalKey(to), "uses", typeKey, provenance));
+        }
+        Entity("hub");
+        switch (kind)
+        {
+            case "busy":
+                for (var i = 0; i < 150; i++) { Entity($"leaf{i:000}"); Edge($"e{i:000}", "hub", $"leaf{i:000}"); }
+                break;
+            case "trimmed":
+                for (var i = 0; i < 99; i++) { Entity($"leaf{i:000}"); Edge($"e{i:000}", "hub", $"leaf{i:000}"); }
+                break;
+            case "exact":
+                for (var i = 0; i < 100; i++) { Entity($"mid{i:000}"); Edge($"e{i:000}", "hub", $"mid{i:000}"); }
+                break;
+            case "branches":
+                for (var m = 0; m < 2; m++)
+                {
+                    Entity($"mid{m}"); Edge($"h-m{m}", "hub", $"mid{m}");
+                    for (var s = 0; s < 3; s++)
+                    {
+                        Entity($"sub{m}{s}"); Edge($"m{m}-s{s}", $"mid{m}", $"sub{m}{s}");
+                        for (var l = 0; l < 30; l++) { Entity($"sub{m}{s}-leaf{l:00}"); Edge($"s{m}{s}-l{l:00}", $"sub{m}{s}", $"sub{m}{s}-leaf{l:00}"); }
+                    }
+                }
+                break;
+            case "wide":
+                for (var m = 0; m < 40; m++)
+                {
+                    Entity($"mid{m:00}"); Edge($"h-m{m:00}", "hub", $"mid{m:00}");
+                    for (var l = 0; l < 150; l++) { Entity($"mid{m:00}-leaf{l:000}"); Edge($"m{m:00}-l{l:000}", $"mid{m:00}", $"mid{m:00}-leaf{l:000}"); }
+                }
+                break;
+            default: throw new ArgumentOutOfRangeException(nameof(kind), kind, null);
+        }
+        var files = new[]
+        {
+            AddFile("catalog", "dist/catalog.json", JsonSerializer.SerializeToUtf8Bytes(new { schemaVersion = 1 })),
+            AddFile("nquads", "dist/combined.nq", []),
+            AddFile("sourceInventory", "sources.json", JsonSerializer.SerializeToUtf8Bytes(new { sources = Array.Empty<string>() })),
+            AddFile("projection", "projection.json", JsonSerializer.SerializeToUtf8Bytes(
+                new PublishedProjection(entities,
+                    [new RelationshipType(typeKey, "uses", null, null, null, Prov(typeKey, commit))], edges, []), WorkspaceJson.Options))
+        };
+        var manifest = new BundleManifest(1, new string('9', 40), files[0].Sha256,
+            [new("fixture/T", commit, 1, "available")], null, files);
+        var body = JsonSerializer.SerializeToUtf8Bytes(manifest, WorkspaceJson.Options);
+        var id = Digest(body);
+        _objects[$"manifests/{id}.json"] = body;
         return id;
     }
 

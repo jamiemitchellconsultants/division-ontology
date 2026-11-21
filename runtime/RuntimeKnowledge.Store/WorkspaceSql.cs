@@ -103,8 +103,9 @@ internal static class AgeGraph
             new { key, scope }, token);
 
     public static async Task<IReadOnlyList<(string EdgeKey, string NextKey)>> NeighborsAsync(
-        NpgsqlTransaction tx, string graph, string at, string scope, string direction, CancellationToken token, string after = "")
+        NpgsqlTransaction tx, string graph, string at, string scope, string direction, CancellationToken token, string after = "", int limit = 101)
     {
+        if (limit is < 1 or > 101) throw new ArgumentOutOfRangeException(nameof(limit));
         var pattern = direction switch
         {
             "outgoing" => "(a:Entity {key: $at})-[r:Relationship]->(b:Entity)",
@@ -115,7 +116,7 @@ internal static class AgeGraph
         await using var command = await PrepareAsync(tx, graph, $"""
             MATCH {pattern}
             WHERE r.scope = $scope AND r.key > $after
-            RETURN r.key, b.key ORDER BY r.key, b.key LIMIT 101
+            RETURN r.key, b.key ORDER BY r.key, b.key LIMIT {limit}
             """, "edge_key ag_catalog.agtype, next_key ag_catalog.agtype",
             "edge_key::text, next_key::text", new { at, scope, after }, token);
         await using var rows = await command.ExecuteReaderAsync(token);

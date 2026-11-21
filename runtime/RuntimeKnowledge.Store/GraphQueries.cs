@@ -10,6 +10,8 @@ public sealed class GraphQueries(Db db)
 {
     private const int MaxPaths = 100;
 
+    private const int MaxExaminedSteps = 1000;
+
     public async Task<InventoryPage> InventoryAsync(PageRequest request, CancellationToken cancellationToken)
     {
         if (request.Limit is < 1 or > 100)
@@ -61,88 +63,100 @@ public sealed class GraphQueries(Db db)
         return new InventoryPage(snapshot, entities, types, await GapsAsync(tx, state, cancellationToken), cursor, relationships);
     }
 
-    public async Task<TraversalResult> TraverseAsync(TraversalRequest request, CancellationToken cancellationToken)
+    public async Task<TraversalResult> TraverseAsync(TraversalRequest request, CancellationToken cancellationToken) =>
+        await TraverseAsync(request, cancellationToken, null);
+
+    internal async Task<TraversalResult> TraverseAsync(TraversalRequest request, CancellationToken cancellationToken,
+        TraversalCounters? counters)
     {
+        var budget = counters?.Budget ?? MaxExaminedSteps;
+        var counter = counters ?? new TraversalCounters();
         if (request.Start is null || request.MaxDepth is < 1 or > 8 ||
             request.Direction is not ("outgoing" or "incoming" or "both"))
             throw new WorkspaceException("invalidTraversal", "Traversal requires a start, a valid direction and a depth from 1 to 8.");
+        var examined = 0;
+        var queries = 0;
         await using var connection = await db.OpenAsync(cancellationToken);
         await using var tx = await connection.BeginTransactionAsync(IsolationLevel.RepeatableRead, cancellationToken);
         var state = await ReadStateAsync(tx, cancellationToken);
         var snapshot = state.RequireSnapshot();
+        var journalHead = (long)(await ScalarAsync(tx,
+            "SELECT COALESCE(MAX(position), 0) FROM workspace_journal.events", cancellationToken) ?? 0);
+        TraversalCursorPayload? resume = null;
+        if (request.Cursor is not null)
+            resume = TraversalCursor.Decode(request.Cursor, request, snapshot, journalHead);
+
         if (request.Start.Kind is not ("concept" or "node" or "relationshipType"))
             throw new WorkspaceException("invalidTraversal", "Choose a published entity to start traversal.");
-        var start = request.Start.StorageKey;
+
         var origin = await ResolveAsync(request.Start);
-        if (origin is null || (!request.IncludeUnavailable && !origin.Available))
+        if (resume is null && (origin is null || (!request.IncludeUnavailable && !origin.Available)))
             throw new WorkspaceException("entityNotFound", "The traversal start is unavailable.");
 
         var result = new List<TraversalPath>();
-        var reached = new Dictionary<PublishedKey, EndpointContext> { [origin.Key] = origin };
-        var work = new Queue<PendingPath>();
-        work.Enqueue(new PendingPath(start, [], new HashSet<string>(StringComparer.Ordinal) { start }));
-        var truncated = false;
-        while (work.TryDequeue(out var path) && !truncated)
+        var reached = new Dictionary<PublishedKey, EndpointContext>();
+        if (origin is not null) reached[origin.Key] = origin;
+        var attempted = new List<string>();
+        var queue = new Queue<WalkNode>();
+        WalkNode? active = null;
+
+        if (resume is null)
         {
-            await foreach (var (step, next) in ReadStepsAsync(path.At))
+            queue.Enqueue(new WalkNode(request.Start.StorageKey, [], [], new HashSet<string>(StringComparer.Ordinal) { request.Start.StorageKey }));
+        }
+        else
+        {
+            if (resume.Resume.Current is { } current)
+                active = await RebuildAsync(current.Path, resume.Resume.Refs);
+            foreach (var pending in resume.Resume.Pending)
+                queue.Enqueue(await RebuildAsync(pending.Path, resume.Resume.Refs));
+            if (active is not null && resume.Resume.Current is { } saved)
             {
-                if (result.Count == MaxPaths)
-                {
-                    truncated = true;
-                    break;
-                }
-                var steps = path.Steps.Append(step).ToArray();
-                result.Add(new TraversalPath(steps));
-                foreach (var key in new[] { step.From, step.To })
-                {
-                    if (!reached.ContainsKey(key) && await ResolveAsync(key) is { } endpoint)
-                        reached.Add(key, endpoint);
-                }
-                if (steps.Length < request.MaxDepth && !path.Visited.Contains(next))
-                {
-                    var visited = new HashSet<string>(path.Visited, StringComparer.Ordinal) { next };
-                    work.Enqueue(new PendingPath(next, steps, visited));
-                }
+                active.Scope = saved.Scope == "runtime" ? 1 : 0;
+                active.After = saved.After;
             }
         }
 
-        var entities = new List<TraversalEntity>();
-        foreach (var endpoint in reached.Values)
+        var exhausted = false;
+        while (!exhausted)
         {
-            var notes = await ContributionStore.AnnotationsAsync(tx, state, endpoint.Key, cancellationToken);
-            entities.Add(new TraversalEntity(endpoint.Key, endpoint.Label, endpoint.Provenance, endpoint.Available, notes));
-        }
-        return new TraversalResult(snapshot, result, await GapsAsync(tx, state, cancellationToken), truncated, entities);
+            if (result.Count >= MaxPaths || examined >= budget) break;
+            active ??= queue.TryDequeue(out var next) ? next : null;
+            if (active is null) { exhausted = true; break; }
+            if (!attempted.Contains(active.At)) attempted.Add(active.At);
 
-        async Task<EndpointContext?> ResolveAsync(PublishedKey key)
-        {
-            var entity = await ContributionStore.ResolveEndpointAsync(tx, state, key, cancellationToken);
-            return entity is null ? null : new EndpointContext(key, entity.Label, entity.Provenance,
-                entity.Provenance.SnapshotId == snapshot);
-        }
-
-        async IAsyncEnumerable<(TraversalStep Step, string Next)> ReadStepsAsync(string at)
-        {
-            foreach (var scope in new[] { snapshot, "runtime" })
+            var stop = false;
+            while (active.Scope < 2 && !stop)
             {
-                var after = "";
-                while (true)
+                var scope = active.Scope == 0 ? snapshot : "runtime";
+                var fetchLimit = Math.Min(101, budget - examined);
+                // Filtered rows take no path slot, so slot-capping them costs a round trip per row.
+                if (active.Scope == 0 || request.IncludeUnavailable)
+                    fetchLimit = Math.Min(fetchLimit, MaxPaths - result.Count);
+                if (fetchLimit <= 0) { stop = true; break; }
+                var neighbors = await AgeGraph.NeighborsAsync(tx, state.GraphName, active.At, scope,
+                    request.Direction, cancellationToken, active.After, fetchLimit);
+                queries++;
+                examined += neighbors.Count;
+                if (neighbors.Count == 0) { active.Scope++; active.After = ""; continue; }
+                foreach (var (edgeKey, nextKey) in neighbors)
                 {
-                    var neighbors = await AgeGraph.NeighborsAsync(tx, state.GraphName, at, scope,
-                        request.Direction, cancellationToken, after);
-                    foreach (var (edgeKey, next) in neighbors)
+                    active.After = edgeKey;
+                    TraversalStep? step = null;
+                    string? reference = null;
+                    if (active.Scope == 0)
                     {
-                        if (scope == snapshot)
-                        {
-                            var raw = await ReadPublishedAsync(tx, state, edgeKey, cancellationToken) ??
-                                throw new InvalidOperationException("AGE edge lacks a published record.");
-                            var edge = ReadJson<PublishedEdge>(raw);
-                            var codifying = await ContributionStore.CodifyingAsync(tx, state, edge.Key, cancellationToken);
-                            yield return (new TraversalStep(edge.Key, null, edge.From, edge.To, edge.Label,
-                                Direction(edge.From), "published", edge.Provenance, Context: edge.Context,
-                                CodifyingContributions: codifying), next);
-                            continue;
-                        }
+                        var raw = await ReadPublishedAsync(tx, state, edgeKey, cancellationToken) ??
+                            throw new InvalidOperationException("AGE edge lacks a published record.");
+                        var edge = ReadJson<PublishedEdge>(raw);
+                        var codifying = await ContributionStore.CodifyingAsync(tx, state, edge.Key, cancellationToken);
+                        step = new TraversalStep(edge.Key, null, edge.From, edge.To, edge.Label,
+                            DirectionOf(edge.From, active.At), "published", edge.Provenance, Context: edge.Context,
+                            CodifyingContributions: codifying);
+                        reference = "p:" + edge.Key.StorageKey;
+                    }
+                    else
+                    {
                         var runtime = await ContributionStore.FindAsync(tx, state, Guid.Parse(edgeKey), cancellationToken);
                         if (runtime is not { Relationship: { } relationship, Removed: false })
                             throw new InvalidOperationException("AGE edge lacks an active runtime relationship.");
@@ -152,18 +166,150 @@ public sealed class GraphQueries(Db db)
                             throw new InvalidOperationException("Missing recorded runtime endpoint.");
                         var unavailable = !from.Available || !to.Available;
                         if (unavailable && !request.IncludeUnavailable) continue;
-                        yield return (new TraversalStep(null, runtime.Id, relationship.From, relationship.To,
-                            relationship.Label, Direction(relationship.From), "runtime", null, unavailable,
+                        step = new TraversalStep(null, runtime.Id, relationship.From, relationship.To,
+                            relationship.Label, DirectionOf(relationship.From, active.At), "runtime", null, unavailable,
                             !from.Available ? from.Provenance.SnapshotId : !to.Available ? to.Provenance.SnapshotId : null,
-                            Contribution: runtime, FromEndpoint: from, ToEndpoint: to), next);
+                            Contribution: runtime, FromEndpoint: from, ToEndpoint: to);
+                        reference = "r:" + runtime.Id.ToString("D");
                     }
-
-                    if (neighbors.Count < MaxPaths + 1) break;
-                    after = neighbors[^1].EdgeKey;
+                    var steps = active.Steps.Append(step).ToArray();
+                    result.Add(new TraversalPath(steps));
+                    foreach (var key in new[] { step.From, step.To })
+                        if (!reached.ContainsKey(key) && await ResolveAsync(key) is { } endpoint)
+                            reached.Add(key, endpoint);
+                    if (steps.Length < request.MaxDepth && !active.Visited.Contains(nextKey))
+                    {
+                        var visited = new HashSet<string>(active.Visited, StringComparer.Ordinal) { nextKey };
+                        queue.Enqueue(new WalkNode(nextKey, steps, [.. active.Refs, reference], visited));
+                    }
+                    if (result.Count >= MaxPaths) { stop = true; break; }
                 }
+                if (!stop && neighbors.Count < fetchLimit) { active.Scope++; active.After = ""; }
             }
-            string Direction(PublishedKey from) => from.StorageKey == at ? "outgoing" : "incoming";
+            if (active.Scope >= 2) active = null;
+            else break;
         }
+
+        string? nextCursor = null;
+        var truncated = false;
+        if (!exhausted)
+        {
+            if (active is not null || queue.Count > 0)
+            {
+                nextCursor = EncodeResume(request, snapshot, journalHead, active, queue, counters?.MaxCursorChars ?? TraversalCursor.MaxCursorChars);
+                truncated = true;
+            }
+        }
+        if (result.Count == 0)
+            foreach (var at in attempted)
+            {
+                var key = KeyFromStorage(at, request.Start);
+                if (key is not null && !reached.ContainsKey(key) && await ResolveAsync(key) is { } endpoint)
+                    reached.Add(key, endpoint);
+            }
+
+        var entities = new List<TraversalEntity>();
+        foreach (var endpoint in reached.Values)
+        {
+            var notes = await ContributionStore.AnnotationsAsync(tx, state, endpoint.Key, cancellationToken);
+            entities.Add(new TraversalEntity(endpoint.Key, endpoint.Label, endpoint.Provenance, endpoint.Available, notes));
+        }
+        counter.ExaminedSteps = examined;
+        counter.NeighbourQueries = queries;
+        return new TraversalResult(snapshot, result, await GapsAsync(tx, state, cancellationToken), truncated, entities, nextCursor);
+
+        static string DirectionOf(PublishedKey from, string at) => from.StorageKey == at ? "outgoing" : "incoming";
+
+        static PublishedKey? KeyFromStorage(string storage, PublishedKey sample)
+        {
+            try
+            {
+                var parts = JsonSerializer.Deserialize<string[]>(storage, WorkspaceJson.Options);
+                return parts is { Length: 3 } ? new PublishedKey(parts[0], parts[1], parts[2]) : null;
+            }
+            catch (JsonException) { return null; }
+        }
+
+        string EncodeResume(TraversalRequest req, string snap, long journal, WalkNode? current, Queue<WalkNode> rest, int maxCursorChars)
+        {
+            var refs = new List<string>();
+            var index = new Dictionary<string, int>(StringComparer.Ordinal);
+            int RefIndex(string reference)
+            {
+                if (!index.TryGetValue(reference, out var idx)) { idx = refs.Count; refs.Add(reference); index[reference] = idx; }
+                return idx;
+            }
+            TraversalCurrent? encodedCurrent = null;
+            if (current is not null)
+                encodedCurrent = new TraversalCurrent(current.Refs.Select(RefIndex).ToArray(),
+                    current.Scope == 1 ? "runtime" : "snapshot", current.After);
+            var pendingEncoded = rest.Select(node => new TraversalPending(node.Refs.Select(RefIndex).ToArray())).ToArray();
+            return TraversalCursor.Encode(new TraversalCursorPayload(1, req.Start.StorageKey, req.Direction,
+                req.MaxDepth, req.IncludeUnavailable, snap, journal,
+                new TraversalResume(refs, pendingEncoded, encodedCurrent)), maxCursorChars);
+        }
+
+        async Task<WalkNode> RebuildAsync(IReadOnlyList<int> path, IReadOnlyList<string> refs)
+        {
+            var steps = new List<TraversalStep>();
+            var references = new List<string>();
+            var visited = new HashSet<string>(StringComparer.Ordinal) { request.Start.StorageKey };
+            var at = request.Start.StorageKey;
+            foreach (var index in path)
+            {
+                var reference = refs[index];
+                references.Add(reference);
+                TraversalStep step;
+                if (reference.StartsWith("p:", StringComparison.Ordinal))
+                {
+                    var edgeKey = reference[2..];
+                    var raw = await ReadPublishedAsync(tx, state, edgeKey, cancellationToken) ??
+                        throw InvalidResume();
+                    var edge = ReadJson<PublishedEdge>(raw);
+                    var codifying = await ContributionStore.CodifyingAsync(tx, state, edge.Key, cancellationToken);
+                    step = new TraversalStep(edge.Key, null, edge.From, edge.To, edge.Label,
+                        DirectionOf(edge.From, at), "published", edge.Provenance, Context: edge.Context,
+                        CodifyingContributions: codifying);
+                }
+                else
+                {
+                    if (!Guid.TryParse(reference[2..], out var id)) throw InvalidResume();
+                    var runtime = await ContributionStore.FindAsync(tx, state, id, cancellationToken);
+                    if (runtime is not { Relationship: { } relationship, Removed: false }) throw InvalidResume();
+                    var from = await ResolveAsync(relationship.From) ?? throw InvalidResume();
+                    var to = await ResolveAsync(relationship.To) ?? throw InvalidResume();
+                    var unavailable = !from.Available || !to.Available;
+                    step = new TraversalStep(null, runtime.Id, relationship.From, relationship.To,
+                        relationship.Label, DirectionOf(relationship.From, at), "runtime", null, unavailable,
+                        !from.Available ? from.Provenance.SnapshotId : !to.Available ? to.Provenance.SnapshotId : null,
+                        Contribution: runtime, FromEndpoint: from, ToEndpoint: to);
+                }
+                steps.Add(step);
+                at = step.From.StorageKey == at ? step.To.StorageKey : step.From.StorageKey;
+                visited.Add(at);
+            }
+            return new WalkNode(at, steps, references, visited);
+        }
+
+        static WorkspaceException InvalidResume() =>
+            new("invalidCursor", "The traversal cursor is not valid. Restart the traversal from the first page.");
+
+        async Task<EndpointContext?> ResolveAsync(PublishedKey key)
+        {
+            var entity = await ContributionStore.ResolveEndpointAsync(tx, state, key, cancellationToken);
+            return entity is null ? null : new EndpointContext(key, entity.Label, entity.Provenance,
+                entity.Provenance.SnapshotId == snapshot);
+        }
+    }
+
+    private sealed class WalkNode(string at, IReadOnlyList<TraversalStep> steps, IReadOnlyList<string> refs, HashSet<string> visited)
+    {
+        public string At { get; } = at;
+        public IReadOnlyList<TraversalStep> Steps { get; } = steps;
+        public IReadOnlyList<string> Refs { get; } = refs;
+        public HashSet<string> Visited { get; } = visited;
+        public int Scope { get; set; }
+        public string After { get; set; } = "";
     }
 
     public async Task<EntityDetail> EntityDetailAsync(PublishedKey key, CancellationToken token)
@@ -247,5 +393,5 @@ public sealed class GraphQueries(Db db)
     }
 
     private sealed record InventoryCursor(string Snapshot, int Limit, string LastKey);
-    private sealed record PendingPath(string At, IReadOnlyList<TraversalStep> Steps, HashSet<string> Visited);
+
 }

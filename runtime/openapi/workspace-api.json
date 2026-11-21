@@ -1240,7 +1240,7 @@
           "Reading"
         ],
         "summary": "Traverse relationships from a published entity",
-        "description": "Read-only graph walk despite POST. Start from a published key, follow direction up to maxDepth; truncated=true means more paths exist.",
+        "description": "Read-only graph walk despite POST, paged at 100 paths. Start from a published key, follow direction up to maxDepth. When another page exists the response carries nextCursor and truncated=true (the walk is not proven finished); submit nextCursor as cursor with the same start, direction, maxDepth and includeUnavailable to continue. A malformed or parameter-mismatched cursor fails 422 invalidCursor and a moved-on snapshot or workspace fails 409 staleCursor; both tell you to restart from the first page. A walk whose remaining frontier exceeds the cursor size limit fails 422 invalidTraversal and tells you to restart with a smaller maxDepth or a more specific start.",
         "operationId": "traverseGraph",
         "requestBody": {
           "content": {
@@ -1248,15 +1248,33 @@
               "schema": {
                 "$ref": "#/components/schemas/TraversalRequest"
               },
-              "example": {
-                "start": {
-                  "sourceId": "example-sales",
-                  "kind": "concept",
-                  "identifier": "https://example.test/sales#Order"
+              "examples": {
+                "firstPage": {
+                  "value": {
+                    "start": {
+                      "sourceId": "example-sales",
+                      "kind": "concept",
+                      "identifier": "https://example.test/sales#Order"
+                    },
+                    "direction": "outgoing",
+                    "maxDepth": 2,
+                    "includeUnavailable": false,
+                    "cursor": null
+                  }
                 },
-                "direction": "outgoing",
-                "maxDepth": 2,
-                "includeUnavailable": false
+                "nextPage": {
+                  "value": {
+                    "start": {
+                      "sourceId": "example-sales",
+                      "kind": "concept",
+                      "identifier": "https://example.test/sales#Order"
+                    },
+                    "direction": "outgoing",
+                    "maxDepth": 2,
+                    "includeUnavailable": false,
+                    "cursor": "opaque-continuation-cursor"
+                  }
+                }
               }
             }
           },
@@ -1273,6 +1291,13 @@
               }
             },
             "links": {
+              "next": {
+                "operationId": "traverseGraph",
+                "parameters": {
+                  "cursor": "$response.body#/nextCursor"
+                },
+                "description": "Continue the walk: submit this response's nextCursor as cursor with the original start, direction, maxDepth and includeUnavailable."
+              },
               "entityDetail": {
                 "operationId": "getEntityDetail",
                 "description": "Inspect an entity on a returned path; supply its key in an EntityDetailRequest body."
@@ -1305,8 +1330,8 @@
               "entityNotFound"
             ]
           },
-          "422": {
-            "description": "Unprocessable Entity. Codes: invalidTraversal",
+          "409": {
+            "description": "Conflict. Codes: staleCursor",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1315,6 +1340,20 @@
               }
             },
             "x-workspace-codes": [
+              "staleCursor"
+            ]
+          },
+          "422": {
+            "description": "Unprocessable Entity. Codes: invalidCursor, invalidTraversal",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "invalidCursor",
               "invalidTraversal"
             ]
           },
@@ -2435,6 +2474,12 @@
           "includeUnavailable": {
             "type": "boolean",
             "default": false
+          },
+          "cursor": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -2471,6 +2516,12 @@
             "items": {
               "$ref": "#/components/schemas/TraversalEntity"
             }
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -2758,7 +2809,7 @@
     "errors": "application/problem+json with a stable code per operation's x-workspace-codes",
     "hateoas": "follow each success response's links and the runtime Link response headers",
     "linkRelations": {
-      "next": "listInventory or listHistory: the next page of the same listing (registered relation)",
+      "next": "listInventory, listHistory or traverseGraph: the next page of the same listing or walk (registered relation)",
       "service-desc": "this OpenAPI document at /api/openapi/v1.json (registered relation)",
       "service-doc": "the interactive docs at /api/docs (registered relation)",
       "https://github.com/jamiemitchellconsultants/division-ontology#link-relations/session": "getSession",
