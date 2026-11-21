@@ -38,6 +38,7 @@ trap cleanup EXIT
 "$root/deploy/workspace/local/bootstrap.sh"
 "$root/deploy/workspace/verify-docs.sh" "http://workspace.localhost:$WORKSPACE_PORT" --expect-sign-in
 "$root/deploy/workspace/verify.sh" mac
+node "$root/deploy/workspace/verify-traversal-paging.mjs" mac
 "${compose[@]}" restart api db
 "${compose[@]}" up -d --wait
 "$root/deploy/workspace/verify.sh" mac --check-persistence
