@@ -58,6 +58,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [48](#entry-vision-knowledge-graph-explorer) | 2026-11-21 | Vision: Knowledge Graph Explorer | product | Add a graph explorer centred on a published concept or node. Readers can follow directed relationships, inspect evidence and provenance, and return to their previous view. Managers can use existing contribution actions from the graph. |
 | [49](#entry-docs-traversal-cursor-pagination-user-acceptance-125) | 2026-11-21 | docs: traversal cursor pagination user acceptance (#125) | product | - **Deployed seeding.** Deployed acceptance creates its busy node through the manager API: 105 relationships, removed after each run. It does not publish a dedicated bundle or settle for small-walk checks. |
 | [50](#entry-behaviours-knowledge-graph-explorer) | 2026-11-21 | Behaviours: Knowledge Graph Explorer | product | Start with both directions and show one hop at a time. Preserve the previous view when users navigate Back, and offer the same exploration through a keyboard-accessible neighbour list. |
+| [51](#entry-architecture-knowledge-graph-explorer) | 2026-11-21 | Architecture: Knowledge Graph Explorer | product | Host the explorer in the existing authorized Blazor workspace and reuse its API client, contribution editor, and draft flow. |
 
 ---
 
@@ -1290,3 +1291,31 @@ The architecture must account for focus, viewport and paging state, overlapping 
 ---
 
 AI-Fingerprint: sha256:8c6c150c96f8
+
+---
+
+<a id="entry-architecture-knowledge-graph-explorer"></a>
+
+## Entry 51 — 2026-11-21 — Architecture: Knowledge Graph Explorer
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The accepted behaviours call for one-hop navigation with stable identity, equivalent keyboard controls, a recoverable paging state, and existing workspace contributions. The traversal and detail contracts support browsing, and the contribution API already applies workspace roles and records the changes.
+
+## Decision
+
+Host the explorer in the existing authorized Blazor workspace and reuse its API client, contribution editor, and draft flow. Keep the loaded neighbourhood and Back history in browser memory, and use the traversal cursor for additional pages. Share the same records and actions between a locally bundled Cytoscape diagram and native HTML controls. All user edits are stored only in the runtime workspace. Turtle files in the adopting and source repositories are read-only inputs.
+
+- [ADR 0021 — Host the explorer in the existing workspace](https://github.com/jamiemitchellconsultants/division-ontology/blob/ed27f0c3c9991d292bb699d146b8fbcd4217a11e/docs/adr/0021-host-the-explorer-in-the-existing-workspace.md)
+- [ADR 0022 — Keep paged graph view state in the browser](https://github.com/jamiemitchellconsultants/division-ontology/blob/ed27f0c3c9991d292bb699d146b8fbcd4217a11e/docs/adr/0022-keep-paged-graph-view-state-in-the-browser.md)
+- [ADR 0023 — Render the graph with a local Cytoscape module and HTML controls](https://github.com/jamiemitchellconsultants/division-ontology/blob/ed27f0c3c9991d292bb699d146b8fbcd4217a11e/docs/adr/0023-render-the-graph-with-a-local-cytoscape-module-and-html-controls.md)
+
+## Consequences
+
+The existing static web packages carry the renderer and its license. The browser keeps view state for the open explorer and reloads data after an observed change invalidates it. The developer plan will cover the Order Fulfilment journey, keyboard and pointer interaction, continuation and stale recovery, and versioned manager contributions.
+
+---
+
+AI-Fingerprint: sha256:cf121adee991
