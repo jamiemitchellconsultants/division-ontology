@@ -158,24 +158,29 @@ Each row records: walkthrough result / executable result, the date, and the pers
 
 **Local build: 21 November 2026, James Mitchell, on M5MBP.** By the user's standing instruction, every walkthrough with a known expected result is automated and reports only misses. The walkthrough result is the automated run that James Mitchell launched and confirmed, and the executable result is the same run. That run, on the demo workspace (`http://workspace.localhost:8087`, snapshot `cba0b960c07ba22fba44461caf5fc4e7fc76ad7ca03a93b27bc32e4bc0fdd821`), gave `PAGING: OK` and `TESTS: OK`, then removed the 105 walkthrough relationships. James Mitchell approved the executable tests from the plain-language summary above. Separately, `acceptance.sh local` passed repository (246), runtime (213), home-lab-config and local-browser, including the paging verifier.
 
+**Home lab: 21 November 2026, James Mitchell, on `ai-mcp-server`.** James Mitchell ran `run-home-lab-acceptance.ps1` from a checkout of `feature/traversal-cursor-pagination/user`. The deployed release was `main` at `e097a4d3de696b12fd4432c8b2259fecd745a0bb`, which includes PR #152, with synthetic snapshot `540da809651de4e416cb00a13299143f0b56fa81c73e530ad8913d9f23f3d927`.
+- The first attempt stopped in the existing **initial browser** step because Keycloak rejected the `readknowledgegraph` password. James Mitchell reset it in Keycloak and ran again.
+- The second run (evidence `evidence-982c8fd1-ee63-4f33-b81c-6d9fff3eede8`) reported `passed scripted checks` with no failing steps. The **traversal paging** step passed B1–B9, B11–B16 and B18, then removed its 105 relationships (run `37e269f8`).
+- B10, B17 and B19 are covered locally only, for the reasons given in their rows.
+
 | Behaviour | Local build | Home lab |
 | --- | --- | --- |
-| B1 | Pass / Pass (suite and real stack) | pending |
-| B2 | Pass / Pass (suite and real stack) | pending |
-| B3 | Pass / Pass (suite and real stack) | pending |
-| B4 | Pass / Pass (suite and real stack) | pending |
-| B5 | Pass / Pass (suite and real stack) | pending |
-| B6 | Pass / Pass (suite and real stack) | pending |
-| B7 | Pass / Pass (suite and real stack) | pending |
-| B8 | Pass / Pass (suite and real stack) | pending |
-| B9 | Pass / Pass (suite and real stack) | pending |
-| B10 | Pass / Pass (suite only; real stack does not cover it) | pending |
-| B11 | Pass / Pass (suite and real stack) | pending |
-| B12 | Pass / Pass (suite and real stack) | pending |
-| B13 | Pass / Pass (suite and real stack) | pending |
-| B14 | Pass / Pass (suite and real stack) | pending |
-| B15 | Pass / Pass (suite and real stack) | pending |
-| B16 | Pass / Pass (suite and real stack) | pending |
-| B17 | Pass / Pass (suite only; real stack does not cover it) | pending |
-| B18 | Pass / Pass (suite and real stack) | pending |
-| B19 | Pass / Pass (suite only; real stack does not cover it) | pending |
+| B1 | Pass / Pass (suite and real stack) | Pass / Pass |
+| B2 | Pass / Pass (suite and real stack) | Pass / Pass |
+| B3 | Pass / Pass (suite and real stack) | Pass / Pass |
+| B4 | Pass / Pass (suite and real stack) | Pass / Pass |
+| B5 | Pass / Pass (suite and real stack) | Pass / Pass |
+| B6 | Pass / Pass (suite and real stack) | Pass / Pass |
+| B7 | Pass / Pass (suite and real stack) | Pass / Pass |
+| B8 | Pass / Pass (suite and real stack) | Pass / Pass |
+| B9 | Pass / Pass (suite and real stack) | Pass / Pass |
+| B10 | Pass / Pass (suite only; real stack does not cover it) | Not run on the home lab: it would replace the active fixture snapshot. Covered by the local suite. |
+| B11 | Pass / Pass (suite and real stack) | Pass / Pass |
+| B12 | Pass / Pass (suite and real stack) | Pass / Pass |
+| B13 | Pass / Pass (suite and real stack) | Pass / Pass |
+| B14 | Pass / Pass (suite and real stack) | Pass / Pass |
+| B15 | Pass / Pass (suite and real stack) | Pass / Pass |
+| B16 | Pass / Pass (suite and real stack) | Pass / Pass |
+| B17 | Pass / Pass (suite only; real stack does not cover it) | Not run on the home lab: needs more than 1,000 filtered-out relationships and a snapshot change. Covered by the local suite. |
+| B18 | Pass / Pass (suite and real stack) | Pass / Pass |
+| B19 | Pass / Pass (suite only; real stack does not cover it) | Home lab checks only that the spec lists invalidTraversal: the real cursor limit needs a far larger graph. Covered by the local suite. |
