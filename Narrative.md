@@ -50,6 +50,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [40](#entry-docs-vision-for-traversal-cursor-pagination-120) | 2026-11-21 | docs: vision for traversal cursor pagination (#120) | product | Adopt cursor pagination for traversal as a product capability: an opaque `nextCursor`, a HATEOAS `next` link whenever another page exists, pages that carry their own entity context, and cursors bound to the original traversal parameters… |
 | [41](#entry-docs-behaviours-for-traversal-cursor-pagination-121) | 2026-11-21 | docs: behaviours for traversal cursor pagination (#121) | product | Fix the behaviours before the mechanism. |
 | [42](#entry-docs-align-traversal-cursor-errors-with-the-422-precedent-121) | 2026-11-21 | docs: align traversal cursor errors with the 422 precedent (#121) | product | Amend the behaviours to the existing contract: 422 `invalidCursor` for malformed or parameter-mismatched cursors, 409 `staleCursor` for a moved-on snapshot or workspace view, both instructing restart from page one. |
+| [43](#entry-docs-architecture-for-traversal-cursor-pagination-122) | 2026-11-21 | docs: architecture for traversal cursor pagination (#122) | product | [ADR 0019](docs/adr/0019-carry-the-traversal-frontier-in-the-cursor.md): the frontier rides in the cursor as compact edge-reference chains — at most 101 pending expansions at a page boundary, each re-deriving its endpoint, steps, and… |
 
 ---
 
@@ -1077,3 +1078,29 @@ The architecture phase can now trace B8/B9/B14 exactly as written, reusing `Prob
 ---
 
 AI-Fingerprint: sha256:b3b13c008897
+
+---
+
+<a id="entry-docs-architecture-for-traversal-cursor-pagination-122"></a>
+
+## Entry 43 — 2026-11-21 — docs: architecture for traversal cursor pagination (#122)
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The accepted behaviours left the resumption mechanism open (U6): how a breadth-first walk continues exactly-once across a branch boundary without replaying earlier pages, what a cursor binds and in what order it is validated, and how the bounded-work measures (B16/B17) can be met when many neighbours are filtered out. The existing walk discards its frontier at the 100-path cap; inventory and history set a stateless-cursor precedent but have no frontier to carry.
+
+## Decision
+
+[ADR 0019](docs/adr/0019-carry-the-traversal-frontier-in-the-cursor.md): the frontier rides in the cursor as compact edge-reference chains — at most 101 pending expansions at a page boundary, each re-deriving its endpoint, steps, and visited set — resumed mid-node through the neighbour reader's existing keyset position; a per-request examined-step budget (ten times the page size) ends a page early instead of scanning without limit. Server-retained walk state and deterministic replay were considered and rejected (replay is exactly what B16 forbids and measures).
+
+[ADR 0020](docs/adr/0020-bind-traversal-cursors-to-snapshot-and-journal.md): the cursor binds the traversal parameters, the snapshot id, and the workspace journal position; validation runs shape → parameter match → view freshness, so a parameter mismatch reports 422 `invalidCursor` and a moved-on view reports 409 `staleCursor`, through the existing status map with no new codes. Any contribution append invalidates outstanding cursors.
+
+## Consequences
+
+The developer can plan without re-deciding structure: contract additions are additive (`Cursor`/`NextCursor`), the change is confined to Contracts, Store, Api, and their tests, and deployment gains nothing stateful — no tables, migrations, or expiry jobs. The coarse any-edit invalidation is accepted deliberately (cheap, auditable); relaxing it would need a new cursor version and a behaviour change. The PR #117 link conventions extend to the traversal `next` link, and the spec must document both page examples and cursor errors.
+
+---
+
+AI-Fingerprint: sha256:b31d95e4a3cb
