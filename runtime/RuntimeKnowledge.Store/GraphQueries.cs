@@ -63,7 +63,7 @@ public sealed class GraphQueries(Db db)
 
     internal int LastTraversalExaminedSteps { get; private set; }
 
-    private const int MaxExaminedSteps = 1000;
+    internal int ExaminedStepBudget { get; set; } = 1000;
 
     public async Task<TraversalResult> TraverseAsync(TraversalRequest request, CancellationToken cancellationToken)
     {
@@ -115,7 +115,7 @@ public sealed class GraphQueries(Db db)
         var exhausted = false;
         while (!exhausted)
         {
-            if (result.Count >= MaxPaths || LastTraversalExaminedSteps >= MaxExaminedSteps) break;
+            if (result.Count >= MaxPaths || LastTraversalExaminedSteps >= ExaminedStepBudget) break;
             active ??= queue.TryDequeue(out var next) ? next : null;
             if (active is null) { exhausted = true; break; }
             if (!attempted.Contains(active.At)) attempted.Add(active.At);
@@ -124,7 +124,7 @@ public sealed class GraphQueries(Db db)
             while (active.Scope < 2 && !stop)
             {
                 var scope = active.Scope == 0 ? snapshot : "runtime";
-                var fetchLimit = Math.Min(101, MaxExaminedSteps - LastTraversalExaminedSteps);
+                var fetchLimit = Math.Min(101, ExaminedStepBudget - LastTraversalExaminedSteps);
                 if (fetchLimit <= 0) { stop = true; break; }
                 var neighbors = await AgeGraph.NeighborsAsync(tx, state.GraphName, active.At, scope,
                     request.Direction, cancellationToken, active.After, fetchLimit);
@@ -173,7 +173,7 @@ public sealed class GraphQueries(Db db)
                         var visited = new HashSet<string>(active.Visited, StringComparer.Ordinal) { nextKey };
                         queue.Enqueue(new WalkNode(nextKey, steps, [.. active.Refs, reference], visited));
                     }
-                    if (result.Count >= MaxPaths || LastTraversalExaminedSteps >= MaxExaminedSteps) { stop = true; break; }
+                    if (result.Count >= MaxPaths || LastTraversalExaminedSteps >= ExaminedStepBudget) { stop = true; break; }
                 }
                 if (!stop && neighbors.Count < fetchLimit) { active.Scope++; active.After = ""; }
             }

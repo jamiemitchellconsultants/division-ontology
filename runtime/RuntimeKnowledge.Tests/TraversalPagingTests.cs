@@ -137,6 +137,50 @@ public sealed class TraversalPagingTests
     }
 
     [Fact]
+    public async Task ExaminedStepsStayBoundedPerPageAndBudgetStopAdvancesPastFilteredRows()
+    {
+        await using var s = await Scenario.OpenAsync();
+        await s.ActivateAsync("initial");
+        var store = new ContributionStore(s.Db);
+        for (var i = 0; i < 30; i++)
+            await store.ApplyAsync(s.Actor, new CreateRelationship(s.A, s.B,
+                RelationshipMeaning.Custom($"r{i}", "Filtered after refresh.")), CancellationToken.None);
+        await s.ActivateAsync("missing");
+
+        s.Graph.ExaminedStepBudget = 10;
+        var examinedTotal = 0;
+        var filteredPaths = 0;
+        string? filteredCursor = null;
+        var filteredPages = 0;
+        do
+        {
+            var page = await s.Graph.TraverseAsync(
+                new TraversalRequest(s.A, MaxDepth: 1, Cursor: filteredCursor), CancellationToken.None);
+            Assert.True(s.Graph.LastTraversalExaminedSteps <= 10);
+            examinedTotal += s.Graph.LastTraversalExaminedSteps;
+            filteredPaths += page.Paths.Count;
+            filteredCursor = page.NextCursor;
+            filteredPages++;
+        } while (filteredCursor is not null);
+        Assert.Equal(0, filteredPaths);
+        Assert.True(filteredPages >= 3, $"filtered rows should span budget pages, got {filteredPages}");
+        Assert.Equal(30, examinedTotal);
+
+        s.Graph.ExaminedStepBudget = 1000;
+        await s.ActivateTraversalAsync("busy");
+        string? cursor = null;
+        var counts = new List<int>();
+        do
+        {
+            var page = await s.Graph.TraverseAsync(new TraversalRequest(s.Hub, MaxDepth: 1, Cursor: cursor), CancellationToken.None);
+            counts.Add(s.Graph.LastTraversalExaminedSteps);
+            Assert.True(s.Graph.LastTraversalExaminedSteps <= 1000);
+            cursor = page.NextCursor;
+        } while (cursor is not null);
+        Assert.All(counts, count => Assert.True(count <= 202, $"examined {count}"));
+    }
+
+    [Fact]
     public async Task EmptyFirstPageRetainsTheStartEntityAndSerializesWithoutNextCursor()
     {
         await using var s = await Scenario.OpenAsync();
