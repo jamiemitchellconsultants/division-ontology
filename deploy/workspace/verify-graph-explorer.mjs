@@ -438,7 +438,7 @@ async function checkReaderRefusal(reader, origin) {
   result('Reader editor controls and API refusal');
 }
 
-async function inputState(fixturePath) {
+export async function inputState(fixturePath) {
   const { divisionRoot, commit, checkouts } = JSON.parse(await readFile(fixturePath, 'utf8'));
   const { sources } = JSON.parse(await readFile(join(divisionRoot, 'sources.json'), 'utf8'));
   assert.deepEqual(Object.keys(checkouts).sort(), sources.map(source => source.id).sort());
