@@ -61,6 +61,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [51](#entry-architecture-knowledge-graph-explorer) | 2026-11-21 | Architecture: Knowledge Graph Explorer | product | Host the explorer in the existing authorized Blazor workspace and reuse its API client, contribution editor, and draft flow. |
 | [52](#entry-plan-knowledge-graph-explorer) | 2026-11-21 | Plan: Knowledge Graph Explorer | product | Build in six test-first tasks: neighbourhood projection, navigation and paging, the diagram, inspection, contribution editing, and browser verification. Pin the upstream Cytoscape 3.35.0 module and license by checksum. |
 | [53](#entry-plan-amendment-knowledge-graph-explorer) | 2026-11-21 | Plan amendment: Knowledge Graph Explorer | product | - Map `.mjs` to `text/javascript; charset=utf-8` in `local.web_types`, and assert it in `workspace.tftest.hcl`. - Thread an optional, validated `evidence_repositories` map through AWS `web_settings` and the home-lab `web-settings` config. |
+| [54](#entry-build-knowledge-graph-explorer) | 2026-11-22 | Build Knowledge Graph Explorer | product | Ship one authorized Blazor graph route over the existing traversal and detail APIs. The local Cytoscape module and native neighbour controls share stable node and edge identities. |
 
 ---
 
@@ -1390,3 +1391,27 @@ The build (#150) traces to every task. The changed interfaces are `GraphNeighbou
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
 AI-Fingerprint: sha256:f9f662b312e4
+
+---
+
+<a id="entry-build-knowledge-graph-explorer"></a>
+
+## Entry 54 — 2026-11-22 — Build Knowledge Graph Explorer
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The workspace provided search, traversal, and contribution editing on separate views. The accepted graph explorer behaviours require a reader to trace a handoff, inspect evidence, and return to a loaded neighbourhood while preserving the source-qualified identity of each record.
+
+## Decision
+
+Ship one authorized Blazor graph route over the existing traversal and detail APIs. The local Cytoscape module and native neighbour controls share stable node and edge identities. Use the existing workspace contribution API and tab draft store for graph edits, reauthentication, and version review. When detail inspection observes a new snapshot, cancel any in-flight continuation and restart a pending first-page navigation using its original query.
+
+## Consequences
+
+The graph can show published and workspace relationships together, retain its viewport through paging, and recover through page-one reload after an observed change. Source links use an optional public repository map and commit-pinned citations. The runtime workspace holds all contribution writes. The Mac smoke uses disposable journal records, and graph writes in the home-lab verification harness require explicit opt-in.
+
+---
+
+AI-Fingerprint: sha256:1be3aef2119d
