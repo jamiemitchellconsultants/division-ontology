@@ -45,9 +45,26 @@ For example, `{"fixture/ecommerce":"https://github.com/fixture/ecommerce"}` conf
 
 - Confirm that search shows the intended active snapshot and that both fixture accounts can open **Open graph** from the Ecommerce **Order** entity. Check the plain citation or commit-pinned evidence link according to the environment's configuration.
 - From the home-lab operator terminal, check the API and session using the shared workspace health steps. Graph assets are served from the workspace origin. The initial graph module and the pinned Cytoscape module both need a JavaScript content type. [Workspace health checks](../runtime-knowledge-workspace/05-runbook.md#operate)
-- Before automated acceptance, set `WORKSPACE_SCENARIO_DIR` to a fresh evidence directory and put the deployed digest in its `snapshot` file. Supply `WORKSPACE_VERIFY_ORIGIN`, `WORKSPACE_VERIFY_APP_VERSION`, `WORKSPACE_VERIFY_MODEL_REVISION` and the four `WORKSPACE_VERIFY_{MANAGER,READER}_{USERNAME,PASSWORD}` variables.
-- Run `bash deploy/workspace/verify.sh home-lab` after walkthrough and executable-test approval, with the home lab assigned to fixture acceptance. The shared smoke uses the manager to create fixture records. Set `WORKSPACE_VERIFY_GRAPH_WRITES=1` when the operator has approved the additional graph paging, parallel-edge and contribution write scenarios. Record any skipped scenario. [Acceptance evidence](05-acceptance.md)
+- Run the Graph Explorer regression suite below after walkthrough and executable-test approval, with the home lab assigned to fixture acceptance. Use the shared workspace smoke separately to verify the broader workspace and persistence.
 - On Mac, use `npm run demo:status` to check the walkthrough workspace. Leave the retained input checkouts available until the before-and-after evidence has been recorded. Once the disposable walkthrough is done, `npm run demo:down` tears down its containers and volumes.
+
+### Graph Explorer regression on ai-mcp-server
+
+From the updated repository checkout on Windows host `ai-mcp-server`, run this PowerShell fragment against `https://division.tqaentry.com`. Set the three pins at the top to the retained fixture run directory, the expected installed application commit and the active synthetic snapshot. Run `npm ci` and `node node_modules/playwright/cli.js install chromium` in the checkout if the locked dependencies or browser are missing.
+
+```powershell
+$FixtureRunRoot = '<retained fixture run directory>'
+$ExpectedRevision = '<40-character installed commit>'
+$Snapshot = '<64-character active fixture digest>'
+& ./deploy/workspace/run-home-lab-graph-regression.ps1 `
+    -FixtureRunRoot $FixtureRunRoot -ExpectedRevision $ExpectedRevision -Snapshot $Snapshot -AllowFixtureWrites
+```
+
+The default run covers B1–B15. It checks the deployment evidence, retained manifest and live snapshot before creating records. Playwright uses local Caddy ingress and opens visible Chromium for the Windows keyboard case. It reuses the fixture account passwords from the current PowerShell process and prompts with masked input when a password is missing or Keycloak rejects it at preflight. The reader and manager accounts must already be set up in Keycloak.
+
+For a focused run, pass `-Behaviour B8` or a comma-separated list such as `-Behaviour B7,B12`. B13 runs B12 to create its records. B15 runs B12 and B13 to produce the journal evidence it checks. B1, B2, B6 and B9 can run with reader credentials alone. The remaining cases require `-AllowFixtureWrites`.
+
+Each run prints the test, expected result and actual result. The new `graph-regression-*` directory under the retained fixture run root contains `run.json`, before and after input captures, and the exact contribution IDs and revisions in `records.jsonl`. The runner removes its temporary records on both pass and handled failure. If cleanup is incomplete, use the unconfirmed IDs in the report and inspect their live histories before removing any remaining records. The records' journal history remains available for auditing.
 
 ## Recover
 
