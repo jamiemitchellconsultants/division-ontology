@@ -112,3 +112,15 @@ provider "aws" {
 }
 data "aws_caller_identity" "current" {}
 data "aws_partition" "current" {}
+
+variable "evidence_repositories" {
+  type    = map(string)
+  default = {}
+  validation {
+    condition = alltrue([
+      for repo in values(var.evidence_repositories) :
+      can(regex("^https://github\\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$", repo))
+    ])
+    error_message = "Evidence repositories must use HTTPS GitHub owner/repository URLs."
+  }
+}

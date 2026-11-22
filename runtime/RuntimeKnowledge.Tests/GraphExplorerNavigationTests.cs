@@ -306,6 +306,10 @@ public sealed class GraphExplorerNavigationTests
                 case "/api/entities/detail":
                     var entity = (await request.Content!.ReadFromJsonAsync<EntityDetailRequest>(WorkspaceJson.Options, token))!.Key;
                     return Json(new EntityDetail("snapshot", EntityFor(entity), EntityAvailable || entity.Kind == "relationshipType", []));
+                case "/api/relationships/detail":
+                    var relation = (await request.Content!.ReadFromJsonAsync<RelationshipDetailRequest>(WorkspaceJson.Options, token))!;
+                    return Json(new RelationshipDetail("snapshot", new TraversalStep(relation.Key, relation.RuntimeId,
+                        Warehouse, Ecommerce, "Handoff", "outgoing", "published", ProvenanceFor(relation.Key!))));
                 case "/api/traverse":
                     var traversal = Assert.IsType<TraversalRequest>(
                         await request.Content!.ReadFromJsonAsync<TraversalRequest>(WorkspaceJson.Options, token));

@@ -33,8 +33,9 @@ else
             }
             else if (frame.View.NextCursor is not null)
             {
-                <button type="button" disabled="@(pending is not null)" @onclick="LoadMore">Load more</button>
+                <button type="button" data-graph-load-more disabled="@(pending is not null)" @onclick="LoadMore">Load more</button>
             }
+            <button type="button" data-graph-inspect-focus @ref="focusDetails" @onclick="InspectFocus">Inspect focus</button>
             @if (diagramAvailable)
             {
                 <button type="button" @onclick="() => ZoomBy(1.25)">Zoom in</button>
@@ -106,7 +107,12 @@ else
 
         <GraphDiagram @ref="diagram" Neighbourhood="view" SelectedId="@current.SelectedId" Viewport="current.Viewport"
             OnFollow="Follow" OnInspect="Inspect" OnAvailability="available => diagramAvailable = available" />
-        <GraphNeighbourList Neighbourhood="view" SelectedId="@current.SelectedId" OnFollow="Follow" OnInspect="Inspect" />
+        <GraphNeighbourList @ref="neighbours" Neighbourhood="view" SelectedId="@current.SelectedId" OnFollow="Follow" OnInspect="InspectNeighbour" />
+        @if (current.InspectorOpen)
+        {
+            <GraphInspector Neighbourhood="view" SelectedId="@current.SelectedId" OnFollow="Follow" OnClose="CloseInspector"
+                OnSnapshotObserved="ObserveSnapshot" />
+        }
     }
 }
 
@@ -116,10 +122,12 @@ else
     private enum ReadKind { First, Direction, Follow, Back, Reload, Append }
     private sealed record GraphRead(GraphQuery Query, ReadKind Kind, string? Cursor = null);
     private sealed record Frame(GraphNeighbourhood View, string SelectedId, bool Stale = false,
-        GraphDiagram.GraphViewport? Viewport = null);
+        GraphDiagram.GraphViewport? Viewport = null, bool InspectorOpen = false, bool InspectedFromList = false);
 
     private readonly Stack<Frame> history = new();
     private GraphDiagram? diagram;
+    private GraphNeighbourList? neighbours;
+    private ElementReference focusDetails;
     private Frame? frame;
     private GraphRead? pending, failed;
     private WorkspaceApiException? error;
@@ -157,9 +165,33 @@ else
         ? Read(new(frame.View.Query with { Focus = key }, ReadKind.Follow))
         : Task.CompletedTask;
 
-    private void Inspect(string id)
+    private void InspectFocus()
     {
-        if (frame is not null) frame = frame with { SelectedId = id };
+        if (frame is not null) Inspect(WorkspaceLinks.GraphNodeId(frame.View.Query.Focus));
+    }
+
+    private void Inspect(string id) => SelectForInspection(id, false);
+    private void InspectNeighbour(string id) => SelectForInspection(id, true);
+
+    private void SelectForInspection(string id, bool fromList)
+    {
+        if (frame is not null)
+            frame = frame with { SelectedId = id, InspectorOpen = true, InspectedFromList = fromList };
+    }
+
+    private async Task CloseInspector()
+    {
+        if (frame is not { } current) return;
+        frame = current with { InspectorOpen = false };
+        if (current.InspectedFromList && neighbours is not null && await neighbours.RestoreInspectionFocusAsync(current.SelectedId)) return;
+        await focusDetails.FocusAsync();
+    }
+
+    private void ObserveSnapshot(string snapshot)
+    {
+        if (frame is null || frame.View.SnapshotId == snapshot) return;
+        if (pending?.Kind == ReadKind.Append) CancelRead();
+        MarkStale();
     }
 
     private Task LoadMore() => pending is null && frame is { Stale: false, View.NextCursor: { } cursor }

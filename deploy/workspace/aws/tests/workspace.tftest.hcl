@@ -89,3 +89,22 @@ run "private_database_and_serverless_api" {
     error_message = "AWS workload policies must stay separated."
   }
 }
+
+run "evidence_repository_map_reaches_web_settings" {
+  command = plan
+  variables {
+    evidence_repositories = { "fixture/ecommerce" = "https://github.com/fixture/ecommerce" }
+  }
+  assert {
+    condition     = jsondecode(aws_s3_object.web_settings.content).EvidenceRepositories["fixture/ecommerce"] == "https://github.com/fixture/ecommerce"
+    error_message = "The evidence repository map must reach the served web settings."
+  }
+}
+
+run "evidence_repository_map_rejects_non_github_roots" {
+  command = plan
+  variables {
+    evidence_repositories = { "fixture/ecommerce" = "https://github.com@untrusted.example/team/commerce" }
+  }
+  expect_failures = [var.evidence_repositories]
+}

@@ -13,10 +13,10 @@
                 <strong>@step.Label</strong> · @direction · @origin
                 <div>@Name(step.From) → @Name(step.To)</div>
                 <div class="actions">
-                    <button type="button" data-graph-inspect-node="@nodeId" aria-label="Inspect @qualifiedNeighbour"
-                        aria-pressed="@Pressed(nodeId)" @onclick="() => OnInspect.InvokeAsync(nodeId)">Inspect</button>
-                    <button type="button" data-graph-inspect-edge="@edge.Id" aria-label="Inspect relationship @step.Label · @origin · @qualifiedNeighbour"
-                        aria-pressed="@Pressed(edge.Id)" @onclick="() => OnInspect.InvokeAsync(edge.Id)">Inspect relationship</button>
+                    <button type="button" data-graph-inspect-node="@nodeId" aria-label="Inspect @qualifiedNeighbour" @ref="nodeControls[edge.Id]"
+                        aria-pressed="@Pressed(nodeId)" @onclick="() => Inspect(nodeId, edge.Id, true)">Inspect</button>
+                    <button type="button" data-graph-inspect-edge="@edge.Id" aria-label="Inspect relationship @step.Label · @origin · @qualifiedNeighbour" @ref="edgeControls[edge.Id]"
+                        aria-pressed="@Pressed(edge.Id)" @onclick="() => Inspect(edge.Id, edge.Id, false)">Inspect relationship</button>
                     @if (WorkspaceLinks.CanGraph(neighbour))
                     {
                         <button type="button" data-graph-follow="@nodeId" aria-label="Follow @qualifiedNeighbour"
@@ -33,6 +33,34 @@
     [Parameter] public string? SelectedId { get; set; }
     [Parameter] public EventCallback<PublishedKey> OnFollow { get; set; }
     [Parameter] public EventCallback<string> OnInspect { get; set; }
+
+    private readonly Dictionary<string, ElementReference> nodeControls = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, ElementReference> edgeControls = new(StringComparer.Ordinal);
+    private (string Selection, string Edge, bool IsNode)? lastInspection;
+
+    protected override void OnParametersSet()
+    {
+        var current = Neighbourhood.Edges.Select(edge => edge.Id).ToHashSet(StringComparer.Ordinal);
+        foreach (var id in nodeControls.Keys.Where(id => !current.Contains(id)).ToArray())
+        {
+            nodeControls.Remove(id);
+            edgeControls.Remove(id);
+        }
+    }
+
+    private Task Inspect(string selection, string edge, bool isNode)
+    {
+        lastInspection = (selection, edge, isNode);
+        return OnInspect.InvokeAsync(selection);
+    }
+
+    public async ValueTask<bool> RestoreInspectionFocusAsync(string selection)
+    {
+        if (lastInspection is not { } trigger || trigger.Selection != selection) return false;
+        if (!(trigger.IsNode ? nodeControls : edgeControls).TryGetValue(trigger.Edge, out var control)) return false;
+        await control.FocusAsync();
+        return true;
+    }
 
     private string Pressed(string id) => id == SelectedId ? "true" : "false";
     private string Name(PublishedKey key) => $"{Neighbourhood.Nodes.GetValueOrDefault(key)?.Label ?? key.Identifier} · {key.SourceId}";

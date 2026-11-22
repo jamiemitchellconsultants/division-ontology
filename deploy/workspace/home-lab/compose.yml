@@ -146,7 +146,7 @@ services:
 configs:
   web-settings:
     content: |
-      { "Identity": { "Authority": "${WORKSPACE_ISSUER}", "ClientId": "${WORKSPACE_SPA_CLIENT:?Supply the public SPA client ID}" } }
+      { "Identity": { "Authority": "${WORKSPACE_ISSUER}", "ClientId": "${WORKSPACE_SPA_CLIENT:?Supply the public SPA client ID}" }, "EvidenceRepositories": ${WORKSPACE_EVIDENCE_REPOSITORIES:-null} }
 
 networks:
   backend: {}

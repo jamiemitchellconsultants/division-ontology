@@ -61,6 +61,7 @@ resource "aws_s3_object" "web_settings" {
   content_type  = "application/json"
   cache_control = "no-store"
   content = jsonencode({
+    EvidenceRepositories = var.evidence_repositories
     Identity = {
       Authority = var.entra_issuer
       ClientId  = var.entra_client_id

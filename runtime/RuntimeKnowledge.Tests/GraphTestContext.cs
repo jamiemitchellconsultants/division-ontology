@@ -25,7 +25,7 @@ internal static class GraphTestContext
                 : inner.InvokeAsync<T>(identifier, cancellationToken, args);
     }
 
-    public static BunitContext Create(HttpMessageHandler handler)
+    public static BunitContext Create(HttpMessageHandler handler, IReadOnlyDictionary<string, string>? evidenceRepositories = null)
     {
         var context = new BunitContext();
         context.JSInterop.Mode = JSRuntimeMode.Loose;
@@ -34,6 +34,7 @@ internal static class GraphTestContext
             BaseAddress = new Uri("https://workspace.test")
         }));
         context.Services.AddScoped<DraftState>();
+        context.Services.AddSingleton(new GraphEvidenceRepositories(evidenceRepositories ?? new Dictionary<string, string>()));
         return context;
     }
 }

@@ -3,7 +3,11 @@ set -euo pipefail
 dir="$(cd "$(dirname "$0")" && pwd)"
 compose=(docker compose --env-file "$dir/test.env" -f "$dir/compose.yml")
 # Ignore caller environment overrides when rendering the synthetic contract.
-env -i PATH="$PATH" "${compose[@]}" config --format json | jq -e '
+verify_config() {
+  local evidence="$1"
+  local -a settings=()
+  if [[ -n "$evidence" ]]; then settings+=("WORKSPACE_EVIDENCE_REPOSITORIES=$evidence"); fi
+  env -i PATH="$PATH" ${settings[@]+"${settings[@]}"} "${compose[@]}" config --format json | jq -e --argjson expected "${evidence:-null}" '
   ((.services | to_entries | map(select(.value.networks | has("ingress")) | .key) | sort) == ["api", "web"]) and
   (.networks.ingress.external and .volumes.database.external and .volumes.objects.external) and
   (.services | all(.[]; ((.ports // []) | length) == 0)) and
@@ -14,9 +18,16 @@ env -i PATH="$PATH" "${compose[@]}" config --format json | jq -e '
   (.services.api.environment.Workspace__Identity__Issuer == "https://auth.example.test/realms/workspace") and
   (.services.api.environment.Workspace__Identity__AllowLocalHttp == null) and
   (.services.api.environment.Workspace__Identity__Audience == "workspace-api") and
-  (.configs["web-settings"].content | fromjson | .Identity.ClientId == "workspace-spa") and
+  (.configs["web-settings"].content | fromjson |
+    .Identity.ClientId == "workspace-spa" and
+    (.EvidenceRepositories | . == $expected and
+      (. == null or (type == "object" and all(.[]; test("^https://github[.]com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")))))) and
   (.services.api.environment.Workspace__Docs__ClientId == "workspace-spa")
 '
+}
+
+verify_config ''
+verify_config '{"fixture/ecommerce":"https://github.com/fixture/ecommerce"}'
 jq -e '
   ((.users // []) | length == 0) and
   (.roles.client["${WORKSPACE_KEYCLOAK_API_CLIENT}"] | map(.name) | sort == ["ManageKnowledgeGraph","ReadKnowledgeGraph"]) and
