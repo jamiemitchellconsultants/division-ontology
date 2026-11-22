@@ -62,6 +62,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [52](#entry-plan-knowledge-graph-explorer) | 2026-11-21 | Plan: Knowledge Graph Explorer | product | Build in six test-first tasks: neighbourhood projection, navigation and paging, the diagram, inspection, contribution editing, and browser verification. Pin the upstream Cytoscape 3.35.0 module and license by checksum. |
 | [53](#entry-plan-amendment-knowledge-graph-explorer) | 2026-11-21 | Plan amendment: Knowledge Graph Explorer | product | - Map `.mjs` to `text/javascript; charset=utf-8` in `local.web_types`, and assert it in `workspace.tftest.hcl`. - Thread an optional, validated `evidence_repositories` map through AWS `web_settings` and the home-lab `web-settings` config. |
 | [54](#entry-build-knowledge-graph-explorer) | 2026-11-22 | Build Knowledge Graph Explorer | product | Ship one authorized Blazor graph route over the existing traversal and detail APIs. The local Cytoscape module and native neighbour controls share stable node and edge identities. |
+| [55](#entry-record-knowledge-graph-explorer-user-acceptance) | 2026-11-22 | Record Knowledge Graph Explorer user acceptance | product | Use one Playwright regression suite for B1–B15 with a PowerShell entry point on the home-lab operator machine. |
 
 ---
 
@@ -1415,3 +1416,27 @@ The graph can show published and workspace relationships together, retain its vi
 ---
 
 AI-Fingerprint: sha256:1be3aef2119d
+
+---
+
+<a id="entry-record-knowledge-graph-explorer-user-acceptance"></a>
+
+## Entry 55 — 2026-11-22 — Record Knowledge Graph Explorer user acceptance
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The User-phase walkthroughs exercised the actual home-lab deployment, including interactions across two roles and failures that only a browser-driven scenario can reproduce reliably. Repeating the walkthrough fragments by hand required the operator to carry fixture IDs and paging state between steps.
+
+## Decision
+
+Use one Playwright regression suite for B1–B15 with a PowerShell entry point on the home-lab operator machine. Require the expected release and synthetic snapshot, and require explicit permission to create temporary records for write scenarios. Retain the expected and actual result for each step and a ledger of the run's record IDs and revisions.
+
+## Consequences
+
+An operator can rerun the full suite or select a behaviour while reusing the current terminal's fixture credentials. The runner checks the original graph and the retained checkout inputs after exact-ID cleanup. The write suite needs the synthetic home-lab fixture and two controlled accounts. Contribution history remains available after removal.
+
+---
+
+AI-Fingerprint: sha256:ed03c65c2e9a
