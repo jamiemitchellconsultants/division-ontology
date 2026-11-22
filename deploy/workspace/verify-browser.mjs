@@ -4,6 +4,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { chromium } from 'playwright';
+import { verifyGraphExplorer } from './verify-graph-explorer.mjs';
 
 const target = process.argv[2];
 const homeLab = target === 'home-lab';
@@ -232,6 +233,11 @@ try {
   else {
     await checkOrderFulfilment(reader);
     await checkArchitecturalRelationship(manager, reader);
+    await verifyGraphExplorer({
+      manager, reader, origin, snapshot,
+      fixturePath: homeLab ? undefined : join(scenario, 'checkouts', 'fixture.json'),
+      writes: !homeLab || process.env.WORKSPACE_VERIFY_GRAPH_WRITES === '1'
+    });
     await manager.close();
   }
   console.log(`${target} ${persistence ? 'persistence' : 'browser and API'} smoke passed for application ${appVersion}, snapshot ${snapshot}.`);

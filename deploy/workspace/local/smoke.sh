@@ -35,7 +35,8 @@ cleanup() {
 trap cleanup EXIT
 
 "${compose[@]}" up --build -d --wait
-"$root/deploy/workspace/local/bootstrap.sh"
+manifest="$(node "$root/src/workspace/seed-fixture.mjs" "$scenario/checkouts" "$scenario/bundle")"
+"$root/deploy/workspace/local/bootstrap.sh" "$scenario/bundle" "$manifest"
 "$root/deploy/workspace/verify-docs.sh" "http://workspace.localhost:$WORKSPACE_PORT" --expect-sign-in
 "$root/deploy/workspace/verify.sh" mac
 node "$root/deploy/workspace/verify-traversal-paging.mjs" mac
