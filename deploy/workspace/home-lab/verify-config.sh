@@ -2,6 +2,29 @@
 set -euo pipefail
 dir="$(cd "$(dirname "$0")" && pwd)"
 compose=(docker compose --env-file "$dir/test.env" -f "$dir/compose.yml")
+web_settings_check='
+  .services.api.environment as $api |
+  .configs["web-settings"].content | fromjson |
+  keys == ["EvidenceRepositories", "Identity"] and
+  .Identity == {Authority: $api.Workspace__Identity__Issuer, ClientId: $api.Workspace__Docs__ClientId} and
+  (.EvidenceRepositories | . == null or (type == "object" and all(.[];
+    type == "string" and test("\\Ahttps://github[.]com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+\\z") and
+    (split("/")[-2:] | all(. != "." and . != "..")))))
+'
+
+if [[ $# != 0 ]]; then
+  if [[ $# != 2 || $1 != --env-file ]]; then
+    printf 'Usage: %s [--env-file PATH]\n' "$0" >&2
+    exit 2
+  fi
+  if ! docker compose --env-file "$2" -f "$dir/compose.yml" config --format json |
+      jq -e "$web_settings_check" >/dev/null 2>&1; then
+    printf 'Invalid web settings. WORKSPACE_EVIDENCE_REPOSITORIES must be unset or a JSON object of HTTPS GitHub owner/repository URLs. Identity must match the workspace API settings.\n' >&2
+    exit 1
+  fi
+  exit 0
+fi
+
 # Ignore caller environment overrides when rendering the synthetic contract.
 verify_config() {
   local evidence="$1"
@@ -28,6 +51,17 @@ verify_config() {
 
 verify_config ''
 verify_config '{"fixture/ecommerce":"https://github.com/fixture/ecommerce"}'
+for evidence in '' '{"fixture/ecommerce":"https://github.com/fixture/ecommerce"}'; do
+  env -i PATH="$PATH" WORKSPACE_EVIDENCE_REPOSITORIES="$evidence" bash "$0" --env-file "$dir/test.env"
+done
+for invalid in 'https://github.com/fixture/ecommerce' '[]' '{"fixture/ecommerce":"https://example.test/fixture/ecommerce"}'; do
+  if output=$(env -i PATH="$PATH" WORKSPACE_EVIDENCE_REPOSITORIES="$invalid" \
+      bash "$0" --env-file "$dir/test.env" 2>&1); then
+    printf 'Expected the evidence settings preflight to reject an invalid map.\n' >&2
+    exit 1
+  fi
+  [[ "$output" == *'Invalid web settings.'* ]]
+done
 jq -e '
   ((.users // []) | length == 0) and
   (.roles.client["${WORKSPACE_KEYCLOAK_API_CLIENT}"] | map(.name) | sort == ["ManageKnowledgeGraph","ReadKnowledgeGraph"]) and

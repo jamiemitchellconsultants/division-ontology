@@ -27,6 +27,29 @@ const heading = (page, label, source) => page.getByRole('heading', { level: 1, n
 const result = (scenario, status = 'pass', reason) =>
   console.log(JSON.stringify({ feature: 145, scenario, status, ...(reason ? { reason } : {}) }));
 
+export async function withFinalChecks(scenario, ...finalChecks) {
+  const failures = [];
+  for (const check of [scenario, ...finalChecks]) {
+    try {
+      await check();
+    } catch (error) {
+      failures.push(error);
+    }
+  }
+  if (failures.length === 1) throw failures[0];
+  if (failures.length > 1) {
+    const primary = failures[0];
+    throw new AggregateError(failures, primary instanceof Error ? primary.message : String(primary), { cause: primary });
+  }
+}
+
+export function evidenceHref(root, commit, { path, startLine, endLine }) {
+  const encoded = path.split('/').map(segment => encodeURIComponent(segment)
+    .replace(/[!'()*]/g, character => '%' + character.charCodeAt(0).toString(16).toUpperCase())).join('/');
+  const lines = startLine > 0 && endLine >= startLine ? `#L${startLine}-L${endLine}` : '';
+  return `${root}/blob/${commit}/${encoded}${lines}`;
+}
+
 const traverse = (client, start, direction = 'both') => client.request('/api/traverse', {
   start, direction, maxDepth: 1, includeUnavailable: false
 });
@@ -71,7 +94,7 @@ async function waitForDiagram(page, id = null) {
   await page.waitForFunction(async ({ selector, id }) => {
     const host = document.querySelector(selector);
     if (!host) return false;
-    const module = await import(new URL('graph-diagram.mjs', document.baseURI).href);
+    const module = await import(new URL(host.dataset.graphModule, document.baseURI).href);
     const diagram = module.diagramFor(host);
     return id === null ? Boolean(diagram) : Boolean(diagram?.renderedPosition(id));
   }, { selector: graphHost, id });
@@ -83,7 +106,7 @@ async function canvasPoint(page, id) {
   await host.scrollIntoViewIfNeeded();
   const box = await host.boundingBox();
   const point = await host.evaluate(async (element, id) => {
-    const module = await import(new URL('graph-diagram.mjs', document.baseURI).href);
+    const module = await import(new URL(element.dataset.graphModule, document.baseURI).href);
     const position = module.diagramFor(element)?.renderedPosition(id);
     return position && { x: position.x + element.clientLeft, y: position.y + element.clientTop };
   }, id);
@@ -94,7 +117,7 @@ async function canvasPoint(page, id) {
 async function viewport(page) {
   await waitForDiagram(page);
   return page.locator(graphHost).evaluate(async host => {
-    const module = await import(new URL('graph-diagram.mjs', document.baseURI).href);
+    const module = await import(new URL(host.dataset.graphModule, document.baseURI).href);
     const { pan, zoom } = module.diagramFor(host).captureViewport();
     return { pan, zoom };
   });
@@ -104,7 +127,7 @@ async function waitForViewport(page, expected) {
   await page.waitForFunction(async ({ selector, expected }) => {
     const host = document.querySelector(selector);
     if (!host) return false;
-    const module = await import(new URL('graph-diagram.mjs', document.baseURI).href);
+    const module = await import(new URL(host.dataset.graphModule, document.baseURI).href);
     const current = module.diagramFor(host)?.captureViewport();
     return current && Math.abs(current.zoom - expected.zoom) < 1e-6 &&
       Math.abs(current.pan.x - expected.pan.x) < 1e-6 && Math.abs(current.pan.y - expected.pan.y) < 1e-6;
@@ -137,14 +160,15 @@ async function checkDiagramFallback(page, origin) {
   const module = '**/graph-diagram.mjs';
   const block = route => route.abort();
   await page.route(module, block);
-  try {
+  await withFinalChecks(async () => {
     await enter(page, origin, processNode, 'Order processing');
     await page.getByText('The diagram could not start; use the neighbour list.').waitFor();
     await page.locator(`[data-graph-inspect-node="${nodeId(storefront)}"]`).first().click();
     await details(page).getByRole('heading', { name: `Storefront API · ${ecommerce}`, exact: true }).waitFor();
-  } finally {
-    await page.unroute(module, block);
-  }
+  }, () => page.unroute(module, block));
+  await button(page, 'Retry diagram').click();
+  await waitForDiagram(page, nodeId(storefront));
+  await details(page).getByRole('heading', { name: `Storefront API · ${ecommerce}`, exact: true }).waitFor();
 }
 
 async function search(page, query) {
@@ -171,7 +195,7 @@ async function checkEntryAndHandoff(reader, origin) {
   await keyboardPress(page, button(page, 'Zoom in'));
   await page.waitForFunction(async ({ selector, zoomBefore }) => {
     const host = document.querySelector(selector);
-    const module = await import(new URL('graph-diagram.mjs', document.baseURI).href);
+    const module = await import(new URL(host.dataset.graphModule, document.baseURI).href);
     return module.diagramFor(host)?.captureViewport().zoom > zoomBefore;
   }, { selector: graphHost, zoomBefore });
   const zoomed = await viewport(page);
@@ -231,9 +255,8 @@ async function checkEvidenceAndCoverage(reader, handoff) {
   const root = settings.EvidenceRepositories?.[handoff.provenance.key.sourceId];
   const configured = /^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(root ?? '');
   if (configured) {
-    const path = evidence.path.split('/').map(encodeURIComponent).join('/');
     assert.equal(await details(page).getByRole('link', { name: 'View evidence', exact: true }).first().getAttribute('href'),
-      `${root}/blob/${handoff.provenance.sourceCommit}/${path}#L${evidence.startLine}-L${evidence.endLine}`);
+      evidenceHref(root, handoff.provenance.sourceCommit, evidence));
   } else {
     await details(page).getByText('Evidence link unavailable', { exact: false }).first().waitFor();
     assert.equal(await details(page).getByRole('link', { name: 'View evidence' }).count(), 0);
@@ -284,7 +307,7 @@ async function cleanup(manager, records) {
 
 async function checkParallelEdges(manager, reader, origin, published) {
   const records = new Map();
-  try {
+  await withFinalChecks(async () => {
     const { page } = reader;
     const explanation = 'Synthetic parallel relationship for the graph explorer.';
     const created = await seed(manager, records, published.from, published.to, published.label, explanation);
@@ -304,15 +327,13 @@ async function checkParallelEdges(manager, reader, origin, published) {
     await details(page).getByText(published.provenance.sourceCommit, { exact: true }).waitFor();
     await page.mouse.click(runtimePoint.x, runtimePoint.y);
     await details(page).getByText(explanation, { exact: false }).waitFor();
-    result('Parallel published and workspace edges');
-  } finally {
-    await cleanup(manager, records);
-  }
+  }, () => cleanup(manager, records));
+  result('Parallel published and workspace edges');
 }
 
 async function checkPaging(manager, reader, origin, runId) {
   const records = new Map();
-  try {
+  await withFinalChecks(async () => {
     const { page } = reader;
     for (let index = 0; index < 101; index++) {
       await seed(manager, records, order, warehouseOrder, `Graph paging ${runId} ${index}`, 'Synthetic graph continuation.');
@@ -346,10 +367,8 @@ async function checkPaging(manager, reader, origin, runId) {
     assert.equal(body.cursor, null);
     await page.locator('[data-graph-load-more]:enabled').waitFor();
     assert.equal(await page.getByText('These graph results are out of date.', { exact: false }).count(), 0);
-    result('101 relationships, continuation and live invalidation');
-  } finally {
-    await cleanup(manager, records);
-  }
+  }, () => cleanup(manager, records));
+  result('101 relationships, continuation and live invalidation');
 }
 
 async function saveInGraph(page, submit, path, method, records) {
@@ -365,7 +384,7 @@ async function saveInGraph(page, submit, path, method, records) {
 
 async function checkRuntimeWrites(manager, reader, origin, runId) {
   const records = new Map();
-  try {
+  await withFinalChecks(async () => {
     const { page } = manager;
     const note = `Graph explorer note ${runId}`;
     const label = `Graph explorer relationship ${runId}`;
@@ -404,10 +423,8 @@ async function checkRuntimeWrites(manager, reader, origin, runId) {
       const history = await reader.request(`/api/history?contributionId=${id}`);
       assert.ok(history.entries.some(event => event.type === type), `History for ${type}`);
     }
-    result('Workspace contribution save, edit, history and separate reader');
-  } finally {
-    await cleanup(manager, records);
-  }
+  }, () => cleanup(manager, records));
+  result('Workspace contribution save, edit, history and separate reader');
 }
 
 async function checkReaderRefusal(reader, origin) {
@@ -447,10 +464,10 @@ export async function verifyGraphExplorer({ manager, reader, origin, snapshot, f
   assert.equal(initialSnapshot, snapshot, 'Graph reads the snapshot activated by this fixture');
   const inputs = fixturePath ? await inputState(fixturePath) : null;
   const runId = randomUUID().slice(0, 8);
-  try {
+  await withFinalChecks(async () => {
     await verifyGraphDelivery({ page: reader.page, origin });
     await checkDiagramFallback(reader.page, origin);
-    result('Direct route, same-origin modules and native fallback');
+    result('Direct route, same-origin modules, native fallback and retry');
     const handoff = await checkEntryAndHandoff(reader, origin);
     await checkReaderRefusal(reader, origin);
     if (writes) {
@@ -462,14 +479,15 @@ export async function verifyGraphExplorer({ manager, reader, origin, snapshot, f
         'Workspace contribution save, edit, history and separate reader'])
         result(name, 'skipped', 'Home-lab writes require WORKSPACE_VERIFY_GRAPH_WRITES=1');
     }
-  } finally {
+  }, async () => {
     assert.equal((await traverse(reader, order)).snapshotId, initialSnapshot, 'Graph use preserves the active published snapshot');
     result('Published snapshot preserved');
+  }, async () => {
     if (fixturePath) {
       assert.deepEqual(await inputState(fixturePath), inputs);
       result('Adopting and source Turtle bytes and Git revisions preserved');
     } else {
       result('Adopting and source Turtle bytes and Git revisions preserved', 'skipped', 'Source checkouts are local to the Mac fixture');
     }
-  }
+  });
 }

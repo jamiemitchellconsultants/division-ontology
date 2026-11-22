@@ -5,16 +5,19 @@
 @if (failed)
 {
     <p role="status">The diagram could not start; use the neighbour list.</p>
+    <button type="button" @onclick="OnRetry">Retry diagram</button>
 }
 else
 {
-    <div class="graph-diagram" data-graph-diagram @ref="host" role="img" aria-label="Directed graph of the current neighbourhood"></div>
+    <div class="graph-diagram" data-graph-diagram data-graph-module="@ModulePath" @ref="host" role="img" aria-label="Directed graph of the current neighbourhood"></div>
 }
 
 @code {
     [Parameter, EditorRequired] public GraphNeighbourhood Neighbourhood { get; set; } = default!;
     [Parameter] public string? SelectedId { get; set; }
     [Parameter] public GraphViewport? Viewport { get; set; }
+    [Parameter, EditorRequired] public string ModulePath { get; set; } = "";
+    [Parameter] public EventCallback OnRetry { get; set; }
     [Parameter] public EventCallback<PublishedKey> OnFollow { get; set; }
     [Parameter] public EventCallback<string> OnInspect { get; set; }
     [Parameter] public EventCallback<bool> OnAvailability { get; set; }
@@ -48,7 +51,7 @@ else
         {
             if (diagram is null)
             {
-                module = await JS.InvokeAsync<IJSObjectReference?>("import", "./graph-diagram.mjs");
+                module = await JS.InvokeAsync<IJSObjectReference?>("import", ModulePath);
                 if (disposed) return;
                 if (module is not null)
                 {

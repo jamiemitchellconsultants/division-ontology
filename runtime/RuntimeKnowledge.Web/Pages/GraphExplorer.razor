@@ -120,8 +120,9 @@ else
             }
         }
 
-        <GraphDiagram @ref="diagram" Neighbourhood="view" SelectedId="@current.SelectedId" Viewport="current.Viewport"
-            OnFollow="Follow" OnInspect="Inspect" OnAvailability="available => diagramAvailable = available" />
+        <GraphDiagram @key="diagramAttempt" @ref="diagram" Neighbourhood="view" SelectedId="@current.SelectedId" Viewport="current.Viewport"
+            ModulePath="@DiagramModulePath" OnRetry="RetryDiagram" OnFollow="Follow" OnInspect="Inspect"
+            OnAvailability="available => diagramAvailable = available" />
         <GraphNeighbourList @ref="neighbours" Neighbourhood="view" SelectedId="@current.SelectedId" OnFollow="Follow" OnInspect="InspectNeighbour" />
         @if (current.InspectorOpen)
         {
@@ -156,6 +157,7 @@ else
     private CancellationTokenSource? request;
     private long requestId;
     private long focusRequest;
+    private int diagramAttempt;
     private (string Key, string? Direction, string? Action, string? Id)? entry;
     private GraphEditorRequest? entryResume;
     private GraphContributionSaved? lastSaved;
@@ -163,6 +165,7 @@ else
     private bool invalidEntry, refreshed, diagramAvailable;
 
     private string Heading => frame is null ? "Knowledge graph" : Name(frame.View.Query.Focus);
+    private string DiagramModulePath => diagramAttempt == 0 ? "./graph-diagram.mjs" : $"./graph-diagram.mjs?retry={diagramAttempt}";
     private string Name(PublishedKey key) => $"{frame?.View.Nodes.GetValueOrDefault(key)?.Label ?? key.Identifier} · {key.SourceId}";
 
     protected override Task OnParametersSetAsync()
@@ -270,7 +273,7 @@ else
         CancelRead();
         DismissError();
         refreshed = false;
-        frame = history.Pop() with { ResumeEditor = null };
+        frame = history.Pop() with { ResumeEditor = null, FocusRequest = 0 };
         return Task.CompletedTask;
     }
 
@@ -349,6 +352,13 @@ else
             refreshed = true;
         }
         var view = GraphNeighbourhood.FromPage(read.Query, page);
+        if (read.Kind == ReadKind.Reload && frame is { InspectorOpen: true } current &&
+            (current.DetachedRelationshipId is not null || view.Edges.Any(edge => edge.Id == current.SelectedId) ||
+             view.Nodes.Keys.Any(key => WorkspaceLinks.GraphNodeId(key) == current.SelectedId)))
+        {
+            frame = current with { View = view, Stale = false };
+            return;
+        }
         if (read.Kind == ReadKind.First && session?.CanManage == true && entryResume is { } resume)
         {
             entryResume = null;
@@ -379,6 +389,7 @@ else
 
     private Task ZoomBy(double factor) => diagram?.ZoomByAsync(factor).AsTask() ?? Task.CompletedTask;
     private Task ResetZoom() => diagram?.ResetZoomAsync().AsTask() ?? Task.CompletedTask;
+    private void RetryDiagram() => diagramAttempt++;
 
     private void CancelRead()
     {

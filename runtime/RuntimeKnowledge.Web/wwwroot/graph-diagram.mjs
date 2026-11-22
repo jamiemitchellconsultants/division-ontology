@@ -1,4 +1,6 @@
-import cytoscape from './vendor/cytoscape/3.35.0/cytoscape.esm.min.mjs';
+const vendor = new URL('./vendor/cytoscape/3.35.0/cytoscape.esm.min.mjs', import.meta.url);
+vendor.search = new URL(import.meta.url).search;
+const { default: cytoscape } = await import(vendor.href);
 
 const diagrams = new WeakMap();
 const ringSlots = 8;

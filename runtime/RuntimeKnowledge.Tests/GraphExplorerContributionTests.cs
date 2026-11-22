@@ -78,6 +78,38 @@ public sealed class GraphExplorerContributionTests
     }
 
     [Fact]
+    public async Task SavedRelationshipStaysOpenWhenThePendingReloadFinishes()
+    {
+        var reload = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var api = new WriteHandler { HideEdgeAfterWrite = true, HoldReload = reload.Task };
+        using var context = GraphTestContext.Create(api);
+        var graph = Render(context);
+        Open(graph, "add-relationship");
+        graph.WaitForElements("form select", 3)[1].Change(Warehouse.StorageKey);
+        graph.Find("form input").Change("Recent handoff");
+        graph.Find("form textarea").Change("Confirm stock before dispatch.");
+        var saving = graph.Find("form").SubmitAsync(new());
+        try
+        {
+            graph.WaitForAssertion(() => Assert.Equal(2, api.Traversals.Count));
+            graph.WaitForElement("button[data-graph-saved-record]").Click();
+            Assert.Contains("Recent handoff", graph.Find("section[aria-label='Graph details']").TextContent);
+        }
+        finally
+        {
+            reload.SetResult();
+            await saving;
+        }
+        graph.WaitForAssertion(() =>
+        {
+            var inspector = graph.FindComponent<RuntimeKnowledge.Web.Components.GraphInspector>();
+            Assert.Equal($"r:{EdgeId:D}", inspector.Instance.SelectedId);
+            Assert.Contains("Recent handoff", inspector.Markup);
+            Assert.DoesNotContain("out of date", graph.Markup);
+        });
+    }
+
+    [Fact]
     public void SuccessfulWritesRefreshFromPageOneWithoutRepeatingTheWrite()
     {
         var api = new WriteHandler { FailRefreshAfterWrite = true };
@@ -236,6 +268,7 @@ public sealed class GraphExplorerContributionTests
         public bool EdgeOffFirstPage { get; init; }
         public bool EdgeRemoved { get; set; }
         public bool FailRefreshAfterWrite { get; set; }
+        public Task? HoldReload { get; init; }
         public HttpStatusCode? WriteFailure { get; set; }
         public ConcurrentQueue<TraversalRequest> Traversals { get; } = new();
         public ConcurrentQueue<RelationshipDetailRequest> RelationshipReads { get; } = new();
@@ -256,6 +289,7 @@ public sealed class GraphExplorerContributionTests
                 case "/api/traverse":
                     var query = await Read<TraversalRequest>();
                     Traversals.Enqueue(query);
+                    if (!Writes.IsEmpty && HoldReload is not null) await HoldReload.WaitAsync(token);
                     if (failRead)
                     {
                         failRead = false;

@@ -144,6 +144,8 @@ public sealed class GraphExplorerNavigationTests
         graph.Find("button[data-graph-follow]").Click();
         graph.WaitForAssertion(() => Assert.Contains(Warehouse.SourceId, graph.Find("h1").TextContent));
         var beforeBack = api.Requests.Count;
+        var focusCalls = context.JSInterop.Invocations["Blazor._internal.domWrapper.focus"].Count;
+        Assert.True(focusCalls > 0);
         Button(graph, "Back").Click();
         graph.WaitForAssertion(() =>
         {
@@ -153,6 +155,8 @@ public sealed class GraphExplorerNavigationTests
             Assert.Equal("true", graph.FindAll("button[data-graph-inspect-edge]")[1].GetAttribute("aria-pressed"));
             Assert.Equal(beforeBack, api.Requests.Count);
             Assert.Same(savedViewport, Assert.Single(diagram.VerifyInvoke("restoreViewport").Arguments));
+            Assert.NotNull(graph.Find("section[aria-label='Graph details']"));
+            Assert.Equal(focusCalls, context.JSInterop.Invocations["Blazor._internal.domWrapper.focus"].Count);
         });
     }
 
@@ -170,6 +174,24 @@ public sealed class GraphExplorerNavigationTests
         graph.Find("button[data-graph-follow]").Click();
         graph.WaitForAssertion(() => Assert.Equal(Warehouse, api.Requests.Last().Start));
         Assert.DoesNotContain(context.JSInterop.Invocations, invocation => invocation.Identifier == "render");
+    }
+
+    [Fact]
+    public void AFailedDiagramCanBeRetriedInTheSameGraph()
+    {
+        var api = new ReadHandler((request, _) => Task.FromResult(Json(Page(request.Start, label: "Handoff"))));
+        using var context = GraphTestContext.Create(api);
+        GraphTestContext.SetupUnavailableDiagram(context);
+        var graph = Render(context);
+        graph.WaitForElement("[data-graph-inspect-node]").Click();
+        Button(graph, "Retry diagram").Click();
+        graph.WaitForAssertion(() =>
+        {
+            Assert.DoesNotContain("The diagram could not start", graph.Markup);
+            Assert.NotNull(graph.Find("[data-graph-diagram]"));
+            Assert.Equal("true", graph.Find("[data-graph-inspect-node]").GetAttribute("aria-pressed"));
+            Assert.Single(api.Requests);
+        });
     }
 
     [Fact]
