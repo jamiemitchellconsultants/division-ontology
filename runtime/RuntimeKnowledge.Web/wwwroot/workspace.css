@@ -8,3 +8,16 @@ button, input, select, textarea { font: inherit; }
 code, pre { overflow-wrap: anywhere; white-space: pre-wrap; }
 section, fieldset { margin-block: 1rem; }
 li { margin-block: .5rem; }
+.graph-diagram {
+  --graph-ink: #233a54;
+  --graph-paper: #f6f9fc;
+  min-height: 22rem;
+  height: min(55svh, 38rem);
+  margin-block: 1rem;
+  border: 1px solid #9aabbf;
+  border-radius: .375rem;
+  background: var(--graph-paper);
+}
+@media (prefers-color-scheme: dark) {
+  .graph-diagram { --graph-ink: #d5e5ff; --graph-paper: #202b3a; }
+}

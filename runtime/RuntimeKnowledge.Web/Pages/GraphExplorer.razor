@@ -1,0 +1,407 @@
+@page "/graph/{Key}"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@implements IDisposable
+@inject WorkspaceClient Api
+
+<PageTitle>Knowledge graph</PageTitle>
+<h1>@Heading</h1>
+
+@if (invalidEntry)
+{
+    <p role="alert">This graph link does not identify a published concept or node.</p>
+    <a href="./">Back to search</a>
+}
+else
+{
+    <div class="actions" aria-label="Graph navigation">
+        @if (history.Count > 0)
+        {
+            <button type="button" @onclick="Back">Back</button>
+        }
+        @if (frame is not null)
+        {
+            <label>Direction
+                <select aria-label="Direction" value="@(pending?.Query.Direction ?? frame.View.Query.Direction)" @onchange="ChangeDirection">
+                    <option value="both">Both</option>
+                    <option value="incoming">Incoming</option>
+                    <option value="outgoing">Outgoing</option>
+                </select>
+            </label>
+            @if (frame.Stale)
+            {
+                @if (failed?.Kind != ReadKind.Reload)
+                {
+                    <button type="button" disabled="@(pending is not null)" @onclick="Reload">Reload</button>
+                }
+            }
+            else if (frame.View.NextCursor is not null)
+            {
+                <button type="button" data-graph-load-more disabled="@(pending is not null)" @onclick="LoadMore">Load more</button>
+            }
+            <button type="button" data-graph-inspect-focus @ref="focusDetails" @onclick="InspectFocus">Inspect focus</button>
+            @if (diagramAvailable)
+            {
+                <button type="button" @onclick="() => ZoomBy(1.25)">Zoom in</button>
+                <button type="button" @onclick="() => ZoomBy(0.8)">Zoom out</button>
+                <button type="button" @onclick="ResetZoom">Reset zoom</button>
+            }
+        }
+    </div>
+
+    @if (lastSaved is { } saved)
+    {
+        <div data-graph-save-status>
+            <p role="status">Change saved.</p>
+            @if (!saved.IsRemoval && (saved.IsRelationship || savedFocus == frame?.View.Query.Focus))
+            {
+                <button type="button" data-graph-saved-record @onclick="OpenSavedRecord">@(saved.IsRelationship ? "View saved relationship" : "View saved note")</button>
+            }
+            <a href="@($"history/{saved.Result.Id:D}")">Contribution history</a>
+        </div>
+    }
+
+    <div role="status">
+        @if (pending is { } loading)
+        {
+            <p>@(loading.Kind == ReadKind.Append ? "Loading more connections…" : $"Loading {Name(loading.Query.Focus)}…")</p>
+        }
+        @if (frame?.Stale == true)
+        {
+            <p>These graph results are out of date. Reload to check for changes.</p>
+        }
+        @if (refreshed)
+        {
+            <p>The saved graph view was refreshed.</p>
+        }
+    </div>
+
+    @if (error is not null && failed is { } attempted)
+    {
+        <p>Could not load the graph for @Name(attempted.Query.Focus).</p>
+        <ApiError Error="error" />
+        @if (error.Status == System.Net.HttpStatusCode.NotFound)
+        {
+            <a href="./">Back to search</a>
+        }
+        else
+        {
+            <button type="button" data-graph-retry @onclick="() => Read(attempted)">Retry</button>
+        }
+        @if (frame is not null && attempted.Query != frame.View.Query)
+        {
+            <button type="button" @onclick="DismissError">Return to current view</button>
+        }
+    }
+
+    @if (frame is { View: var view } current)
+    {
+        @if (view.RelevantGaps.Count > 0)
+        {
+            <p role="status">Source coverage is incomplete for this neighbourhood.</p>
+            <CoverageGaps Gaps="view.RelevantGaps" />
+        }
+        @if (view.OtherGaps.Count > 0)
+        {
+            <p>@view.OtherGaps.Count coverage gaps elsewhere in the division. <a href="./">View division coverage</a></p>
+        }
+        @if (!current.Stale)
+        {
+            @if (view.NextCursor is null && view.TraversalIncomplete)
+            {
+                <p role="status">Results are incomplete and further paging is unavailable.</p>
+            }
+            else if (view.Edges.Count == 0 && view.NextCursor is not null)
+            {
+                <p role="status">Check more results for visible connections.</p>
+            }
+            else if (view.Edges.Count == 0 && view.RelevantGaps.Count == 0)
+            {
+                <p role="status">No visible connections in this direction.</p>
+            }
+        }
+
+        <GraphDiagram @key="diagramAttempt" @ref="diagram" Neighbourhood="view" SelectedId="@current.SelectedId" Viewport="current.Viewport"
+            ModulePath="@DiagramModulePath" OnRetry="RetryDiagram" OnFollow="Follow" OnInspect="Inspect"
+            OnAvailability="available => diagramAvailable = available" />
+        <GraphNeighbourList @ref="neighbours" Neighbourhood="view" SelectedId="@current.SelectedId" OnFollow="Follow" OnInspect="InspectNeighbour" />
+        @if (current.InspectorOpen)
+        {
+            <GraphInspector Neighbourhood="view" SelectedId="@current.SelectedId" OnFollow="Follow" OnClose="CloseInspector"
+                OnSnapshotObserved="snapshot => ObserveSnapshot(view.Query, view.SnapshotId, current.SelectedId, snapshot)"
+                CanManage="@(session?.CanManage == true)" ResumeEditor="current.ResumeEditor" FocusRequest="current.FocusRequest"
+                DetachedRelationshipId="current.DetachedRelationshipId" OnSaved="result => Saved(view.Query.Focus, result)" />
+        }
+    }
+}
+
+@code {
+    [Parameter] public string Key { get; set; } = "";
+    [Parameter, SupplyParameterFromQuery(Name = "direction")] public string? ResumeDirection { get; set; }
+    [Parameter, SupplyParameterFromQuery(Name = "editor")] public string? ResumeAction { get; set; }
+    [Parameter, SupplyParameterFromQuery(Name = "contributionId")] public string? ResumeId { get; set; }
+
+    private enum ReadKind { First, Direction, Follow, Back, Reload, Append }
+    private sealed record GraphRead(GraphQuery Query, ReadKind Kind, string? Cursor = null);
+    private sealed record Frame(GraphNeighbourhood View, string SelectedId, bool Stale = false,
+        GraphDiagram.GraphViewport? Viewport = null, bool InspectorOpen = false, bool InspectedFromList = false,
+        GraphEditorRequest? ResumeEditor = null, Guid? DetachedRelationshipId = null, long FocusRequest = 0);
+
+    private readonly Stack<Frame> history = new();
+    private GraphDiagram? diagram;
+    private GraphNeighbourList? neighbours;
+    private ElementReference focusDetails;
+    private Frame? frame;
+    private GraphRead? pending, failed;
+    private WorkspaceApiException? error;
+    private WorkspaceSession? session;
+    private CancellationTokenSource? request;
+    private long requestId;
+    private long focusRequest;
+    private int diagramAttempt;
+    private (string Key, string? Direction, string? Action, string? Id)? entry;
+    private GraphEditorRequest? entryResume;
+    private GraphContributionSaved? lastSaved;
+    private PublishedKey? savedFocus;
+    private bool invalidEntry, refreshed, diagramAvailable;
+
+    private string Heading => frame is null ? "Knowledge graph" : Name(frame.View.Query.Focus);
+    private string DiagramModulePath => diagramAttempt == 0 ? "./graph-diagram.mjs" : $"./graph-diagram.mjs?retry={diagramAttempt}";
+    private string Name(PublishedKey key) => $"{frame?.View.Nodes.GetValueOrDefault(key)?.Label ?? key.Identifier} · {key.SourceId}";
+
+    protected override Task OnParametersSetAsync()
+    {
+        var route = (Key, ResumeDirection, ResumeAction, ResumeId);
+        if (entry == route) return Task.CompletedTask;
+        entry = route;
+        CancelRead();
+        history.Clear();
+        frame = null;
+        diagramAvailable = false;
+        session = null;
+        lastSaved = null;
+        savedFocus = null;
+        refreshed = false;
+        DismissError();
+        var key = WorkspaceLinks.Decode(Key);
+        invalidEntry = key is null || !WorkspaceLinks.CanGraph(key);
+        var direction = WorkspaceLinks.IsGraphDirection(ResumeDirection) ? ResumeDirection! : "both";
+        entryResume = ResumeDirection is null || WorkspaceLinks.IsGraphDirection(ResumeDirection)
+            ? GraphEditorRequest.Parse(ResumeAction, ResumeId) : null;
+        return invalidEntry ? Task.CompletedTask : Read(new(new(key!, direction), ReadKind.First));
+    }
+
+    private Task ChangeDirection(ChangeEventArgs args) =>
+        frame is not null && args.Value is string direction && WorkspaceLinks.IsGraphDirection(direction)
+            ? Read(new(frame.View.Query with { Direction = direction }, ReadKind.Direction))
+            : Task.CompletedTask;
+
+    private Task Follow(PublishedKey key) => frame is not null && key != frame.View.Query.Focus && WorkspaceLinks.CanGraph(key)
+        ? Read(new(frame.View.Query with { Focus = key }, ReadKind.Follow))
+        : Task.CompletedTask;
+
+    private void InspectFocus()
+    {
+        if (frame is not null) SelectForInspection(WorkspaceLinks.GraphNodeId(frame.View.Query.Focus), fromList: false, focusInspector: true);
+    }
+
+    private void Inspect(string id) => SelectForInspection(id, fromList: false, focusInspector: false);
+    private void InspectNeighbour(string id) => SelectForInspection(id, fromList: true, focusInspector: true);
+
+    private void SelectForInspection(string id, bool fromList, bool focusInspector)
+    {
+        if (frame is not null)
+            frame = frame with { SelectedId = id, InspectorOpen = true, InspectedFromList = fromList,
+                ResumeEditor = null, DetachedRelationshipId = null, FocusRequest = focusInspector ? ++focusRequest : 0 };
+    }
+
+    private async Task CloseInspector()
+    {
+        if (frame is not { } current) return;
+        frame = current with { InspectorOpen = false, ResumeEditor = null };
+        if (current.InspectedFromList && neighbours is not null && await neighbours.RestoreInspectionFocusAsync(current.SelectedId)) return;
+        await focusDetails.FocusAsync();
+    }
+
+    private Task Saved(PublishedKey focus, GraphContributionSaved result)
+    {
+        lastSaved = result;
+        savedFocus = focus;
+        if (frame is not { } current) return Task.CompletedTask;
+        frame = current with { InspectorOpen = false, ResumeEditor = null };
+        MarkStale();
+        return Reload();
+    }
+
+    private void OpenSavedRecord()
+    {
+        if (frame is not { } current || lastSaved is not { IsRemoval: false } saved) return;
+        if (saved.IsRelationship)
+        {
+            var id = saved.Result.Id;
+            SelectForInspection(WorkspaceLinks.GraphRuntimeId(id), fromList: false, focusInspector: true);
+            frame = frame! with { DetachedRelationshipId = id };
+        }
+        else if (current.View.Query.Focus == savedFocus)
+        {
+            InspectFocus();
+        }
+    }
+
+    private Task ObserveSnapshot(GraphQuery query, string previousSnapshot, string selection, string snapshot)
+    {
+        if (frame is null || frame.View.Query != query || frame.SelectedId != selection ||
+            frame.View.SnapshotId != previousSnapshot || snapshot == previousSnapshot)
+            return Task.CompletedTask;
+
+        MarkStale();
+        if (pending is not { } active) return Task.CompletedTask;
+        if (active.Kind != ReadKind.Append) return Read(active);
+        CancelRead();
+        return Task.CompletedTask;
+    }
+
+    private Task LoadMore() => pending is null && frame is { Stale: false, View.NextCursor: { } cursor }
+        ? Read(new(frame.View.Query, ReadKind.Append, cursor))
+        : Task.CompletedTask;
+
+    private Task Reload() => frame is null ? Task.CompletedTask : Read(new(frame.View.Query, ReadKind.Reload));
+
+    private Task Back()
+    {
+        if (!history.TryPeek(out var previous)) return Task.CompletedTask;
+        if (previous.Stale) return Read(new(previous.View.Query, ReadKind.Back));
+        CancelRead();
+        DismissError();
+        refreshed = false;
+        frame = history.Pop() with { ResumeEditor = null, FocusRequest = 0 };
+        return Task.CompletedTask;
+    }
+
+    private async Task Read(GraphRead read)
+    {
+        CancelRead();
+        var id = requestId;
+        using var cancellation = new CancellationTokenSource();
+        request = cancellation;
+        pending = read;
+        refreshed = false;
+        DismissError();
+        try
+        {
+            if (session is null)
+            {
+                var capability = await Api.Session(cancellation.Token);
+                if (id != requestId) return;
+                if (!capability.CanRead)
+                    throw new WorkspaceApiException(System.Net.HttpStatusCode.Forbidden, detail: "Graph read access is required.");
+                session = capability;
+            }
+
+            var page = await Api.Traverse(read.Query.ToRequest(read.Cursor), cancellation.Token);
+            if (id != requestId) return;
+            var viewport = read.Kind == ReadKind.Follow && diagram is not null ? await diagram.CaptureViewportAsync() : null;
+            if (id == requestId) ApplyPage(read, page, viewport);
+        }
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+        {
+            // A later read owns the current view.
+        }
+        catch (WorkspaceApiException problem) when (id == requestId)
+        {
+            if (read.Kind == ReadKind.Append && problem.Code is "staleCursor" or "invalidCursor")
+                MarkStale();
+            else
+            {
+                error = problem;
+                failed = read;
+            }
+        }
+        catch (WorkspaceApiException)
+        {
+            // A superseded error no longer describes the current view.
+        }
+        finally
+        {
+            if (id == requestId)
+            {
+                pending = null;
+                request = null;
+            }
+        }
+    }
+
+    private void ApplyPage(GraphRead read, TraversalResult page, GraphDiagram.GraphViewport? viewport)
+    {
+        if (read.Kind == ReadKind.Append && frame is { } active)
+        {
+            if (page.SnapshotId != active.View.SnapshotId)
+                MarkStale();
+            else
+                frame = active with { View = active.View.Append(page) };
+            return;
+        }
+
+        if (frame is not null && page.SnapshotId != frame.View.SnapshotId)
+            MarkStale();
+        var selection = WorkspaceLinks.GraphNodeId(read.Query.Focus);
+        if (read.Kind == ReadKind.Follow && frame is not null)
+            history.Push(frame with { Viewport = viewport });
+        if (read.Kind == ReadKind.Back)
+        {
+            history.Pop();
+            refreshed = true;
+        }
+        var view = GraphNeighbourhood.FromPage(read.Query, page);
+        if (read.Kind == ReadKind.Reload && frame is { InspectorOpen: true } current &&
+            (current.DetachedRelationshipId is not null || view.Edges.Any(edge => edge.Id == current.SelectedId) ||
+             view.Nodes.Keys.Any(key => WorkspaceLinks.GraphNodeId(key) == current.SelectedId)))
+        {
+            frame = current with { View = view, Stale = false };
+            return;
+        }
+        if (read.Kind == ReadKind.First && session?.CanManage == true && entryResume is { } resume)
+        {
+            entryResume = null;
+            var relationshipId = resume.IsRelationship ? resume.ContributionId : null;
+            var selected = relationshipId is { } runtime ? WorkspaceLinks.GraphRuntimeId(runtime) : selection;
+            frame = new(view, selected, InspectorOpen: true, ResumeEditor: resume, DetachedRelationshipId: relationshipId);
+        }
+        else
+        {
+            frame = new(view, selection);
+        }
+    }
+
+    private void MarkStale()
+    {
+        if (frame is not null) frame = frame with { Stale = true };
+        var frames = history.ToArray();
+        history.Clear();
+        foreach (var previous in frames.Reverse())
+            history.Push(previous with { Stale = true });
+    }
+
+    private void DismissError()
+    {
+        error = null;
+        failed = null;
+    }
+
+    private Task ZoomBy(double factor) => diagram?.ZoomByAsync(factor).AsTask() ?? Task.CompletedTask;
+    private Task ResetZoom() => diagram?.ResetZoomAsync().AsTask() ?? Task.CompletedTask;
+    private void RetryDiagram() => diagramAttempt++;
+
+    private void CancelRead()
+    {
+        requestId++;
+        request?.Cancel();
+        request = null;
+        pending = null;
+    }
+
+    public void Dispose()
+    {
+        CancelRead();
+        history.Clear();
+    }
+}

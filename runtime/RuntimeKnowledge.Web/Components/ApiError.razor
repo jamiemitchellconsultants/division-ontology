@@ -17,7 +17,14 @@
 
 @code {
     [Parameter] public WorkspaceApiException? Error { get; set; }
+    [Parameter] public string? ReturnRoute { get; set; }
 
-    private void SignIn() => Navigation.NavigateToLogin("authentication/login",
-        new InteractiveRequestOptions { Interaction = InteractionType.SignIn, ReturnUrl = Navigation.Uri });
+    private void SignIn()
+    {
+        var baseUri = new Uri(Navigation.BaseUri);
+        var returnUrl = ReturnRoute is not null && Uri.TryCreate(baseUri, ReturnRoute, out var absolute) &&
+            baseUri.IsBaseOf(absolute) && string.IsNullOrEmpty(absolute.UserInfo) ? absolute.AbsoluteUri : Navigation.Uri;
+        Navigation.NavigateToLogin("authentication/login",
+            new InteractiveRequestOptions { Interaction = InteractionType.SignIn, ReturnUrl = returnUrl });
+    }
 }

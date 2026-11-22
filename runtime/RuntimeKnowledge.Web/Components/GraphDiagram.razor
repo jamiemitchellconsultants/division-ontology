@@ -1,0 +1,170 @@
+@using Microsoft.JSInterop
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+@if (failed)
+{
+    <p role="status">The diagram could not start; use the neighbour list.</p>
+    <button type="button" @onclick="OnRetry">Retry diagram</button>
+}
+else
+{
+    <div class="graph-diagram" data-graph-diagram data-graph-module="@ModulePath" @ref="host" role="img" aria-label="Directed graph of the current neighbourhood"></div>
+}
+
+@code {
+    [Parameter, EditorRequired] public GraphNeighbourhood Neighbourhood { get; set; } = default!;
+    [Parameter] public string? SelectedId { get; set; }
+    [Parameter] public GraphViewport? Viewport { get; set; }
+    [Parameter, EditorRequired] public string ModulePath { get; set; } = "";
+    [Parameter] public EventCallback OnRetry { get; set; }
+    [Parameter] public EventCallback<PublishedKey> OnFollow { get; set; }
+    [Parameter] public EventCallback<string> OnInspect { get; set; }
+    [Parameter] public EventCallback<bool> OnAvailability { get; set; }
+
+    public sealed record GraphPoint(double X, double Y);
+    public sealed record GraphViewport(GraphPoint Pan, double Zoom, Dictionary<string, GraphPoint> Positions);
+
+    private sealed record DiagramNode(string Id, string Label);
+    private sealed record DiagramEdge(string Id, string Source, string Target, string Label, string Origin);
+    private sealed record DiagramModel(string Focus, string? SelectedId, DiagramNode[] Nodes, DiagramEdge[] Edges);
+
+    private ElementReference host;
+    private DotNetObjectReference<GraphDiagram>? callbacks;
+    private IJSObjectReference? module, diagram;
+    private GraphNeighbourhood? rendered;
+    private string? renderedSelection;
+    private GraphViewport? restored;
+    private Task? update;
+    private bool failed, disposed, updating;
+
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (failed || disposed || updating) return Task.CompletedTask;
+        updating = true;
+        return update = UpdateDiagram();
+    }
+
+    private async Task UpdateDiagram()
+    {
+        try
+        {
+            if (diagram is null)
+            {
+                module = await JS.InvokeAsync<IJSObjectReference?>("import", ModulePath);
+                if (disposed) return;
+                if (module is not null)
+                {
+                    callbacks = DotNetObjectReference.Create(this);
+                    diagram = await module.InvokeAsync<IJSObjectReference?>("mount", host, callbacks);
+                }
+                if (disposed) return;
+                if (diagram is null)
+                {
+                    await ShowFailure();
+                    return;
+                }
+                await OnAvailability.InvokeAsync(true);
+            }
+
+            while (!disposed && !failed && (rendered != Neighbourhood || renderedSelection != SelectedId || restored != Viewport))
+            {
+                var view = Neighbourhood;
+                var selection = SelectedId;
+                var viewport = Viewport;
+                await diagram.InvokeVoidAsync("render", Model(view, selection));
+                if (!disposed && viewport is not null && viewport != restored)
+                    await RestoreViewportAsync(viewport);
+                rendered = view;
+                renderedSelection = selection;
+                restored = viewport;
+            }
+        }
+        catch (JSException)
+        {
+            if (!disposed) await ShowFailure();
+        }
+        finally
+        {
+            updating = false;
+        }
+    }
+
+    private async Task ShowFailure()
+    {
+        failed = true;
+        await OnAvailability.InvokeAsync(false);
+        StateHasChanged();
+    }
+
+    private static DiagramModel Model(GraphNeighbourhood view, string? selection)
+    {
+        var focus = WorkspaceLinks.GraphNodeId(view.Query.Focus);
+        var nodes = view.Nodes.Values.Select(entity => new DiagramNode(WorkspaceLinks.GraphNodeId(entity.Key),
+            $"{entity.Label}\n{entity.Key.SourceId}")).ToArray();
+        var edges = view.Edges.Select(edge => new DiagramEdge(edge.Id, WorkspaceLinks.GraphNodeId(edge.Step.From),
+            WorkspaceLinks.GraphNodeId(edge.Step.To),
+            $"{edge.Step.Label} · {(edge.Step.RuntimeId is null ? "Published" : "Workspace")}", edge.Step.Origin)).ToArray();
+        return new(focus, selection, nodes, edges);
+    }
+
+    [JSInvokable]
+    public Task InspectGraphItem(string id) =>
+        !disposed && (Node(id) is not null || Neighbourhood.Edges.Any(edge => edge.Id == id))
+            ? OnInspect.InvokeAsync(id) : Task.CompletedTask;
+
+    [JSInvokable]
+    public Task FollowGraphNode(string id) =>
+        !disposed && Node(id) is { } key && key != Neighbourhood.Query.Focus && WorkspaceLinks.CanGraph(key)
+            ? OnFollow.InvokeAsync(key) : Task.CompletedTask;
+
+    private PublishedKey? Node(string id) => Neighbourhood.Nodes.Keys.FirstOrDefault(key => WorkspaceLinks.GraphNodeId(key) == id);
+
+    public async ValueTask<GraphViewport?> CaptureViewportAsync()
+    {
+        if (diagram is null || failed || disposed) return null;
+        try { return await diagram.InvokeAsync<GraphViewport?>("captureViewport"); }
+        catch (JSException)
+        {
+            if (!disposed) await ShowFailure();
+            return null;
+        }
+    }
+
+    public ValueTask RestoreViewportAsync(GraphViewport viewport) => CallDiagram("restoreViewport", viewport);
+    public ValueTask ZoomByAsync(double factor) => CallDiagram("zoomBy", factor);
+    public ValueTask ResetZoomAsync() => CallDiagram("resetZoom");
+
+    private async ValueTask CallDiagram(string action, params object?[] arguments)
+    {
+        if (diagram is null || failed || disposed) return;
+        try { await diagram.InvokeVoidAsync(action, arguments); }
+        catch (JSException)
+        {
+            if (!disposed) await ShowFailure();
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        disposed = true;
+        try
+        {
+            if (update is not null) await update;
+            if (diagram is not null)
+            {
+                await diagram.InvokeVoidAsync("dispose");
+                await diagram.DisposeAsync();
+            }
+            if (module is not null) await module.DisposeAsync();
+        }
+        catch (JSException)
+        {
+            // The browser may already have released the diagram.
+        }
+        finally
+        {
+            callbacks?.Dispose();
+        }
+    }
+}

@@ -9,9 +9,26 @@
             <ul aria-label="Source evidence">
                 @foreach (var evidence in origin.Evidence)
                 {
-                    <li><code>@evidence.Path</code> lines @evidence.StartLine–@evidence.EndLine (@evidence.Role) · <code>@evidence.BlobId</code></li>
+                    <li>
+                        <code>@evidence.Path</code> lines @evidence.StartLine–@evidence.EndLine (@evidence.Role) · <code>@evidence.BlobId</code>
+                        @if (Repositories is { } repositories)
+                        {
+                            @if (GraphEvidenceLinks.TryCreate(repositories.Map, origin, evidence) is { } link)
+                            {
+                                <a href="@link.AbsoluteUri" target="_blank" rel="noopener">View evidence</a>
+                            }
+                            else
+                            {
+                                <span> · Evidence link unavailable</span>
+                            }
+                        }
+                    </li>
                 }
             </ul>
+        }
+        else if (Repositories is not null)
+        {
+            <p>No source evidence link is available.</p>
         }
     </div>
 }
@@ -19,4 +36,5 @@
 @code {
     [Parameter] public string Label { get; set; } = "Published origin";
     [Parameter] public Provenance? Origin { get; set; }
+    [Parameter] public GraphEvidenceRepositories? Repositories { get; set; }
 }

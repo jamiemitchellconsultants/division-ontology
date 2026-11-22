@@ -1,0 +1,295 @@
+@implements IDisposable
+@inject WorkspaceClient Api
+@inject GraphEvidenceRepositories EvidenceRepositories
+
+<section aria-label="Graph details">
+    <div class="actions">
+        <h2>Details</h2>
+        <button type="button" data-graph-close-inspector @ref="closeDetails" @onclick="OnClose">Close details</button>
+    </div>
+    <ApiError Error="error" />
+    @if (resumeUnavailable)
+    {
+        <p role="status">The previous editor could not be reopened. Your tab draft is still available if the record can be opened again.</p>
+    }
+    @if (loading)
+    {
+        <p role="status">Loading details…</p>
+    }
+    @if (entity is { } item)
+    {
+        <h3>@item.Entity.Label · @item.Entity.Key.SourceId</h3>
+        @if (!item.Available) { <p>This entity is unavailable in the active snapshot.</p> }
+        @if (!string.IsNullOrWhiteSpace(item.Entity.Description)) { <p>@item.Entity.Description</p> }
+        <OriginEvidence Origin="item.Entity.Provenance" Repositories="EvidenceRepositories" />
+        @if (item.Entity.C4 is { } context)
+        {
+            <details><summary>C4 context</summary><pre>@context</pre></details>
+        }
+        @if (item.Available && item.Entity.Key != Neighbourhood.Query.Focus && WorkspaceLinks.CanGraph(item.Entity.Key))
+        {
+            <button type="button" @onclick="() => OnFollow.InvokeAsync(item.Entity.Key)">Follow</button>
+        }
+        <h4>Annotations</h4>
+        @foreach (var note in item.Annotations)
+        {
+            <article @key="note.Id">
+                <ContributionRecord Record="note" />
+                <a href="@($"history/{note.Id:D}")">Annotation history</a>
+                @if (CanEditFocus && !note.Removed)
+                {
+                    <button type="button" data-graph-editor="edit-note" @onclick='() => BeginEditor(new("edit-note", note.Id))'>Edit note</button>
+                    <button type="button" data-graph-editor="remove-note" @onclick='() => BeginEditor(new("remove-note", note.Id))'>Remove note</button>
+                }
+            </article>
+        }
+        @if (item.Annotations.Count == 0) { <p>No workspace annotations.</p> }
+        @if (CanEditFocus)
+        {
+            <div class="actions">
+                <button type="button" data-graph-editor="add-note" @onclick='() => BeginEditor(new("add-note", null))'>Add note</button>
+                <button type="button" data-graph-editor="add-relationship" @onclick='() => BeginEditor(new("add-relationship", null))'>Create relationship</button>
+            </div>
+        }
+    }
+    @if (relationship is { } detail)
+    {
+        var step = detail.Relationship;
+        var origin = step.RuntimeId is null ? "Published relationship" : "Workspace relationship";
+        <h3>@step.Label</h3>
+        <p>@origin @Direction(step)</p>
+        <p>@Name(step.From, step.FromEndpoint) → @Name(step.To, step.ToEndpoint)</p>
+        @if (step.EndpointUnavailable)
+        {
+            <p>An endpoint is unavailable in the active snapshot.</p>
+        }
+        @if (step.Provenance is { } published)
+        {
+            <OriginEvidence Origin="published" Repositories="EvidenceRepositories" />
+        }
+        @if (step.Context is { } context)
+        {
+            <details><summary>Relationship context</summary><pre>@context</pre></details>
+        }
+        @if (step.Contribution is { } contribution)
+        {
+            <ContributionRecord Record="contribution" />
+            <a href="@($"history/{contribution.Id:D}")">Relationship history</a>
+            @if (CanManage && !contribution.Removed && contribution.Relationship is not null)
+            {
+                <div class="actions">
+                    <button type="button" data-graph-editor="edit-relationship" @onclick='() => BeginEditor(new("edit-relationship", contribution.Id))'>Edit relationship</button>
+                    <button type="button" data-graph-editor="remove-relationship" @onclick='() => BeginEditor(new("remove-relationship", contribution.Id))'>Remove relationship</button>
+                </div>
+            }
+        }
+        @foreach (var record in step.CodifyingContributions ?? [])
+        {
+            <article @key="record.Id">
+                <ContributionRecord Record="record" />
+                <a href="@($"history/{record.Id:D}")">Relationship history</a>
+            </article>
+        }
+    }
+    @if (CanManage && editor is { } activeEditor)
+    {
+        var query = Neighbourhood.Query;
+        var returnRoute = WorkspaceLinks.GraphResume(query.Focus, query.Direction, activeEditor.Action, activeEditor.ContributionId);
+        <section aria-label="Contribution editor">
+            <button type="button" @onclick="CloseEditor">Close editor</button>
+            @if (loadingChoices)
+            {
+                <p role="status">Loading relationship choices…</p>
+            }
+            else if (editorError is not null)
+            {
+                <ApiError Error="editorError" ReturnRoute="@returnRoute" />
+                <button type="button" @onclick="() => BeginEditor(activeEditor)">Retry choices</button>
+            }
+            else
+            {
+                <ContributionEditor @key="activeEditor" Mode="@activeEditor.Mode" Target="query.Focus" Current="editorRecord"
+                    Entities="@(choices?.Entities ?? [])" Types="@(choices?.Types ?? [])" ReturnRoute="@returnRoute"
+                    RequiredEndpoint='@(activeEditor.Action == "add-relationship" ? query.Focus : null)'
+                    OnSaved="result => ReportSave(activeEditor, result)" />
+            }
+        </section>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public GraphNeighbourhood Neighbourhood { get; set; } = default!;
+    [Parameter, EditorRequired] public string SelectedId { get; set; } = "";
+    [Parameter] public EventCallback<PublishedKey> OnFollow { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback<string> OnSnapshotObserved { get; set; }
+    [Parameter] public bool CanManage { get; set; }
+    [Parameter] public GraphEditorRequest? ResumeEditor { get; set; }
+    [Parameter] public Guid? DetachedRelationshipId { get; set; }
+    [Parameter] public EventCallback<GraphContributionSaved> OnSaved { get; set; }
+    [Parameter] public long FocusRequest { get; set; }
+
+    private (GraphQuery Query, string Snapshot, string Selection)? requested;
+    private CancellationTokenSource? request;
+    private EntityDetail? entity;
+    private RelationshipDetail? relationship;
+    private WorkspaceApiException? error;
+    private bool loading;
+    private GraphEditorRequest? editor;
+    private RuntimeContribution? editorRecord;
+    private long editorRevision;
+    private InventoryChoices? choices;
+    private WorkspaceApiException? editorError;
+    private bool loadingChoices, resumeUnavailable;
+    private ElementReference closeDetails;
+    private long handledFocusRequest;
+
+    private bool CanEditFocus => CanManage && entity is { Available: true } && entity.Entity.Key == Neighbourhood.Query.Focus;
+
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (FocusRequest == 0 || handledFocusRequest == FocusRequest) return Task.CompletedTask;
+        handledFocusRequest = FocusRequest;
+        return closeDetails.FocusAsync().AsTask();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var selection = (Neighbourhood.Query, Neighbourhood.SnapshotId, SelectedId);
+        if (selection == requested) return;
+        requested = selection;
+        request?.Cancel();
+        using var cancellation = new CancellationTokenSource();
+        request = cancellation;
+        entity = null;
+        relationship = null;
+        error = null;
+        var resume = CanManage ? ResumeEditor : null;
+        resumeUnavailable = false;
+        CloseEditor();
+        loading = true;
+        try
+        {
+            if (Neighbourhood.Nodes.Keys.FirstOrDefault(key => WorkspaceLinks.GraphNodeId(key) == SelectedId) is { } node)
+            {
+                var result = await Api.Entity(node, cancellation.Token);
+                if (request != cancellation) return;
+                entity = result;
+                await OnSnapshotObserved.InvokeAsync(result.SnapshotId);
+            }
+            else if (RelationshipRequest() is { } detailRequest)
+            {
+                var result = await Api.Relationship(detailRequest, cancellation.Token);
+                if (request != cancellation) return;
+                relationship = result;
+                await OnSnapshotObserved.InvokeAsync(result.SnapshotId);
+            }
+            else
+            {
+                error = new(System.Net.HttpStatusCode.NotFound, detail: "This record is unavailable in the graph.");
+            }
+            if (request == cancellation && resume is not null)
+            {
+                if (CanOpenEditor(resume, out var record) &&
+                    (record?.Relationship is not { } relation || relation.From == Neighbourhood.Query.Focus || relation.To == Neighbourhood.Query.Focus))
+                    await BeginEditor(resume);
+                else
+                    resumeUnavailable = true;
+            }
+        }
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+        {
+            // A later selection owns the inspector.
+        }
+        catch (WorkspaceApiException problem)
+        {
+            if (request == cancellation)
+            {
+                error = problem;
+                resumeUnavailable = resume is not null;
+            }
+        }
+        finally
+        {
+            if (request == cancellation)
+            {
+                loading = false;
+                request = null;
+            }
+        }
+    }
+
+    private RelationshipDetailRequest? RelationshipRequest()
+    {
+        if (Neighbourhood.Edges.FirstOrDefault(edge => edge.Id == SelectedId) is { Step: var edge })
+            return new(edge.Key, edge.RuntimeId);
+        return DetachedRelationshipId is { } id && SelectedId == WorkspaceLinks.GraphRuntimeId(id) ? new(RuntimeId: id) : null;
+    }
+
+    private bool CanOpenEditor(GraphEditorRequest action, out RuntimeContribution? record)
+    {
+        record = null;
+        if (!CanManage) return false;
+        if (action.IsRelationship && action.ContributionId is not null)
+        {
+            record = relationship?.Relationship.Contribution;
+            return record is { Removed: false, Relationship: not null } && record.Id == action.ContributionId;
+        }
+        if (!CanEditFocus) return false;
+        if (action.ContributionId is null) return true;
+        record = entity!.Annotations.FirstOrDefault(note => note.Id == action.ContributionId && !note.Removed);
+        return record is not null;
+    }
+
+    private async Task BeginEditor(GraphEditorRequest action)
+    {
+        if (!CanOpenEditor(action, out var record)) return;
+        CloseEditor();
+        var revision = editorRevision;
+        editor = action;
+        editorRecord = record;
+        if (action.Mode != "relationship") return;
+
+        loadingChoices = true;
+        try
+        {
+            var loaded = await InventoryChoices.Load(Api);
+            if (revision == editorRevision) choices = loaded;
+        }
+        catch (WorkspaceApiException problem)
+        {
+            if (revision == editorRevision) editorError = problem;
+        }
+        finally
+        {
+            if (revision == editorRevision) loadingChoices = false;
+        }
+    }
+
+    private void CloseEditor()
+    {
+        editorRevision++;
+        editor = null;
+        editorRecord = null;
+        editorError = null;
+        choices = null;
+        loadingChoices = false;
+    }
+
+    private Task ReportSave(GraphEditorRequest action, ContributionResult result) =>
+        OnSaved.InvokeAsync(new(result, action.IsRelationship, action.IsRemoval));
+
+    private string Name(PublishedKey key, EndpointContext? endpoint) =>
+        $"{endpoint?.Label ?? Neighbourhood.Nodes.GetValueOrDefault(key)?.Label ?? key.Identifier} · {key.SourceId}";
+
+    private string Direction(TraversalStep step) =>
+        step.From == Neighbourhood.Query.Focus ? "· Outgoing" :
+        step.To == Neighbourhood.Query.Focus ? "· Incoming" : "";
+
+    public void Dispose()
+    {
+        CloseEditor();
+        request?.Cancel();
+        request = null;
+    }
+}

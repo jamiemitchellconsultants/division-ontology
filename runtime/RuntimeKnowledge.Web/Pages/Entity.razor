@@ -9,6 +9,10 @@
 {
     <p>Active snapshot <code>@record.SnapshotId</code></p>
     @if (!record.Available) { <p>Unavailable in the active snapshot. Showing the last published definition.</p> }
+    @if (record.Available && WorkspaceLinks.CanGraph(record.Entity.Key))
+    {
+        <a href="@WorkspaceLinks.Graph(record.Entity.Key)">Open graph</a>
+    }
     <p>@record.Entity.Description</p>
     <OriginEvidence Origin="record.Entity.Provenance" />
     @if (record.Entity.C4 is { } context)

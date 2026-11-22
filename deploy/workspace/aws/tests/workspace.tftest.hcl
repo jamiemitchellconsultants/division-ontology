@@ -32,6 +32,10 @@ run "private_database_and_serverless_api" {
   command = plan
 
   assert {
+    condition     = aws_s3_object.web["graph-diagram.mjs"].content_type == "text/javascript; charset=utf-8"
+    error_message = "Browser modules must be served as JavaScript."
+  }
+  assert {
     condition     = aws_ebs_volume.database.encrypted && !aws_instance.database.associate_public_ip_address
     error_message = "Workspace PostgreSQL needs encrypted durable storage on a private host."
   }
@@ -84,4 +88,23 @@ run "private_database_and_serverless_api" {
     condition     = !strcontains(aws_iam_role_policy.workload["api"].policy, "s3:PutObject") && !strcontains(aws_iam_role_policy.workload["publisher"].policy, "bedrock:InvokeModel")
     error_message = "AWS workload policies must stay separated."
   }
+}
+
+run "evidence_repository_map_reaches_web_settings" {
+  command = plan
+  variables {
+    evidence_repositories = { "fixture/ecommerce" = "https://github.com/fixture/ecommerce" }
+  }
+  assert {
+    condition     = jsondecode(aws_s3_object.web_settings.content).EvidenceRepositories["fixture/ecommerce"] == "https://github.com/fixture/ecommerce"
+    error_message = "The evidence repository map must reach the served web settings."
+  }
+}
+
+run "evidence_repository_map_rejects_non_github_roots" {
+  command = plan
+  variables {
+    evidence_repositories = { "fixture/ecommerce" = "https://github.com@untrusted.example/team/commerce" }
+  }
+  expect_failures = [var.evidence_repositories]
 }

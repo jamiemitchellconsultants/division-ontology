@@ -52,7 +52,7 @@
                 </section>
             }
             <button type="submit" disabled="@(conflict is not null || saving)">@Title</button>
-            <ApiError Error="error" />
+            <ApiError Error="error" ReturnRoute="@ReturnRoute" />
             @if (saved) { <p role="status">Change saved.</p> }
         </fieldset>
     </form>
@@ -65,6 +65,8 @@
     [Parameter] public IReadOnlyList<(PublishedKey Key, string Label)> Entities { get; set; } = [];
     [Parameter] public IReadOnlyList<(PublishedKey Key, string Label)> Types { get; set; } = [];
     [Parameter] public EventCallback<ContributionResult> OnSaved { get; set; }
+    [Parameter] public string? ReturnRoute { get; set; }
+    [Parameter] public PublishedKey? RequiredEndpoint { get; set; }
 
     private ContributionDraft? draft;
     private RuntimeContribution? conflict;
@@ -151,6 +153,9 @@
                 : Api.Edit(Current.Id, new EditContributionRequest(version, category, text));
         if (Mode == "relationship" && from is not null && to is not null)
         {
+            if (RequiredEndpoint is { } required && from != required && to != required)
+                throw new WorkspaceApiException(System.Net.HttpStatusCode.UnprocessableEntity,
+                    detail: "Choose the focused entity as either the From or To endpoint.");
             var meaning = type is null ? RelationshipMeaning.Custom(label, explanation) : RelationshipMeaning.Published(type);
             return Current is null
                 ? Api.Connect(new CreateRelationship(from, to, meaning))
