@@ -191,7 +191,8 @@ async function checkEntryAndHandoff(reader, origin) {
 
   await keyboardPress(page, nodeControl);
   await details(page).getByRole('heading', { name: `Storefront API · ${ecommerce}`, exact: true }).waitFor();
-  await keyboardPress(page, button(page, 'Close details'));
+  await page.waitForFunction(() => document.activeElement?.hasAttribute('data-graph-close-inspector'));
+  await page.keyboard.press('Enter');
   await page.waitForFunction(id => document.activeElement?.closest('[data-graph-edge]')?.dataset.graphEdge === id &&
     document.activeElement.hasAttribute('data-graph-inspect-node'), containmentId);
   await keyboardPress(page, row(page, containmentId).locator('[data-graph-follow]'));

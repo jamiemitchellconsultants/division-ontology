@@ -15,6 +15,27 @@ test('the browser package preserves the pinned upstream module and license', asy
   }
 });
 
+test('refreshing a workspace edge moves the existing arrow to the edited endpoints', async () => {
+  const { reconcileEdges } = await import(new URL('graph-diagram.mjs', web));
+  const { default: cytoscape } = await import(new URL('cytoscape.esm.min.mjs', vendor));
+  const cy = cytoscape({ headless: true, elements: [
+    { data: { id: 'n:commerce' } }, { data: { id: 'n:warehouse' } }
+  ] });
+  try {
+    const initial = { id: 'r:handoff', source: 'n:commerce', target: 'n:warehouse', label: 'Original', origin: 'runtime' };
+    reconcileEdges(cy, [initial]);
+    reconcileEdges(cy, [{ ...initial, source: initial.target, target: initial.source, label: 'Reversed' }]);
+    assert.equal(cy.edges().length, 1);
+    const edge = cy.getElementById(initial.id);
+    assert.equal(edge.source().id(), 'n:warehouse');
+    assert.equal(edge.target().id(), 'n:commerce');
+    assert.equal(edge.data('label'), 'Reversed');
+    assert.equal(edge.hasClass('workspace'), true);
+  } finally {
+    cy.destroy();
+  }
+});
+
 test('append preserves positions and diagram actions use stable identities', async () => {
   assert.equal(typeof globalThis.document, 'undefined');
   const { placeNeighbours, bindGraphActions, diagramFor } = await import(new URL('graph-diagram.mjs', web));

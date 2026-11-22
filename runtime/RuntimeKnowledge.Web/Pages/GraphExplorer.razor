@@ -126,7 +126,8 @@ else
         @if (current.InspectorOpen)
         {
             <GraphInspector Neighbourhood="view" SelectedId="@current.SelectedId" OnFollow="Follow" OnClose="CloseInspector"
-                OnSnapshotObserved="ObserveSnapshot" CanManage="@(session?.CanManage == true)" ResumeEditor="current.ResumeEditor"
+                OnSnapshotObserved="snapshot => ObserveSnapshot(view.Query, view.SnapshotId, current.SelectedId, snapshot)"
+                CanManage="@(session?.CanManage == true)" ResumeEditor="current.ResumeEditor" FocusRequest="current.FocusRequest"
                 DetachedRelationshipId="current.DetachedRelationshipId" OnSaved="result => Saved(view.Query.Focus, result)" />
         }
     }
@@ -142,7 +143,7 @@ else
     private sealed record GraphRead(GraphQuery Query, ReadKind Kind, string? Cursor = null);
     private sealed record Frame(GraphNeighbourhood View, string SelectedId, bool Stale = false,
         GraphDiagram.GraphViewport? Viewport = null, bool InspectorOpen = false, bool InspectedFromList = false,
-        GraphEditorRequest? ResumeEditor = null, Guid? DetachedRelationshipId = null);
+        GraphEditorRequest? ResumeEditor = null, Guid? DetachedRelationshipId = null, long FocusRequest = 0);
 
     private readonly Stack<Frame> history = new();
     private GraphDiagram? diagram;
@@ -154,6 +155,7 @@ else
     private WorkspaceSession? session;
     private CancellationTokenSource? request;
     private long requestId;
+    private long focusRequest;
     private (string Key, string? Direction, string? Action, string? Id)? entry;
     private GraphEditorRequest? entryResume;
     private GraphContributionSaved? lastSaved;
@@ -196,17 +198,17 @@ else
 
     private void InspectFocus()
     {
-        if (frame is not null) Inspect(WorkspaceLinks.GraphNodeId(frame.View.Query.Focus));
+        if (frame is not null) SelectForInspection(WorkspaceLinks.GraphNodeId(frame.View.Query.Focus), fromList: false, focusInspector: true);
     }
 
-    private void Inspect(string id) => SelectForInspection(id, false);
-    private void InspectNeighbour(string id) => SelectForInspection(id, true);
+    private void Inspect(string id) => SelectForInspection(id, fromList: false, focusInspector: false);
+    private void InspectNeighbour(string id) => SelectForInspection(id, fromList: true, focusInspector: true);
 
-    private void SelectForInspection(string id, bool fromList)
+    private void SelectForInspection(string id, bool fromList, bool focusInspector)
     {
         if (frame is not null)
             frame = frame with { SelectedId = id, InspectorOpen = true, InspectedFromList = fromList,
-                ResumeEditor = null, DetachedRelationshipId = null };
+                ResumeEditor = null, DetachedRelationshipId = null, FocusRequest = focusInspector ? ++focusRequest : 0 };
     }
 
     private async Task CloseInspector()
@@ -233,7 +235,7 @@ else
         if (saved.IsRelationship)
         {
             var id = saved.Result.Id;
-            SelectForInspection(WorkspaceLinks.GraphRuntimeId(id), false);
+            SelectForInspection(WorkspaceLinks.GraphRuntimeId(id), fromList: false, focusInspector: true);
             frame = frame! with { DetachedRelationshipId = id };
         }
         else if (current.View.Query.Focus == savedFocus)
@@ -242,11 +244,17 @@ else
         }
     }
 
-    private void ObserveSnapshot(string snapshot)
+    private Task ObserveSnapshot(GraphQuery query, string previousSnapshot, string selection, string snapshot)
     {
-        if (frame is null || frame.View.SnapshotId == snapshot) return;
-        if (pending?.Kind == ReadKind.Append) CancelRead();
+        if (frame is null || frame.View.Query != query || frame.SelectedId != selection ||
+            frame.View.SnapshotId != previousSnapshot || snapshot == previousSnapshot)
+            return Task.CompletedTask;
+
         MarkStale();
+        if (pending is not { } active) return Task.CompletedTask;
+        if (active.Kind != ReadKind.Append) return Read(active);
+        CancelRead();
+        return Task.CompletedTask;
     }
 
     private Task LoadMore() => pending is null && frame is { Stale: false, View.NextCursor: { } cursor }

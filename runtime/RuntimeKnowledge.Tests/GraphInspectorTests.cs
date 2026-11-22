@@ -116,6 +116,7 @@ public sealed class GraphInspectorTests
             Assert.Contains("The selected node.", panel.TextContent);
             Assert.Contains(panel.QuerySelectorAll("button"), button => button.TextContent.Trim() == "Follow");
             Assert.Single(api.Traversals);
+            Assert.Single(context.JSInterop.Invocations["Blazor._internal.domWrapper.focus"]);
         });
         graph.Find("button[data-graph-load-more]").Click();
         graph.WaitForAssertion(() => Assert.Equal(2, api.Traversals.Count));

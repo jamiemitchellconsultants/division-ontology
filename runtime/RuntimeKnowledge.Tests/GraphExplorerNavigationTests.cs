@@ -227,6 +227,48 @@ public sealed class GraphExplorerNavigationTests
     }
 
     [Fact]
+    public void ContinuationTimeoutOffersRetryWithTheSameCursor()
+    {
+        var reads = 0;
+        var api = new ReadHandler((_, _) => ++reads switch
+        {
+            1 => Task.FromResult(Json(Page(Ecommerce, "continue", "First"))),
+            2 => Task.FromException<HttpResponseMessage>(new TaskCanceledException("The HTTP deadline elapsed.")),
+            _ => Task.FromResult(Json(Page(Ecommerce, label: "Recovered")))
+        });
+        using var context = GraphTestContext.Create(api);
+        var graph = Render(context);
+        Button(graph, "Load more").Click();
+        Assert.Contains("First", graph.Markup);
+        Button(graph, "Retry").Click();
+        graph.WaitForAssertion(() => Assert.Contains("Recovered", graph.Markup));
+        Assert.Equal(new[] { null, "continue", "continue" }, api.Requests.Select(read => read.Cursor));
+    }
+
+    [Fact]
+    public async Task ObservedSnapshotChangeSupersedesAPendingFirstPage()
+    {
+        var old = new TaskCompletionSource<HttpResponseMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var incomingReads = 0;
+        var api = new ReadHandler((read, _) => read.Direction != "incoming" ? Task.FromResult(Json(Page(Ecommerce, label: "Original")))
+            : ++incomingReads == 1 ? old.Task : Task.FromResult(Json(Page(Ecommerce, label: "Refreshed") with { SnapshotId = "new" })))
+        { DetailSnapshot = "new" };
+        using var context = GraphTestContext.Create(api);
+        var graph = Render(context);
+        var pendingRead = graph.WaitForElement("select").ChangeAsync(new() { Value = "incoming" });
+        graph.WaitForAssertion(() => Assert.Equal("incoming", api.Requests.Last().Direction));
+        await graph.Find("button[data-graph-inspect-focus]").ClickAsync(new());
+        old.SetResult(Json(Page(Ecommerce, label: "Superseded")));
+        await pendingRead;
+        graph.WaitForAssertion(() =>
+        {
+            Assert.Contains("Refreshed", graph.Find("li[data-graph-edge]").TextContent);
+            Assert.DoesNotContain("Superseded", graph.Markup);
+            Assert.Equal(new[] { "both", "incoming", "incoming" }, api.Requests.Select(read => read.Direction));
+        });
+    }
+
+    [Fact]
     public async Task LateResponsesCannotReplaceTheLatestQuery()
     {
         var late = new TaskCompletionSource<HttpResponseMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -289,6 +331,7 @@ public sealed class GraphExplorerNavigationTests
     {
         public ConcurrentQueue<TraversalRequest> Requests { get; } = new();
         public bool EntityAvailable { get; set; } = true;
+        public string DetailSnapshot { get; init; } = "snapshot";
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
         {
@@ -305,7 +348,7 @@ public sealed class GraphExplorerNavigationTests
                     ], false));
                 case "/api/entities/detail":
                     var entity = (await request.Content!.ReadFromJsonAsync<EntityDetailRequest>(WorkspaceJson.Options, token))!.Key;
-                    return Json(new EntityDetail("snapshot", EntityFor(entity), EntityAvailable || entity.Kind == "relationshipType", []));
+                    return Json(new EntityDetail(DetailSnapshot, EntityFor(entity), EntityAvailable || entity.Kind == "relationshipType", []));
                 case "/api/relationships/detail":
                     var relation = (await request.Content!.ReadFromJsonAsync<RelationshipDetailRequest>(WorkspaceJson.Options, token))!;
                     return Json(new RelationshipDetail("snapshot", new TraversalStep(relation.Key, relation.RuntimeId,

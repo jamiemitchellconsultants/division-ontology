@@ -33,6 +33,21 @@ export function bindGraphActions(cy, callbacks) {
   });
 }
 
+export function reconcileEdges(cy, edges) {
+  for (const edge of edges) {
+    let element = cy.getElementById(edge.id);
+    if (element.empty()) {
+      element = cy.add({ group: 'edges', data: edge });
+    } else {
+      if (element.data('source') !== edge.source || element.data('target') !== edge.target) {
+        element = element.move({ source: edge.source, target: edge.target });
+      }
+      element.data(edge);
+    }
+    element.toggleClass('workspace', edge.origin === 'runtime');
+  }
+}
+
 export function mount(host, dotNetCallbacks) {
   const styles = getComputedStyle(host);
   const ink = styles.getPropertyValue('--graph-ink').trim();
@@ -95,12 +110,7 @@ export function mount(host, dotNetCallbacks) {
           else existing.data(node).position(position);
           cy.getElementById(node.id).toggleClass('focus', node.id === focus);
         }
-        for (const edge of model.edges) {
-          const existing = cy.getElementById(edge.id);
-          if (existing.empty()) cy.add({ group: 'edges', data: edge });
-          else existing.data(edge);
-          cy.getElementById(edge.id).toggleClass('workspace', edge.origin === 'runtime');
-        }
+        reconcileEdges(cy, model.edges);
         cy.elements('.inspected').removeClass('inspected');
         if (model.selectedId) cy.getElementById(model.selectedId).addClass('inspected');
       });

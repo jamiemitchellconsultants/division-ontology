@@ -73,6 +73,10 @@ public sealed class WorkspaceClient(HttpClient http) : IDisposable
         {
             throw new WorkspaceApiException(HttpStatusCode.ServiceUnavailable, detail: "The workspace could not be reached.");
         }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new WorkspaceApiException(HttpStatusCode.ServiceUnavailable, detail: "The workspace request timed out.");
+        }
     }
 
     private sealed record Problem(string? Code, string? Detail, string? Title, RuntimeContribution? Current);
