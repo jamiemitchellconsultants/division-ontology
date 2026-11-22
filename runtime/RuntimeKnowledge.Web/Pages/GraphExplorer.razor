@@ -35,6 +35,12 @@ else
             {
                 <button type="button" disabled="@(pending is not null)" @onclick="LoadMore">Load more</button>
             }
+            @if (diagramAvailable)
+            {
+                <button type="button" @onclick="() => ZoomBy(1.25)">Zoom in</button>
+                <button type="button" @onclick="() => ZoomBy(0.8)">Zoom out</button>
+                <button type="button" @onclick="ResetZoom">Reset zoom</button>
+            }
         }
     </div>
 
@@ -98,6 +104,8 @@ else
             }
         }
 
+        <GraphDiagram @ref="diagram" Neighbourhood="view" SelectedId="@current.SelectedId" Viewport="current.Viewport"
+            OnFollow="Follow" OnInspect="Inspect" OnAvailability="available => diagramAvailable = available" />
         <GraphNeighbourList Neighbourhood="view" SelectedId="@current.SelectedId" OnFollow="Follow" OnInspect="Inspect" />
     }
 }
@@ -107,9 +115,11 @@ else
 
     private enum ReadKind { First, Direction, Follow, Back, Reload, Append }
     private sealed record GraphRead(GraphQuery Query, ReadKind Kind, string? Cursor = null);
-    private sealed record Frame(GraphNeighbourhood View, string SelectedId, bool Stale = false);
+    private sealed record Frame(GraphNeighbourhood View, string SelectedId, bool Stale = false,
+        GraphDiagram.GraphViewport? Viewport = null);
 
     private readonly Stack<Frame> history = new();
+    private GraphDiagram? diagram;
     private Frame? frame;
     private GraphRead? pending, failed;
     private WorkspaceApiException? error;
@@ -117,7 +127,7 @@ else
     private CancellationTokenSource? request;
     private long requestId;
     private string? entry;
-    private bool invalidEntry, refreshed;
+    private bool invalidEntry, refreshed, diagramAvailable;
 
     private string Heading => frame is null ? "Knowledge graph" : Name(frame.View.Query.Focus);
     private string Name(PublishedKey key) => $"{frame?.View.Nodes.GetValueOrDefault(key)?.Label ?? key.Identifier} · {key.SourceId}";
@@ -129,6 +139,7 @@ else
         CancelRead();
         history.Clear();
         frame = null;
+        diagramAvailable = false;
         session = null;
         refreshed = false;
         DismissError();
@@ -190,7 +201,8 @@ else
 
             var page = await Api.Traverse(read.Query.ToRequest(read.Cursor), cancellation.Token);
             if (id != requestId) return;
-            ApplyPage(read, page);
+            var viewport = read.Kind == ReadKind.Follow && diagram is not null ? await diagram.CaptureViewportAsync() : null;
+            if (id == requestId) ApplyPage(read, page, viewport);
         }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
         {
@@ -220,7 +232,7 @@ else
         }
     }
 
-    private void ApplyPage(GraphRead read, TraversalResult page)
+    private void ApplyPage(GraphRead read, TraversalResult page, GraphDiagram.GraphViewport? viewport)
     {
         if (read.Kind == ReadKind.Append && frame is { } active)
         {
@@ -235,7 +247,7 @@ else
             MarkStale();
         var selection = WorkspaceLinks.GraphNodeId(read.Query.Focus);
         if (read.Kind == ReadKind.Follow && frame is not null)
-            history.Push(frame);
+            history.Push(frame with { Viewport = viewport });
         if (read.Kind == ReadKind.Back)
         {
             history.Pop();
@@ -258,6 +270,9 @@ else
         error = null;
         failed = null;
     }
+
+    private Task ZoomBy(double factor) => diagram?.ZoomByAsync(factor).AsTask() ?? Task.CompletedTask;
+    private Task ResetZoom() => diagram?.ResetZoomAsync().AsTask() ?? Task.CompletedTask;
 
     private void CancelRead()
     {

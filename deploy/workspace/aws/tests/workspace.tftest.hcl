@@ -32,6 +32,10 @@ run "private_database_and_serverless_api" {
   command = plan
 
   assert {
+    condition     = aws_s3_object.web["graph-diagram.mjs"].content_type == "text/javascript; charset=utf-8"
+    error_message = "Browser modules must be served as JavaScript."
+  }
+  assert {
     condition     = aws_ebs_volume.database.encrypted && !aws_instance.database.associate_public_ip_address
     error_message = "Workspace PostgreSQL needs encrypted durable storage on a private host."
   }

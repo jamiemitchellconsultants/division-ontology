@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Http.Json;
 using Bunit;
 using RuntimeKnowledge.Contracts;
+using RuntimeKnowledge.Web.Components;
 using RuntimeKnowledge.Web.Pages;
 using RuntimeKnowledge.Web.Services;
 using Xunit;
@@ -132,6 +133,9 @@ public sealed class GraphExplorerNavigationTests
             ? Page(Warehouse)
             : Page(Ecommerce, request.Cursor is null ? "next" : null, request.Cursor is null ? "First" : "Second"))));
         using var context = GraphTestContext.Create(api);
+        var diagram = GraphTestContext.SetupDiagram(context);
+        var savedViewport = new GraphDiagram.GraphViewport(new(30, 50), 1.75, []);
+        diagram.Setup<GraphDiagram.GraphViewport>("captureViewport").SetResult(savedViewport);
         var graph = Render(context);
         graph.WaitForElement("select").Change("incoming");
         Button(graph, "Load more").Click();
@@ -148,7 +152,24 @@ public sealed class GraphExplorerNavigationTests
             Assert.Equal(2, graph.FindAll("li[data-graph-edge]").Count);
             Assert.Equal("true", graph.FindAll("button[data-graph-inspect-edge]")[1].GetAttribute("aria-pressed"));
             Assert.Equal(beforeBack, api.Requests.Count);
+            Assert.Same(savedViewport, Assert.Single(diagram.VerifyInvoke("restoreViewport").Arguments));
         });
+    }
+
+    [Fact]
+    public void DiagramStartupFailureKeepsTheNativeList()
+    {
+        var api = new ReadHandler((request, _) => Task.FromResult(Json(Page(request.Start, label: "Handoff"))));
+        using var context = GraphTestContext.Create(api);
+        GraphTestContext.SetupUnavailableDiagram(context);
+        var graph = Render(context);
+        var diagram = graph.FindComponent<GraphDiagram>();
+        diagram.WaitForAssertion(() => Assert.Contains("The diagram could not start; use the neighbour list.", diagram.Markup));
+        graph.Find("button[data-graph-inspect-edge]").Click();
+        Assert.Equal("true", graph.Find("button[data-graph-inspect-edge]").GetAttribute("aria-pressed"));
+        graph.Find("button[data-graph-follow]").Click();
+        graph.WaitForAssertion(() => Assert.Equal(Warehouse, api.Requests.Last().Start));
+        Assert.DoesNotContain(context.JSInterop.Invocations, invocation => invocation.Identifier == "render");
     }
 
     [Fact]
