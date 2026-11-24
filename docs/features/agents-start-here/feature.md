@@ -183,7 +183,7 @@ There is no runtime component and no deployment. The document ships in the templ
 
 ## User
 
-**Status:** User guide and acceptance accepted by the user on 24 November 2026; local-build layer passed, deployed layer pending the build pull request merge.
+**Status:** User guide and acceptance accepted by the user on 24 November 2026; local-build and deployed layers both passed (see Results).
 
 ### Runbook
 
@@ -253,6 +253,8 @@ There are no quality attribute ids in this feature, so acceptance is the behavio
 - Walkthroughs B1–B16: followed during the build (Tasks 1–5) and re-checked for this section. B1–B4 and B15–B16 were exercised by the scratch walkthrough with invented values (`https://example.test/sales-division#`, `sales-steward`), which produced the recorded division, an empty `sources.json`, a catalog in the new namespace, and the rewritten CODEOWNERS line; the scratch copy was deleted. B5–B14 were followed by reading the document against each behaviour. **Pass.**
 - Executable tests: `npm test` — 309 pass, 0 fail, including the five new onboarding-docs cases and the extended init-division case. The survival assertion was also shown to fail with the document renamed away, then pass restored. **Pass, pending the user’s approval of the tests below.**
 
-#### Results — deployed environment
+#### Results — deployed environment (24 November 2026, Muse Code session acting as user, this repository on `main` at merge commit `d2832a9` of build PR #195)
 
-- To be run after the build pull request merges, repeating the walkthroughs against this repository on `main`, and recorded here by amendment. Until then this layer is open and its checklist criterion stays unticked.
+- Presence on `main`: `docs/agents-start-here.md` is present, `AGENTS.md`, `README.md`, and `.github/CODEOWNERS` each carry their pointer/line, and `node scripts/feature.mjs check-frontmatter --feature 189` reports ok.
+- Walkthroughs B1–B16: repeated against the merged documents. The scratch-copy walkthrough was re-run from `main` with the same invented values and again produced the recorded division (`division.json` with the invented namespace and steward), an empty `sources.json`, a catalog in the new namespace, `docs/agents-start-here.md` present after initialisation, and its CODEOWNERS line rewritten to `@sales-steward`; the scratch copy was deleted. B5–B14 re-checked by reading the merged document against each behaviour. **Pass.**
+- Executable tests: focused `node --test test/onboarding-docs.test.mjs test/init-division.test.mjs` — 13 pass, 0 fail; full `npm test` on `main` — 309 pass, 0 fail. **Pass.**
