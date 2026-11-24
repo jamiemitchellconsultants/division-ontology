@@ -155,7 +155,7 @@ export function buildBundle({ divisionRoot, catalogCommit, registryCommit = null
   for (const source of snapshot.sources.values()) {
     const { id, commit, checkout, config, graphState } = source;
     const available = graphState.status === 'available';
-    sources.push({ id, commit, graphSchemaVersion: available ? 1 : null, graphStatus: graphState.status });
+    sources.push({ id, commit, graphSchemaVersion: available ? graphState.schemaVersion : null, graphStatus: graphState.status });
     include('graphConfig', id, 'ontology.config.json', pinnedBytes(checkout, commit, 'ontology.config.json', false));
     if (available) {
       for (const path of listAtCommit(checkout, commit, config.sourceGraph.root)) {

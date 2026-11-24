@@ -107,3 +107,30 @@ test('writes a complete content-addressed directory and refuses tampered bytes',
   assert.throws(() => writeBundle(corrupt, refused), /digest|length/i);
   await assert.rejects(readFile(join(refused, 'manifests', `${bundle.id}.json`)), { code: 'ENOENT' });
 }));
+
+test('bundles mixed graph versions under the existing envelope', () => withFixture(async args => {
+  const checkout = args.checkouts.get('fixture/ecommerce');
+  const graphFile = join(checkout, 'graph/manifest.ttl');
+  const turtle = await readFile(graphFile, 'utf8');
+  const schemaOne = '#schemaVersion> "1"';
+  const legacyRole = '#implementation>';
+  assert.ok(turtle.includes(schemaOne) && turtle.includes(legacyRole));
+  await writeFile(graphFile, turtle.replace(schemaOne, '#schemaVersion> 2')
+    .replace(legacyRole, '#role-implementation>'));
+  const upgradedSource = commit(checkout, 'Publish version 2 fixture graph');
+  const absentCheckout = args.checkouts.get('fixture/warehouse');
+  await rm(join(absentCheckout, 'ontology.config.json'));
+  commit(absentCheckout, 'Disable optional fixture graph');
+
+  const bundle = buildBundle(await republish(args));
+  assert.equal(bundle.manifest.schemaVersion, 1);
+  const sources = new Map(bundle.manifest.sources.map(source => [source.id, source]));
+  assert.equal(sources.get('fixture/ecommerce').commit, upgradedSource);
+  assert.equal(sources.get('fixture/ecommerce').graphSchemaVersion, 2);
+  assert.equal(sources.get('fixture/accounting').graphSchemaVersion, 1);
+  assert.equal(sources.get('fixture/warehouse').graphStatus, 'unavailable');
+  assert.equal(sources.get('fixture/warehouse').graphSchemaVersion, null);
+  assert.ok(bundle.manifest.files.some(file => file.sourceId === 'fixture/ecommerce' && file.role === 'graphTurtle'));
+  assert.ok(published(bundle).entities.some(entity => entity.key.sourceId === 'fixture/ecommerce' && entity.key.kind === 'node'));
+  assert.ok(published(bundle).edges.some(edge => edge.provenance.evidence.some(evidence => evidence.role === 'implementation')));
+}));
