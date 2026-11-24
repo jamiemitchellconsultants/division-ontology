@@ -34,7 +34,7 @@ After changing core, sources, links or builder code, run `npm test`, build again
 
 ## Short agent requests
 
-For Claude, Codex, Copilot or another coding agent, a person can say **“Add `owner/repo` to division ontology”** or **“Sync division ontology now”**. For onboarding:
+For Claude, Codex, Copilot or another coding agent, a person can say **“Create a division from this template”** — follow [Agents start here](docs/agents-start-here.md), prompting for the required and optional setup choices there before creating anything. A person can also say **“Add `owner/repo` to division ontology”** or **“Sync division ontology now”**. For onboarding:
 
 1. Inspect the named repository for its canonical committed Turtle ontology, namespace and default ref. If no deterministic Turtle file exists, stop and explain that an import adapter or source-side Turtle projection is needed. Do not invent ontology content.
 2. Add one entry to `sources.json`. Include all concepts; do not curate a subset. Propose a link only with evidence of matching meaning, and keep it in a separate reviewed PR if needed.

@@ -21,6 +21,8 @@ It writes the namespace and steward logins to [`division.json`](division.json), 
 
 ## Minimal instructions for an agent
 
+- **Create a division from this template** — the agent follows [Agents start here](docs/agents-start-here.md), prompting for the required and optional setup choices there before creating the repository.
+
 - **Join `owner/repo` to division ontology** — for a source owner: the agent writes `.division-ontology.json` (ontology path and namespace) in the source repository and asks its administrator to add the repository to the division's read-only source App. Nothing is edited here and no steward approval is needed; the next sync imports it and shows its status.
 - **Add `owner/repo` to division ontology** — the agent checks that repository's committed Turtle ontology, proposes its registration for steward review, and scheduled sync adds all its concepts after approval.
 - **Sync division ontology now** — the agent triggers the manual sync workflow and reports its result.
