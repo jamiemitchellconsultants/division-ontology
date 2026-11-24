@@ -49,3 +49,21 @@ jobs:
           push: true
           tags: ghcr.io/${{ github.repository_owner }}/division-ontology-workspace-${{ matrix.component }}:sha-${{ github.sha }}
           labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+
+  # Keep only the newest build of each image. Runs only after every image published, so a failed
+  # publish never deletes the last good build. One build is 3 GHCR versions (the tagged index plus
+  # the image and attestation manifests it references), so keep the newest 3.
+  prune:
+    needs: images
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    strategy:
+      matrix:
+        component: [api, worker, web, db, minio]
+    steps:
+      - uses: actions/delete-package-versions@v5
+        with:
+          package-name: division-ontology-workspace-${{ matrix.component }}
+          package-type: container
+          min-versions-to-keep: 3
