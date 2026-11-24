@@ -1,8 +1,12 @@
+---
+status: accepted
+date: 2026-11-24
+feature: 189
+---
+
 # 0027 — Give “Agents start here” its own document, pointed to from the canonical entry points
 
-- **Status:** accepted
-- **Date:** 2026-11-24
-- **Feature:** #189 (docs/features/agents-start-here/)
+Feature: docs/features/agents-start-here/
 
 ## Context
 

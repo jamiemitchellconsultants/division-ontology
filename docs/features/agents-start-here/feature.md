@@ -1,3 +1,8 @@
+---
+feature: 189
+slug: agents-start-here
+---
+
 # Agents start here
 
 **Feature:** [#189](https://github.com/jamiemitchellconsultants/division-ontology/issues/189) (lite mode)
