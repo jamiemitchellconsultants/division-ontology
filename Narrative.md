@@ -65,7 +65,8 @@ This document records what was asked, what was decided, why, and what followed.
 | [55](#entry-record-knowledge-graph-explorer-user-acceptance) | 2026-11-22 | Record Knowledge Graph Explorer user acceptance | product | Use one Playwright regression suite for B1–B15 with a PowerShell entry point on the home-lab operator machine. |
 | [56](#entry-design-c4-schema-2-source-graph-import-175) | 2026-11-24 | Design C4 schema 2 source graph import (#175) | product | Use the existing catalog-pinned C4 loader to validate schemas 1 and 2 and resolve evidence from the pinned configuration. Add design status and evidence references to its imported design records. |
 | [57](#entry-plan-pinned-c4-schema-2-source-graph-import-175) | 2026-11-24 | Plan pinned C4 schema 2 source graph import (#175) | product | Build the C4 version, evidence role and design provenance checks in one test-first increment so the loader only accepts schema 2 once it can preserve its records. |
-| [58](#entry-ci-keep-only-the-newest-build-of-each-workspace-image) | 2026-11-24 | ci: keep only the newest build of each workspace image | product | GHCR keeps only the newest build of each workspace image. Retention is set by version count (3, one complete build) rather than by age. That keeps the newest build intact however long it has been since the last publish. |
+| [58](#entry-docs-license-as-polyform-noncommercial-add-a-security-policy-and-state-t) | 2026-11-24 | docs: license as PolyForm Noncommercial, add a security policy, and state that the catalog is public | product | License the repository as source-available under PolyForm Noncommercial 1.0.0. Noncommercial use, modification and sharing are allowed, and commercial use needs a separate licence. |
+| [59](#entry-ci-keep-only-the-newest-build-of-each-workspace-image) | 2026-11-24 | ci: keep only the newest build of each workspace image | product | GHCR keeps only the newest build of each workspace image. Retention is set by version count (3, one complete build) rather than by age. That keeps the newest build intact however long it has been since the last publish. |
 
 ---
 
@@ -1492,9 +1493,37 @@ AI-Fingerprint: sha256:06670a463778
 
 ---
 
+<a id="entry-docs-license-as-polyform-noncommercial-add-a-security-policy-and-state-t"></a>
+
+## Entry 58 — 2026-11-24 — docs: license as PolyForm Noncommercial, add a security policy, and state that the catalog is public
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The repository is being made public. It had no licence, so publishing it would have left the code all-rights-reserved with no stated terms for readers, and it had no private route for reporting a vulnerability. Its governance also said the catalog was private because it carries every concept and description from its sources. That stops being true once the repository is public.
+
+## Decision
+
+License the repository as source-available under PolyForm Noncommercial 1.0.0. Noncommercial use, modification and sharing are allowed, and commercial use needs a separate licence. OSI licences such as MIT and Apache-2.0 were rejected because they allow commercial use. Security reports go through GitHub private vulnerability reporting.
+
+The catalog is public. A private repository joins only when its owner accepts that its ontology becomes public. Agents must stop onboarding a private source when they don't have that confirmation. Earlier history, including the JointBooking catalog from September to November 2026, is published as it stands and not rewritten.
+
+## Consequences
+
+Forks and contributions are available for noncommercial use only. Because of this the project is not open source by the OSI definition, and some package indexes and tools will flag the licence as non-standard. Onboarding a private source now needs its owner to consent to publication, which may keep some sources out. Splitting into a private catalog is still possible later.
+
+---
+
+AI-Fingerprint: sha256:ce3c72d331c9
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+---
+
 <a id="entry-ci-keep-only-the-newest-build-of-each-workspace-image"></a>
 
-## Entry 58 — 2026-11-24 — ci: keep only the newest build of each workspace image
+## Entry 59 — 2026-11-24 — ci: keep only the newest build of each workspace image
 
 *Kind: product. Status: accepted.*
 
