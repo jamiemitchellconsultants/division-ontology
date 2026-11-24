@@ -37,6 +37,9 @@ test('a fresh copy gets its own namespace, stewards, empty narrative and catalog
     // required test check on the first refresh that adds a source.
     for (const path of templateOnlyTests) assert.ok(!existsSync(join(root, path)), `${path} is removed from a division copy`);
     assert.ok(existsSync(join(root, 'docs/features/runtime-knowledge-workspace/05-runbook.md')));
+    assert.ok(existsSync(join(root, 'docs/agents-start-here.md')), 'agents start here survives initialisation');
+    const agentsLine = readFileSync(join(root, '.github/CODEOWNERS'), 'utf8').split('\n').find((l) => l.startsWith('/docs/agents-start-here.md'));
+    assert.match(agentsLine ?? '', / @sales-steward @sales-deputy$/);
     // B16: a division copy keeps the committed API spec unchanged, so it matches the code it was copied with.
     assert.equal(readFileSync(join(root, 'runtime/openapi/workspace-api.json'), 'utf8'), readFileSync('runtime/openapi/workspace-api.json', 'utf8'));
     const catalog = JSON.parse(readFileSync(join(root, 'dist/catalog.json'), 'utf8'));
