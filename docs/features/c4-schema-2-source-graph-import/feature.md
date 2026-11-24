@@ -274,18 +274,26 @@ The importer was pinned at `a3ebf43952ff3e5e5ce2b05f8f4286e155ee67ef`. The legac
 
 After owner review, all 75 local Node cases passed on the Mac and on each network-disabled Docker Node 20, 22 and 24 run. All eight .NET bundle reader cases passed on the Mac. No cases were skipped in either local suite. The logs are in `/private/tmp/division-c4-schema-2-feature.zZaBzZ/user-evidence`. Each local row below uses the same participant and date.
 
-| Behaviour | Local walkthrough | Local executable | Deployed walkthrough and executable |
-| --- | --- | --- | --- |
-| B1 | Pass | Approved and passed | Pending build PR merge |
-| B2 | Pass | Approved and passed | Pending build PR merge |
-| B3 | Pass | Approved and passed | Pending build PR merge |
-| B4 | Pass | Approved and passed | Pending build PR merge |
-| B5 | Pass | Approved and passed | Pending build PR merge |
-| B6 | Pass | Approved and passed | Pending build PR merge |
-| B7 | Pass | Approved and passed | Pending build PR merge |
-| B8 | Pass | Approved and passed | Pending build PR merge |
-| B9 | Pass | Approved and passed | Pending build PR merge |
-| B10 | Pass | Approved and passed | Pending build PR merge |
-| B11 | Pass | Approved and passed | Pending build PR merge |
-| B12 | Pass on Widgets | Approved and passed | Pending build PR merge |
-| B13 | Pass | Approved and passed | Pending build PR merge |
+On 2026-11-24, James Mitchell completed the deployed walkthrough on his Mac and explicitly approved the mapped executable cases for B1–B13 and the shared InternalOntology B23 comparisons. His report at `/private/tmp/division-175-owner-deployed.zq9RwA/review.md` matched the expected imports, 47 controls, pinned records and code paths. He reported no exceptions.
+
+The importer was the exact build PR merge `52238ecfaa39e0c90ab2d68bf63b2ede5f9010f6`. The disposable deployed catalog was `16de40268c0eedae17afe5760c585086cded3650` and the JEPA-Speech pin was `3bcf7e7f5926e42231ae5dbfd9275f8166cc952c`. The same merged importer reran the schema 1 and Widgets controls at the local catalog and source pins listed above. [Merged build PR](https://github.com/jamiemitchellconsultants/division-ontology/pull/185)
+
+The JEPA-Speech comparison preserved 56 behaviours, six decisions and 35 incident assertions. For `zener-shape-tracing-motor-test#B18`, one implementation assertion reaches Submit directly. The other reaches MotorBlockRunner, whose containment assertions reach Submit, MotorBlockRunner and `src/JepaSpeech.Study/Motor/MotorBlockRunner.cs`. Both routes and their cited evidence matched the source at the catalog pin. [InternalOntology B23 criterion](https://github.com/jamiemitchellconsultants/InternalOntology/blob/5df7c1f90ed2769c3926c58d19e79e0c03bc4e07/docs/features/graph-feature-document-links/feature.md#b23--import-through-a-division-snapshot)
+
+After owner approval, all 76 Node cases passed on the Mac and on each network-disabled Docker Node 20, 22 and 24 run. All eight .NET bundle reader cases passed on the Mac. The standalone InternalOntology B23 executable also passed once with the synthetic Widgets pin and once with the deployed JEPA-Speech pin. No tests were skipped. Test logs and the four input files are under `/private/tmp/division-c4-schema-2-feature.zZaBzZ/trial-evidence`. Each deployed row uses the same participant and date.
+
+| Behaviour | Local walkthrough | Local executable | Deployed walkthrough | Deployed executable |
+| --- | --- | --- | --- | --- |
+| B1 | Pass | Approved and passed | Pass | Approved and passed |
+| B2 | Pass | Approved and passed | Pass | Approved and passed |
+| B3 | Pass | Approved and passed | Pass | Approved and passed |
+| B4 | Pass | Approved and passed | Pass | Approved and passed |
+| B5 | Pass | Approved and passed | Pass | Approved and passed |
+| B6 | Pass | Approved and passed | Pass | Approved and passed |
+| B7 | Pass | Approved and passed | Pass | Approved and passed |
+| B8 | Pass | Approved and passed | Pass | Approved and passed |
+| B9 | Pass | Approved and passed | Pass | Approved and passed |
+| B10 | Pass | Approved and passed | Pass | Approved and passed |
+| B11 | Pass | Approved and passed | Pass | Approved and passed |
+| B12 | Pass on Widgets | Approved and passed | Pass on JEPA-Speech B18 | Approved and passed |
+| B13 | Pass | Approved and passed | Pass | Approved and passed |
