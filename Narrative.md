@@ -64,6 +64,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [54](#entry-build-knowledge-graph-explorer) | 2026-11-22 | Build Knowledge Graph Explorer | product | Ship one authorized Blazor graph route over the existing traversal and detail APIs. The local Cytoscape module and native neighbour controls share stable node and edge identities. |
 | [55](#entry-record-knowledge-graph-explorer-user-acceptance) | 2026-11-22 | Record Knowledge Graph Explorer user acceptance | product | Use one Playwright regression suite for B1–B15 with a PowerShell entry point on the home-lab operator machine. |
 | [56](#entry-design-c4-schema-2-source-graph-import-175) | 2026-11-24 | Design C4 schema 2 source graph import (#175) | product | Use the existing catalog-pinned C4 loader to validate schemas 1 and 2 and resolve evidence from the pinned configuration. Add design status and evidence references to its imported design records. |
+| [57](#entry-plan-pinned-c4-schema-2-source-graph-import-175) | 2026-11-24 | Plan pinned C4 schema 2 source graph import (#175) | product | Build the C4 version, evidence role and design provenance checks in one test-first increment so the loader only accepts schema 2 once it can preserve its records. |
 
 ---
 
@@ -1463,3 +1464,27 @@ Use the existing catalog-pinned C4 loader to validate schemas 1 and 2 and resolv
 Existing graphs and bundle envelopes retain their established meaning. The importer can preserve the source data needed to compare design records and trace both B18 routes in a disposable division catalog. The developer plan will cover strict failure cases, downstream bundle validation and the pinned JEPA-Speech acceptance boundary.
 
 AI-Fingerprint: sha256:29546816b0f6
+
+---
+
+<a id="entry-plan-pinned-c4-schema-2-source-graph-import-175"></a>
+
+## Entry 57 — 2026-11-24 — Plan pinned C4 schema 2 source graph import (#175)
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The current C4 loader handles the three representative legacy source graphs. The compatibility investigation found that it rejects a standard kit schema 1 evidence role and stops at the manifest guard for both schema 2 fixtures. The workspace producer and reader also assume version 1. [Approved design and decisions](https://github.com/jamiemitchellconsultants/division-ontology/pull/176)
+
+## Decision
+
+Build the C4 version, evidence role and design provenance checks in one test-first increment so the loader only accepts schema 2 once it can preserve its records. Build the workspace producer and runtime reader change together in a second increment so each source's reported version survives the existing bundle contract.
+
+## Consequences
+
+Each increment has focused compatibility tests and a disposable catalog check. The final build must pass the synthetic and pinned JEPA-Speech comparisons through the real C4 loader. Owner walkthroughs and approval remain in the User phase.
+
+---
+
+AI-Fingerprint: sha256:06670a463778
