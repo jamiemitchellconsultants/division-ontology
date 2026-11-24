@@ -70,6 +70,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [60](#entry-ci-refresh-open-narrative-proposals-when-main-moves) | 2026-11-24 | ci: refresh open narrative proposals when main moves | product | Install the Narrative refresh workflow as the tool documents it, pinned to the same Narrative commit as the existing narrative workflows. |
 | [61](#entry-import-schema-2-source-graphs-in-c4-snapshots-175) | 2026-11-24 | Import schema 2 source graphs in C4 snapshots (#175) | product | Interpret the two supported source schemas at the existing local Git snapshot boundary. Preserve design provenance in the graph maps and carry the validated per-source schema version through the existing workspace bundle field. |
 | [62](#entry-docs-agents-start-here-design) | 2026-11-24 | docs: agents start here design | product | Give “Agents start here” its own document, `docs/agents-start-here.md`, pointed to from the canonical entry points, as recorded in [ADR… |
+| [63](#entry-docs-agents-start-here-implementation-plan) | 2026-11-24 | docs: agents start here implementation plan | product | One increment of five test-first tasks: (1) pin the document contract as failing tests in `test/onboarding-docs.test.mjs`; (2) write `docs/agents-start-here.md` to the settled outline — prompt tables with B6’s declined defaults, the… |
 
 ---
 
@@ -1621,3 +1622,27 @@ A division copy inherits the document and its stewards own it, while routine age
 ---
 
 AI-Fingerprint: sha256:902f754631f9
+
+---
+
+<a id="entry-docs-agents-start-here-implementation-plan"></a>
+
+## Entry 63 — 2026-11-24 — docs: agents start here implementation plan
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The design for #189 is accepted and merged (#190, ADR 0027): a new `docs/agents-start-here.md`, discovered through pointer-only hooks in `AGENTS.md` and the README, with tests extending the two existing onboarding test files. Since then the feature lifecycle kit was synced from claude-plugins (#192), which added frontmatter checks on feature artefacts and increment-based dev-plan criteria. The plan must satisfy both the accepted behaviours and the new kit without re-deciding the design.
+
+## Decision
+
+One increment of five test-first tasks: (1) pin the document contract as failing tests in `test/onboarding-docs.test.mjs`; (2) write `docs/agents-start-here.md` to the settled outline — prompt tables with B6’s declined defaults, the uncommitted setup-record table, create/clone, initialise-and-verify, linked setups with pending hand-offs, first-sync check, handover; (3) add the `AGENTS.md`/`README.md` pointers and the `/docs/agents-start-here.md` CODEOWNERS line; (4) pin survival and steward ownership in `test/init-division.test.mjs`; (5) verify with the full suite, the frontmatter check, and a scratch walkthrough. The plan settles that survival and CODEOWNERS transfer need no `init-division` change (its template-history list and CODEOWNERS rewrite already cover them), that the setup record is a conversation artefact committed nowhere, and that template creation uses `gh repo create --template` (verified on gh 2.104) or GitHub’s **Use this template**.
+
+## Consequences
+
+The build can be executed task-by-task from this plan without further decisions, and can stop safely after the single increment. Contract tests pin load-bearing phrases rather than prose, so stewards can edit wording but not silently rename a setup, a default, or an answer state. Because the plan files live under `docs/superpowers/` and `docs/detailed-implementations/`, division copies will not keep them after `init-division` — only the runbook itself carries over, as intended.
+
+---
+
+AI-Fingerprint: sha256:9ed1b25716e3
