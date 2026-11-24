@@ -63,6 +63,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [53](#entry-plan-amendment-knowledge-graph-explorer) | 2026-11-21 | Plan amendment: Knowledge Graph Explorer | product | - Map `.mjs` to `text/javascript; charset=utf-8` in `local.web_types`, and assert it in `workspace.tftest.hcl`. - Thread an optional, validated `evidence_repositories` map through AWS `web_settings` and the home-lab `web-settings` config. |
 | [54](#entry-build-knowledge-graph-explorer) | 2026-11-22 | Build Knowledge Graph Explorer | product | Ship one authorized Blazor graph route over the existing traversal and detail APIs. The local Cytoscape module and native neighbour controls share stable node and edge identities. |
 | [55](#entry-record-knowledge-graph-explorer-user-acceptance) | 2026-11-22 | Record Knowledge Graph Explorer user acceptance | product | Use one Playwright regression suite for B1–B15 with a PowerShell entry point on the home-lab operator machine. |
+| [56](#entry-design-c4-schema-2-source-graph-import-175) | 2026-11-24 | Design C4 schema 2 source graph import (#175) | product | Use the existing catalog-pinned C4 loader to validate schemas 1 and 2 and resolve evidence from the pinned configuration. Add design status and evidence references to its imported design records. |
 
 ---
 
@@ -1440,3 +1441,25 @@ An operator can rerun the full suite or select a behaviour while reusing the cur
 ---
 
 AI-Fingerprint: sha256:ed03c65c2e9a
+
+---
+
+<a id="entry-design-c4-schema-2-source-graph-import-175"></a>
+
+## Entry 56 — 2026-11-24 — Design C4 schema 2 source graph import (#175)
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The published division loader accepts its three legacy dummy graphs. The standard kit schema 1 control fails evidence-role matching, and the pinned synthetic and JEPA-Speech schema 2 graphs fail at the schema check. The workspace bundle producer and reader also assume graph schema 1 for each available source. [C4 version and role decision](https://github.com/jamiemitchellconsultants/division-ontology/blob/2fc5de182bd8a4df621e73379919a8a0c59d2434/docs/adr/0024-version-source-graph-validation-at-the-c4-boundary.md)
+
+## Decision
+
+Use the existing catalog-pinned C4 loader to validate schemas 1 and 2 and resolve evidence from the pinned configuration. Add design status and evidence references to its imported design records. Carry the actual source manifest version through the existing workspace bundle field and accept it in the current envelope. [C4 validation ADR 0024](https://github.com/jamiemitchellconsultants/division-ontology/blob/2fc5de182bd8a4df621e73379919a8a0c59d2434/docs/adr/0024-version-source-graph-validation-at-the-c4-boundary.md) [Design provenance ADR 0025](https://github.com/jamiemitchellconsultants/division-ontology/blob/2fc5de182bd8a4df621e73379919a8a0c59d2434/docs/adr/0025-preserve-design-provenance-in-c4-snapshots.md) [Workspace metadata ADR 0026](https://github.com/jamiemitchellconsultants/division-ontology/blob/2fc5de182bd8a4df621e73379919a8a0c59d2434/docs/adr/0026-record-the-actual-source-graph-version-in-workspace-bundles.md)
+
+## Consequences
+
+Existing graphs and bundle envelopes retain their established meaning. The importer can preserve the source data needed to compare design records and trace both B18 routes in a disposable division catalog. The developer plan will cover strict failure cases, downstream bundle validation and the pinned JEPA-Speech acceptance boundary.
+
+AI-Fingerprint: sha256:29546816b0f6
