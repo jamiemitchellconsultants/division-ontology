@@ -68,6 +68,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [58](#entry-docs-license-as-polyform-noncommercial-add-a-security-policy-and-state-t) | 2026-11-24 | docs: license as PolyForm Noncommercial, add a security policy, and state that the catalog is public | product | License the repository as source-available under PolyForm Noncommercial 1.0.0. Noncommercial use, modification and sharing are allowed, and commercial use needs a separate licence. |
 | [59](#entry-ci-keep-only-the-newest-build-of-each-workspace-image) | 2026-11-24 | ci: keep only the newest build of each workspace image | product | GHCR keeps only the newest build of each workspace image. Retention is set by version count (3, one complete build) rather than by age. That keeps the newest build intact however long it has been since the last publish. |
 | [60](#entry-ci-refresh-open-narrative-proposals-when-main-moves) | 2026-11-24 | ci: refresh open narrative proposals when main moves | product | Install the Narrative refresh workflow as the tool documents it, pinned to the same Narrative commit as the existing narrative workflows. |
+| [61](#entry-import-schema-2-source-graphs-in-c4-snapshots-175) | 2026-11-24 | Import schema 2 source graphs in C4 snapshots (#175) | product | Interpret the two supported source schemas at the existing local Git snapshot boundary. Preserve design provenance in the graph maps and carry the validated per-source schema version through the existing workspace bundle field. |
 
 ---
 
@@ -1571,3 +1572,27 @@ Open proposals stay mergeable without hand-resolving `Narrative.md`. A refresh p
 AI-Fingerprint: sha256:cab899acead0
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+---
+
+<a id="entry-import-schema-2-source-graphs-in-c4-snapshots-175"></a>
+
+## Entry 61 — 2026-11-24 — Import schema 2 source graphs in C4 snapshots (#175)
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+InternalOntology #185 needs to trace a behaviour in the pinned JEPA-Speech graph to its recorded code. The published C4 loader refused schema 2 and a standard schema 1 evidence role, while the three representative legacy graphs masked both gaps. [Division feature #175](https://github.com/jamiemitchellconsultants/division-ontology/issues/175)
+
+## Decision
+
+Interpret the two supported source schemas at the existing local Git snapshot boundary. Preserve design provenance in the graph maps and carry the validated per-source schema version through the existing workspace bundle field. Use synthetic controls and the disposable JEPA-Speech catalog to verify the importer. [ADRs 0024–0026](https://github.com/jamiemitchellconsultants/division-ontology/pull/176)
+
+## Consequences
+
+Current kit graphs and existing legacy graphs use the same import path. The importer preserves design evidence and supports the original direct and component-mediated traces. A runtime must have the compatible reader before it receives a bundle with a schema 2 source. The post-merge trial will record owner acceptance from the merged importer.
+
+---
+
+AI-Fingerprint: sha256:c71ec951eed0
