@@ -28,3 +28,29 @@ test('the README says init-division removes the template-only tests', () => {
   assert.match(text('README.md'), /test\/template\.test\.mjs/);
   assert.match(text('README.md'), /test\/init-division\.test\.mjs/);
 });
+const startHere = () => text('docs/agents-start-here.md');
+test('agents start here asks for the required choices before creation', () => {
+  const doc = startHere();
+  for (const pattern of [/target owner\/name/i, /division namespace/i, /steward logins/i, /public repository/i]) assert.match(doc, pattern);
+  assert.match(doc, /defaulted — not answered/);
+});
+test('agents start here prompts for each optional setup with its declined default', () => {
+  const doc = startHere();
+  for (const pattern of [/runtime knowledge workspace/i, /catalogue-only/i, /embedding/i, /no semantic search/i, /C4/, /not set up/i, /source-read App/, /steward-registered sources only/i, /auto-merge/, /steward review/]) assert.match(doc, pattern);
+});
+test('agents start here records states, stops, and pending hand-offs', () => {
+  const doc = startHere();
+  for (const pattern of [/accepted/, /declined/, /pending/i, /who must/i]) assert.match(doc, pattern);
+  assert.match(doc, /never.*(grant itself|credentials)/i);
+});
+test('agents start here points to the canonical homes and keeps similarity as discovery', () => {
+  const doc = startHere();
+  for (const pattern of [/AGENTS\.md/, /GOVERNANCE\.md/, /automation-setup\.md/, /05-runbook\.md/]) assert.match(doc, pattern);
+  assert.match(doc, /discovery/i);
+  assert.doesNotMatch(doc, /create a link from a (similarity )?match/i);
+});
+test('AGENTS and README point at agents start here', () => {
+  assert.match(text('AGENTS.md'), /agents-start-here\.md/);
+  assert.match(text('AGENTS.md'), /Create a division from this template/);
+  assert.match(text('README.md'), /agents-start-here\.md/);
+});

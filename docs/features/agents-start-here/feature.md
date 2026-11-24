@@ -180,3 +180,79 @@ There is no runtime component and no deployment. The document ships in the templ
 ### Decisions
 
 - [ADR 0027 — Give “Agents start here” its own document, pointed to from the canonical entry points](../../adr/0027-agents-start-here-in-own-document.md)
+
+## User
+
+**Status:** User guide and acceptance accepted by the user on 24 November 2026; local-build layer passed, deployed layer pending the build pull request merge.
+
+### Runbook
+
+#### Deploy
+
+There is nothing to install or deploy. The feature ships as documents and tests in this template repository: merging the build pull request puts `docs/agents-start-here.md`, its `AGENTS.md` and README pointers, and its CODEOWNERS line on `main`, where any agent pointed at this repository — and any division created from it afterwards — picks them up. The deployed environment for acceptance is therefore this repository on `main` after the build pull request merges: the same documents a founder’s agent would read from GitHub. A division created before this feature merged does not gain the document automatically; its stewards can copy `docs/agents-start-here.md` in and add the CODEOWNERS line through their own reviewed pull request.
+
+1. Review and merge the build pull request for this feature.
+2. Confirm on `main`: `docs/agents-start-here.md` exists, `AGENTS.md` and `README.md` point at it, `.github/CODEOWNERS` carries its line, and `npm test` passes.
+
+#### Operate
+
+- **Founder:** ask an agent to “Create a division from this template”, then answer its prompts. The agent must ask for the four required choices (target owner/name, division namespace, steward logins, and confirmation that a public repository publishing source ontologies is intended) and for each optional setup, stating the default that applies if you decline: workspace (catalogue-only), embedding provider (no semantic search), C4 pilot (not set up), granted sources via the source-read App (steward-registered sources only), and catalogue auto-merge (steward review). You may leave an optional prompt unanswered: the agent applies the default and records it as “defaulted — not answered”. At handover you should receive the setup record: every choice, every optional setup’s state, and every pending step with the person who must do it. If a handover just says a setup was “skipped”, send it back.
+- **Agent:** follow `docs/agents-start-here.md` in order — prompt, create and clone, initialise once, verify, follow the linked documents for accepted setups, verify the first sync, hand over the setup record. Stop rather than invent a missing required answer; record administrator and consent steps as pending, naming who must act; never put credentials in a file or a command argument.
+- **Incoming steward:** govern the created division from the setup record. Pending hand-offs (App administration, branch rules, approvals) are yours or a named administrator’s to complete, after which the division is operated through `AGENTS.md` and `GOVERNANCE.md` as usual.
+
+Health check for the document itself: `node --test test/onboarding-docs.test.mjs` and `node --test test/init-division.test.mjs` pass, and `node scripts/feature.mjs check-frontmatter --feature 189` reports ok.
+
+#### Recover
+
+- **A setup is going wrong mid-run:** stop. A missing required answer, a failed template creation, or a failed initialisation changes nothing further; any previously published catalog is untouched. Fix the cause (the answer, the permission, the failing source) and start again from the failed step of `docs/agents-start-here.md`.
+- **The document itself is wrong:** fix it through this repository’s normal reviewed pull request. If the error is in the prompting step or a default, that is a change to the analyst’s behaviours — raise it through the feature workflow rather than editing wording to mean something else. Reverting the build pull request removes the document and its pointers together; divisions already created keep their copies, which their stewards own.
+- **A division was created with the wrong namespace or stewards:** do not rewrite it casually. Shared IRIs are stable once published; the division’s stewards decide through their own governance whether a correction or a fresh division is right.
+
+### User guide
+
+Written for the three users named in the vision. Behaviour numbers match the analyst section.
+
+- **Founder — ask for a division (B5).** Say “Create a division from this template” to an agent working in this repository. Expect four questions before anything is created: where the new repository goes, its namespace, who stewards it, and whether a public repository is intended. If you are not asked, the agent is not following the instructions.
+- **Founder — choose the optional setups (B6–B9).** Expect five more prompts, each naming its default: deploying the workspace, an embedding provider for it, the C4 pilot, granted sources via the source-read App, and catalogue auto-merge. Answer, decline, or leave one unanswered — unanswered means the default applies and is recorded as “defaulted — not answered”, never as a choice you made. Your receipt is the setup record at handover: choices, states, and pending steps, never just “skipped”.
+- **Agent — create and initialise (B1–B4).** Follow the document in the new clone: create from the template, initialise once before any sources with the recorded namespace and stewards, then verify `division.json`, the core, CODEOWNERS, the empty Narrative and sources, and the rebuilt catalog. Report mismatches; commit only when the founder asks.
+- **Agent — know when to stop (B10–B12).** A missing required answer, a creation or initialisation failure, an administrator step, or a needed consent all stop the run. Record the step as pending, name who must do it, and claim nothing complete. Keep every credential out of files, command arguments, and the setup record.
+- **Agent and founder — after handover (B13–B14).** Ongoing work lives in `AGENTS.md` (“Add…”, “Join…”, “Sync division ontology now”), `GOVERNANCE.md`, the automation setup, and the workspace runbook when the workspace was chosen. Semantic similarity is only ever a way to find records for human judgement; it creates no link or equivalence, and same-labelled concepts stay distinct.
+- **Steward — inheriting the document (B15–B16).** The division copy keeps `docs/agents-start-here.md`, and its CODEOWNERS line is rewritten to you at initialisation, so the next agent in your division finds the same starting point owned by the right people.
+
+### Acceptance
+
+There are no quality attribute ids in this feature, so acceptance is the behaviour layers only. Follow the walkthroughs first and record pass or fail for each numbered step. Then inspect the named executable tests, approve them, and run them: first in the local build, then in the deployed environment (this repository on `main` after the build pull request merges). Record the date and the person who did each walkthrough. Executable cases: `test/onboarding-docs.test.mjs` (“agents start here …” and pointer tests) and `test/init-division.test.mjs` (“a fresh copy gets its own namespace, stewards, empty narrative and catalog”), plus the full `npm test` run.
+
+#### B1–B4 — Create, initialise, verify, walkthrough
+
+1. Starting only from `docs/agents-start-here.md` and a recorded set of invented choices, follow steps 2–3 against a scratch copy. Expect the repository steps to use the template mechanism and the recorded namespace and stewards, exactly once, before any sources.
+2. Check the scratch result: `division.json`, the core namespace, CODEOWNERS, the empty Narrative, the empty `sources.json`, and the rebuilt catalog all agree with the recorded choices. Executable: the init-division case, which asserts each of these.
+
+#### B5–B9 — Prompting and the setup record
+
+1. Read the prompting step. Expect four required choices, each marked never-defaulted, and five optional setups, each naming its declined default exactly as the behaviours specify.
+2. Trace one accepted, one declined, and one unanswered optional setup through the document. Expect the unanswered one to take its default and be recorded “defaulted — not answered”, and the handover to list all three states and never “skipped”. Executable: the required-choices, optional-setup, and states/hand-offs cases in `test/onboarding-docs.test.mjs`.
+
+#### B10–B12 — Stops and pending hand-offs
+
+1. Find each stop in the document: missing required answer, failed creation or initialisation, administrator step, missing consent. Expect each to stop the run, change nothing further, and leave any published catalog untouched.
+2. Check the record rules: pending steps name who must act, and no token, private key, or password appears in the record or in any file the setup writes. Executable: the states/hand-offs case; the secret-free record is inspection, confirmed here.
+
+#### B13–B14 — Pointers and similarity
+
+1. From the end of the document, reach `AGENTS.md`, `GOVERNANCE.md`, the automation setup, and the workspace runbook reference without the document restating their rules.
+2. Read every similarity mention. Expect discovery-for-judgement wording only, distinct identities for same-labelled concepts, and no instruction to create a link from a match. Executable: the canonical-homes case, including its negative match assertion.
+
+#### B15–B16 — Survival and steward ownership
+
+1. In the scratch copy from B1–B4, confirm `docs/agents-start-here.md` is present and its substance unchanged after initialisation.
+2. Confirm its CODEOWNERS line now names the recorded stewards. Executable: the init-division case, whose survival assertion was shown during the build to fail when the document is renamed away.
+
+#### Results — local build (24 November 2026, Muse Code session acting as user, branch `feature/agents-start-here/build`)
+
+- Walkthroughs B1–B16: followed during the build (Tasks 1–5) and re-checked for this section. B1–B4 and B15–B16 were exercised by the scratch walkthrough with invented values (`https://example.test/sales-division#`, `sales-steward`), which produced the recorded division, an empty `sources.json`, a catalog in the new namespace, and the rewritten CODEOWNERS line; the scratch copy was deleted. B5–B14 were followed by reading the document against each behaviour. **Pass.**
+- Executable tests: `npm test` — 309 pass, 0 fail, including the five new onboarding-docs cases and the extended init-division case. The survival assertion was also shown to fail with the document renamed away, then pass restored. **Pass, pending the user’s approval of the tests below.**
+
+#### Results — deployed environment
+
+- To be run after the build pull request merges, repeating the walkthroughs against this repository on `main`, and recorded here by amendment. Until then this layer is open and its checklist criterion stays unticked.
