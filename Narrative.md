@@ -65,6 +65,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [55](#entry-record-knowledge-graph-explorer-user-acceptance) | 2026-11-22 | Record Knowledge Graph Explorer user acceptance | product | Use one Playwright regression suite for B1–B15 with a PowerShell entry point on the home-lab operator machine. |
 | [56](#entry-design-c4-schema-2-source-graph-import-175) | 2026-11-24 | Design C4 schema 2 source graph import (#175) | product | Use the existing catalog-pinned C4 loader to validate schemas 1 and 2 and resolve evidence from the pinned configuration. Add design status and evidence references to its imported design records. |
 | [57](#entry-ci-keep-only-the-newest-build-of-each-workspace-image) | 2026-11-24 | ci: keep only the newest build of each workspace image | product | GHCR keeps only the newest build of each workspace image. Retention is set by version count (3, one complete build) rather than by age. That keeps the newest build intact however long it has been since the last publish. |
+| [58](#entry-ci-refresh-open-narrative-proposals-when-main-moves) | 2026-11-24 | ci: refresh open narrative proposals when main moves | product | Install the Narrative refresh workflow as the tool documents it, pinned to the same Narrative commit as the existing narrative workflows. |
 
 ---
 
@@ -1488,5 +1489,31 @@ Older `sha-` tags stop being pullable as soon as a newer build publishes, so any
 ---
 
 AI-Fingerprint: sha256:59bc3960bc9b
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+---
+
+<a id="entry-ci-refresh-open-narrative-proposals-when-main-moves"></a>
+
+## Entry 58 — 2026-11-24 — ci: refresh open narrative proposals when main moves
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+Each narrative proposal recompiles the whole of `Narrative.md`, so merging one makes every other open proposal conflict. That happened to #179 and #181 after #183 merged, and they had to be fixed by hand. The Narrative tool already has a refresh mode for this, but the repository never installed it.
+
+## Decision
+
+Install the Narrative refresh workflow as the tool documents it, pinned to the same Narrative commit as the existing narrative workflows. A push-only trigger was rejected because it misses a proposal that maintenance creates after the push refresh has finished. The completion trigger and manual dispatch cover that race.
+
+## Consequences
+
+Open proposals stay mergeable without hand-resolving `Narrative.md`. A refresh push uses `GITHUB_TOKEN`, which starts no workflows. The required `test`, `ai-fingerprint` and `merge-policy` checks on a refreshed proposal still have to be started by hand, as they already are on new proposals. Conflicts in anything other than the compiled output are still left for a person to resolve.
+
+---
+
+AI-Fingerprint: sha256:cab899acead0
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
