@@ -87,3 +87,70 @@ Behaviour references use the feature slug and a permanent id, for example c4-sch
 ### Terms
 
 Use the existing PublishedKnowledgeSnapshot term for the division baseline and the source-owned Ontology Kit terms for graph nodes, assertions, evidence, behaviour and decision records. Their IRIs and meanings already exist in the shared ontology or the upstream graph vocabulary. This feature introduces no shared ontology term.
+
+## Architect: structure
+
+### Components
+
+| Component | Responsibility | Behaviours |
+| --- | --- | --- |
+| C4 snapshot loader, `src/c4/snapshot.mjs` | Keep the catalog and source inventory as the entry point. Verify each clean checkout, origin identity and available source commit. Read that source commit's graph configuration and pass the immutable commit and configuration to the graph importer. Return the existing snapshot shape. | B1–B8, B12 |
+| C4 graph importer, `src/c4/graph.mjs` | Read the manifest version and apply its format and role rules. Validate graph structure and pinned evidence with the existing coverage checks. Return the validated source graph version and the nodes, assertions, evidence and coverage. Preserve the unavailable reason for optional missing or disabled graphs. | B1–B7, B9–B11 |
+| Read-only Git access, `src/c4/git.mjs` | Resolve the catalog and source objects at explicit commits. Enforce checkout identity and safe repository-relative paths, and load regular file blobs from the pinned commit for the graph importer. | B6–B8 |
+| Existing C4 snapshot records | Make the validated node and assertion maps available to current callers. Design nodes expose their status and evidence beside existing fields. The B23 comparison and reviewer walk use the same imported records to follow the actual incident assertions and containment links. | B9, B11–B13 |
+| Workspace bundle producer and reader, `src/workspace/bundle.mjs` and `runtime/RuntimeKnowledge.Store/BundleReader.cs` | Pass the validated source graph version to the existing bundle manifest field. Admit valid schema 1 and 2 source graphs in the existing bundle format and retain null version metadata for unavailable graphs. | B1, B3, B7–B9 |
+| Disposable acceptance harness | Use the real C4 snapshot with synthetic and JEPA-Speech catalogs. Compare the imported records with canonical Turtle and exercise malformed inputs in isolated fixtures. Use existing workspace bundle tests plus a mixed source-version fixture for the downstream metadata contract. | B1–B13 |
+
+### Structure
+
+The catalog commit selects the committed catalog and source manifest. Each catalog record selects the source commit. The snapshot loader uses the verified checkout as access to those Git objects. The same source commit supplies the configuration, graph Turtle and evidence blobs. The division catalog's format is independent of the source graph manifest's schema version.
+
+```mermaid
+flowchart LR
+  Catalog["Pinned catalog and source inventory"] --> Snapshot["C4 snapshot loader"]
+  Git["Verified local source Git objects"] --> Snapshot
+  Snapshot -->|Source commit and pinned configuration| Import["C4 graph importer"]
+  Git -->|Turtle and evidence blobs| Import
+  Import --> Records["Validated C4 snapshot records"]
+  Records --> Review["Pinned evidence comparison and code trace"]
+  Records --> Bundle["Workspace bundle producer"]
+  Bundle --> Reader["Workspace bundle reader"]
+```
+
+The importer uses the existing Turtle parser and one validated manifest for each present graph. It reads the graph shape and version before returning records, matches each evidence role to the pinned selector key through the supported vocabulary, and validates the file, blob id, range and effective coverage. It resolves design node evidence and assertion references against the validated evidence map. Validation errors leave the C4 load unsuccessful. For a disabled or absent graph, the existing unavailable state carries the reason and empty collections. [ADR 0024](../../adr/0024-version-source-graph-validation-at-the-c4-boundary.md)
+
+The available graph state exposes a numeric `schemaVersion` from the source graph manifest. The existing maps keep their expanded IRI keys. A behaviour or decision node adds `designStatus` as an expanded upstream IRI and `evidenceIris` as an array of evidence IRIs. The approved shape requires exactly one selected-document reference. Assertions keep their existing endpoints, relationship IRI, basis and evidence references. The evidence record's `role` remains the normalized selector key, so the standard and legacy spellings have the same interpretation in schema 1. Existing node kinds and assertion records keep their established fields. [ADR 0025](../../adr/0025-preserve-design-provenance-in-c4-snapshots.md)
+
+The workspace bundle producer reads the version from the validated graph state and uses the existing `graphSchemaVersion` field. Its runtime reader accepts 1 or 2 for available graphs and null for unavailable graphs. The bundle envelope stays at version 1. The existing workspace projection and public request and response contracts continue to use their current fields. Complete design metadata is available in the C4 graph state and the raw pinned bundle files. [ADR 0026](../../adr/0026-record-the-actual-source-graph-version-in-workspace-bundles.md)
+
+### Deployment and runtime
+
+- The C4 loader runs on Node with locked repository dependencies and local Git objects. Catalog preparation and import run against verified, clean checkouts. The import uses committed inputs and the existing in-memory snapshot model.
+- The local acceptance sequence uses the three bundled dummy repositories, the standard kit schema 1 control, and the synthetic schema 2 Widgets graph. Pin the Widgets catalog at the lite revision and leave the clean checkout at the promoted full-mode revision for B8. Use separate scratch cases for rejected versions, roles, evidence and design shapes.
+- The deployed trial uses a disposable division catalog that pins JEPA-Speech at 3bcf7e7f5926e42231ae5dbfd9275f8166cc952c. Compare the source-owned records through the real loader before following B18 to Submit directly and through MotorBlockRunner to contained code. Capture the importer, catalog and source commit IDs. [InternalOntology B23 contract](https://github.com/jamiemitchellconsultants/InternalOntology/blob/5df7c1f90ed2769c3926c58d19e79e0c03bc4e07/docs/adr/0045-require-a-compatible-division-importer.md)
+- Local acceptance can run in network-disabled Docker with the pinned repositories mounted read-only. Verify the workspace compatibility boundary with its existing bundle producer and runtime reader tests. If an existing installation adopts schema 2 source bundles, deploy the compatible reader before publishing such bundles. The disposable trial is the release evidence for this feature.
+- Keep production source registration, catalog publishing, runtime activation and source-repository changes outside trial operations. The scratch catalogs and fixtures can be rebuilt from their recorded inputs.
+
+### Traceability
+
+| Behaviour | Components |
+| --- | --- |
+| B1 | C4 snapshot loader, graph importer, standard schema 1 fixture, workspace bundle producer and reader |
+| B2 | C4 snapshot loader, graph importer, representative catalog and three bundled sources |
+| B3 | C4 snapshot loader, graph importer, synthetic schema 2 fixture, workspace bundle producer and reader |
+| B4 | C4 snapshot loader, graph importer, invalid manifest and version fixtures |
+| B5 | Graph importer, C4 snapshot loader's pinned configuration, role selector fixtures |
+| B6 | Graph importer, read-only Git access, pinned evidence and coverage controls |
+| B7 | C4 snapshot loader, graph importer, workspace bundle producer and reader, unavailable source fixtures |
+| B8 | C4 snapshot loader, read-only Git access, promoted Widgets checkout against the older catalog pin |
+| B9 | Graph importer, existing C4 snapshot records, source comparison in the acceptance harness |
+| B10 | Graph importer, malformed design record fixtures |
+| B11 | Graph importer, existing C4 snapshot records, replacement and succession comparison |
+| B12 | C4 snapshot loader, existing C4 snapshot records, pinned JEPA-Speech B23 comparison |
+| B13 | Existing C4 snapshot records, missing-route controls in the acceptance harness |
+
+### Decisions
+
+- [ADR 0024](../../adr/0024-version-source-graph-validation-at-the-c4-boundary.md) puts format and evidence-role rules at the pinned C4 import boundary.
+- [ADR 0025](../../adr/0025-preserve-design-provenance-in-c4-snapshots.md) preserves status and evidence as additions to the existing imported node records.
+- [ADR 0026](../../adr/0026-record-the-actual-source-graph-version-in-workspace-bundles.md) carries the source graph version through existing workspace bundle metadata.
