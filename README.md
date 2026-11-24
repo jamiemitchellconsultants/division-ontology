@@ -122,6 +122,13 @@ See [GOVERNANCE.md](GOVERNANCE.md). In brief:
 3. Use `exact` only when the local and shared concepts have the same meaning and canonical label. It emits `owl:equivalentClass`. Use `specializes` for a narrower local class; it emits `rdfs:subClassOf`. Matching labels alone create no link.
 4. Run the tests, build and check locally. Commit authored changes in a reviewed PR. The sync workflow proposes generated output in its own PR after that merges.
 
+## Licence
+
+This repository is source-available under the [PolyForm Noncommercial License 1.0.0](LICENSE).
+You may use, change and share it for any noncommercial purpose. Commercial use needs a separate
+licence from the copyright holder. Report security problems as described in
+[SECURITY.md](SECURITY.md).
+
 ## Current boundary
 
 The division build validates the shared core and produces a combined catalog. Source repositories remain authoritative for their own ontologies. Making participating repositories’ ontology checkers consume a pinned division-core snapshot needs a later Ontology Kit integration; division validation currently runs here when this catalog is built.
