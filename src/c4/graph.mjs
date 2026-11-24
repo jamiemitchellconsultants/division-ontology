@@ -47,6 +47,10 @@ export function loadSourceGraph({checkout,commit,config}) {
     throw new Error('invalid graph schema version');
   }
   const schemaVersion = Number(version.value);
+  const designStatusSubjects = store.getSubjects(n(K + 'designStatus'), null, null);
+  if (schemaVersion === 1 && designStatusSubjects.length) {
+    throw new Error(`designStatus requires graph schema version 2 on ${designStatusSubjects[0].value}`);
+  }
   const nodes=new Map(), assertions=new Map(), evidence=new Map(), coverage=[];
   for(const iri of resources('GraphCoverage')) {
     const selector=one(iri,K+'pathSelector','Literal'), statusIri=one(iri,K+'status','NamedNode'), status=statusIri.startsWith(K)?statusIri.slice(K.length):'', priority=Number(one(iri,K+'priority','Literal')), reason=one(iri,K+'reason','Literal',true);
@@ -72,8 +76,8 @@ export function loadSourceGraph({checkout,commit,config}) {
   for (const iri of resources('GraphNode')) {
     const kind = one(iri, K + 'kind', 'NamedNode');
     const statuses = DESIGN_STATUSES.get(kind);
-    const hasDesignFields = objects(iri, K + 'designStatus').length || objects(iri, K + 'evidence').length;
-    if (schemaVersion === 1 && (statuses || hasDesignFields)) {
+    const hasNodeEvidence = objects(iri, K + 'evidence').length > 0;
+    if (schemaVersion === 1 && (statuses || hasNodeEvidence)) {
       throw new Error(`design records require graph schema version 2 on ${iri}`);
     }
     const node = { iri, kind, label: one(iri, RDFS + 'label', 'Literal'), denotes: one(iri, K + 'denotes', 'NamedNode', true) };
@@ -86,10 +90,15 @@ export function loadSourceGraph({checkout,commit,config}) {
       }
       node.designStatus = designStatus;
       node.evidenceIris = [evidenceIri];
-    } else if (hasDesignFields) {
-      throw new Error(`designStatus and node evidence require a behaviour or decision on ${iri}`);
+    } else if (hasNodeEvidence) {
+      throw new Error(`node evidence requires a behaviour or decision on ${iri}`);
     }
     nodes.set(iri, node);
+  }
+  for (const subject of designStatusSubjects) {
+    if (subject.termType !== 'NamedNode' || !DESIGN_STATUSES.has(nodes.get(subject.value)?.kind)) {
+      throw new Error(`designStatus requires a behaviour or decision on ${subject.value}`);
+    }
   }
   for(const iri of resources('GraphAssertion')) {
     const subject=one(iri,K+'subject','NamedNode'), object=one(iri,K+'object','NamedNode'), relationship=one(iri,K+'relationship','NamedNode'), basisIri=one(iri,K+'basis','NamedNode'), basis=basisIri.startsWith(K)?basisIri.slice(K.length):'', evidenceIris=objects(iri,K+'evidence').map(x=>{if(x.termType!=='NamedNode') throw new Error('invalid evidence reference');return x.value;}).sort();

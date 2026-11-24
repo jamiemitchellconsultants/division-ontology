@@ -69,6 +69,7 @@ for (const [name, transform] of [
   ['behaviour kind', text => text.replace('<' + kit + 'source-symbol>', '<' + kit + 'behaviour>')],
   ['decision kind', text => text.replace('<' + kit + 'source-symbol>', '<' + kit + 'decision>')],
   ['node design status', text => text + appendQuad('code', 'designStatus', '<' + kit + 'current>')],
+  ['design status on an assertion', text => text + appendQuad('assertion', 'designStatus', '<' + kit + 'current>')],
   ['node evidence', text => text + appendQuad('code', 'evidence', '<' + ns + 'evidence>')],
   ['replacement', text => text.replace('<' + kit + 'communicates-with>', '<' + kit + 'replaced-by>')],
   ['succession', text => text.replace('<' + kit + 'communicates-with>', '<' + kit + 'superseded-by>')],

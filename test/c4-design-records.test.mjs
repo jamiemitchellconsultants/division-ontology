@@ -136,6 +136,7 @@ for (const [name, needle, value, error] of [
   ['literal evidence', 'kit:designStatus kit:current ; kit:evidence :document', 'kit:designStatus kit:current ; kit:evidence "document"', /evidence/i],
   ['unknown evidence', 'kit:designStatus kit:current ; kit:evidence :document', 'kit:designStatus kit:current ; kit:evidence :unknown', /evidence/i],
   ['wrong evidence role', 'kit:designStatus kit:current ; kit:evidence :document', 'kit:designStatus kit:current ; kit:evidence :evidence', /evidence|selected-document/i],
+  ['design status on an assertion', ':direct a kit:GraphAssertion', ':direct kit:designStatus kit:current .\n:direct a kit:GraphAssertion', /designStatus/i],
   ['design metadata on an ordinary node', 'rdfs:label "tests/payment.js"', 'rdfs:label "tests/payment.js" ; kit:designStatus kit:current ; kit:evidence :document', /design|status|evidence/i],
 ]) {
   test('rejects ' + name, () => withPilotFixture(f => {
