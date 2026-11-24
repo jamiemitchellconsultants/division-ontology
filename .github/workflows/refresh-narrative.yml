@@ -1,0 +1,45 @@
+name: Refresh project narrative
+
+# Every narrative proposal PR recompiles the whole of Narrative.md, so once one merges every other
+# open proposal conflicts. This merges main into each open automation/narrative-pr-* branch and
+# recompiles it. It pushes an ordinary merge commit (never a force push) and fails, changing
+# nothing, if any file other than the compiled output conflicts.
+# Pushes made with GITHUB_TOKEN start no workflows, so the required checks on a refreshed proposal
+# have to be started by hand, the same way as on a newly created one.
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".project-narrative.json"
+      - "narrative/**"
+      - "Narrative.md"
+  workflow_run:
+    workflows: ["Maintain project narrative"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: refresh-narrative
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    if: >-
+      (github.event_name == 'push' && github.ref_name == github.event.repository.default_branch) ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
+      github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Always run the trusted default-branch workflow, never a proposal's checkout.
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+      - uses: jamiemitchellconsultants/Narrative@1c5cf0ad7e10b9b197081280019cb36f5455943b
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          mode: refresh
