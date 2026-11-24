@@ -65,6 +65,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [55](#entry-record-knowledge-graph-explorer-user-acceptance) | 2026-11-22 | Record Knowledge Graph Explorer user acceptance | product | Use one Playwright regression suite for B1–B15 with a PowerShell entry point on the home-lab operator machine. |
 | [56](#entry-design-c4-schema-2-source-graph-import-175) | 2026-11-24 | Design C4 schema 2 source graph import (#175) | product | Use the existing catalog-pinned C4 loader to validate schemas 1 and 2 and resolve evidence from the pinned configuration. Add design status and evidence references to its imported design records. |
 | [57](#entry-ci-keep-only-the-newest-build-of-each-workspace-image) | 2026-11-24 | ci: keep only the newest build of each workspace image | product | GHCR keeps only the newest build of each workspace image. Retention is set by version count (3, one complete build) rather than by age. That keeps the newest build intact however long it has been since the last publish. |
+| [58](#entry-import-schema-2-source-graphs-in-c4-snapshots-175) | 2026-11-24 | Import schema 2 source graphs in C4 snapshots (#175) | product | Interpret the two supported source schemas at the existing local Git snapshot boundary. Preserve design provenance in the graph maps and carry the validated per-source schema version through the existing workspace bundle field. |
 
 ---
 
@@ -1490,3 +1491,27 @@ Older `sha-` tags stop being pullable as soon as a newer build publishes, so any
 AI-Fingerprint: sha256:59bc3960bc9b
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+---
+
+<a id="entry-import-schema-2-source-graphs-in-c4-snapshots-175"></a>
+
+## Entry 58 — 2026-11-24 — Import schema 2 source graphs in C4 snapshots (#175)
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+InternalOntology #185 needs to trace a behaviour in the pinned JEPA-Speech graph to its recorded code. The published C4 loader refused schema 2 and a standard schema 1 evidence role, while the three representative legacy graphs masked both gaps. [Division feature #175](https://github.com/jamiemitchellconsultants/division-ontology/issues/175)
+
+## Decision
+
+Interpret the two supported source schemas at the existing local Git snapshot boundary. Preserve design provenance in the graph maps and carry the validated per-source schema version through the existing workspace bundle field. Use synthetic controls and the disposable JEPA-Speech catalog to verify the importer. [ADRs 0024–0026](https://github.com/jamiemitchellconsultants/division-ontology/pull/176)
+
+## Consequences
+
+Current kit graphs and existing legacy graphs use the same import path. The importer preserves design evidence and supports the original direct and component-mediated traces. A runtime must have the compatible reader before it receives a bundle with a schema 2 source. The post-merge trial will record owner acceptance from the merged importer.
+
+---
+
+AI-Fingerprint: sha256:c71ec951eed0
