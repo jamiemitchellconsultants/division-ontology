@@ -48,7 +48,9 @@ internal sealed class BundleReader(IBundleObjects objects)
         {
             if (source is null || string.IsNullOrWhiteSpace(source.Id) || !Hex(source.Commit, 40) ||
                 source.GraphStatus is not ("available" or "unavailable") ||
-                (source.GraphStatus == "available" ? source.GraphSchemaVersion != 1 : source.GraphSchemaVersion is not null) ||
+                (source.GraphStatus == "available"
+                    ? source.GraphSchemaVersion is not (1 or 2)
+                    : source.GraphSchemaVersion is not null) ||
                 !sources.TryAdd(source.Id, source.Commit))
                 throw Invalid("Duplicate or invalid source revision.");
         }
