@@ -36,7 +36,7 @@ test('agents start here asks for the required choices before creation', () => {
 });
 test('agents start here prompts for each optional setup with its declined default', () => {
   const doc = startHere();
-  for (const pattern of [/runtime knowledge workspace/i, /catalogue-only/, /embedding/i, /no semantic search/i, /C4/, /not set up/, /source-read App/, /steward-registered sources only/, /auto-merge/, /steward review/]) assert.match(doc, pattern);
+  for (const pattern of [/runtime knowledge workspace/i, /catalogue-only/i, /embedding/i, /no semantic search/i, /C4/, /not set up/i, /source-read App/, /steward-registered sources only/i, /auto-merge/, /steward review/]) assert.match(doc, pattern);
 });
 test('agents start here records states, stops, and pending hand-offs', () => {
   const doc = startHere();
