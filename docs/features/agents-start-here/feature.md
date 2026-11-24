@@ -46,3 +46,64 @@ This repository is a GitHub template for starting a new division, but an agent a
 - **Initialisation is scripted and checkable.** [scripts/init-division.mjs](../../../scripts/init-division.mjs) refuses a copy with registered sources, rewrites the namespace in the core, `division.json`, and CODEOWNERS, empties the Narrative, removes template history and the template-only tests, and rebuilds `dist/`. [test/init-division.test.mjs](../../../test/init-division.test.mjs) already asserts these effects on a scratch copy, which Outcome 1’s walkthrough can build on.
 - **Optional setups are documented but scattered.** The workspace is optional (a division can run catalogue-only); embedding search is optional and the catalogue and C4 pilot work without a model ([docs/adding-embedding-search.md](../../../docs/adding-embedding-search.md)); the dedicated source-read App enables granted sources while a single-App setup still serves registered ones; and catalogue auto-merge stays off until `DIVISION_AUTO_MERGE_READY` is set after the merge-policy gate is verified ([docs/automation-setup.md](../../../docs/automation-setup.md)). Nothing today makes an agent ask about any of them.
 - **Guardrails the document must not blur.** Similarity may inform human link review but never creates links or equivalence ([GOVERNANCE.md](../../../GOVERNANCE.md)); registering or granting a private source publishes its ontology in this public repository, so owner consent is a stop condition, and an agent cannot grant itself App access ([AGENTS.md](../../../AGENTS.md)).
+
+## Analyst — behaviours
+
+**Status:** Accepted by the user on 24 November 2026.
+
+**Basis:** the accepted vision above, the product-owner handoff on #189, and the analyst decisions recorded with the user below. Each numbered outcome matches the vision. Scenarios specify observable behaviour of the agent following the instructions, and of the instructions themselves; they do not prescribe components or file layout.
+
+### Behaviours
+
+#### Outcome 1 — An agent can create and initialise a division without inventing steps
+
+- **B1 — Create from the template.** **Given** the required choices of B5 are recorded, **when** the agent follows the instructions, **then** it creates the target repository from this template and clones the new repository, working in that clone from then on. If template creation fails, no initialisation is attempted in the template repository itself.
+- **B2 — Initialise once, before any sources.** **Given** a fresh clone with no registered sources, **when** the agent initialises it with the recorded namespace and steward logins, **then** initialisation runs exactly once, before any source is registered, and the agent reviews the resulting diff before any commit.
+- **B3 — Verify the initialised division.** **Given** initialisation has run, **when** the agent checks the result, **then** `division.json` holds the recorded namespace and stewards, the core and CODEOWNERS use them, the Narrative is empty, `sources.json` registers no sources, and the catalog is rebuilt in the new namespace. Any mismatch is reported, not passed over.
+- **B4 — Instructions-only walkthrough.** **Given** a tester with only the instructions and a set of recorded choices, **when** they follow the instructions against a scratch copy, **then** the initialised result of B3 is reached without knowledge the instructions do not supply. A step that needs outside knowledge is recorded as a failure of the instructions. The walkthrough creates no real GitHub repository (see U3).
+
+#### Outcome 2 — The agent prompts for every setup choice instead of assuming it
+
+- **B5 — Prompt for required choices before creation.** **Given** a request to create a division, **when** the agent starts, **then** it asks for and records the target owner/name, the division namespace, the steward logins, and confirmation that a public repository publishing source ontologies is intended. No repository is created until all four are recorded; the agent invents none of them.
+- **B6 — Prompt for each optional setup, with its declined default.** **Given** the required choices are recorded, **when** the agent reaches the prompting step, **then** it asks about each of these by name, stating the default that applies if declined: deploying the runtime knowledge workspace (default: catalogue-only); an embedding/semantic-search provider, asked when the workspace is chosen (default: no semantic search, existing catalogue and text search only); the C4 impact pilot (default: not set up; the empty registries stay empty); granted-source onboarding via the dedicated source-read App (default: steward-registered sources only); and enabling auto-merge for verified catalogue pull requests (default: catalogue pull requests wait for steward review). A prompt that names a setup without its declined default does not meet this behaviour.
+- **B7 — Record every answer before proceeding.** **Given** the prompts of B5 and B6, **when** the agent proceeds past the prompting step, **then** each choice stands recorded as accepted, declined, or defaulted (B8), and that record is what the handover of B9 shows. An enabling step for an optional setup runs only when its recorded answer is accepted.
+- **B8 — An unanswered prompt defaults, visibly.** **Given** the user declines to answer an optional-setup prompt, **when** the agent continues, **then** it applies the declined default of B6, records that item as “defaulted — not answered” (never as accepted or declined), and continues. Required choices of B5 are not defaulted: setup stops until they are answered.
+- **B9 — Hand over the setup record.** **Given** setup reaches handover, **when** the agent reports completion, **then** the report lists every required choice, every optional setup as accepted, declined, or defaulted, and every pending hand-off of B11. An optional setup is never reported simply as “skipped”.
+
+#### Outcome 3 — Nothing is claimed done that needs someone else’s access
+
+- **B10 — Stop rather than invent.** **Given** a required choice is missing, or template creation or initialisation reports an error, **when** the agent cannot proceed from recorded answers, **then** it stops, reports what is missing or failed, and creates or changes nothing further. A failed run leaves any previously published catalog untouched.
+- **B11 — Hand off administrator steps as pending.** **Given** a chosen setup needs GitHub App creation or installation, branch-protection or required-check changes, steward approval, or a private-source owner’s publication consent, **when** the agent reaches that step without the needed access, **then** it records the step as pending, names who must do it, and does not report the setup as complete. The agent never grants itself App access and never puts credentials in files or command arguments.
+- **B12 — No secrets in the record.** **Given** the setup record of B9, **then** it contains choices and pending steps only — no token, private key, or password, in the record or in any file the agent wrote during setup.
+
+#### Outcome 4 — The result points onward instead of duplicating rules
+
+- **B13 — Point to the canonical homes.** **Given** a reader finishes the instructions, **when** they look for how to operate the division, **then** the instructions direct them to `AGENTS.md` for ongoing agent requests, `GOVERNANCE.md` for shared-term and link decisions, the automation setup for App and branch-rule administration, and the workspace runbook if the workspace was chosen. The instructions restate none of those documents’ rules.
+- **B14 — Similarity is discovery only.** **Given** any mention of semantic search or similarity in the instructions, **then** it is described as a way to find records for human judgement. No instruction tells the agent to create a link, an equivalence, or any ontology relationship from a similarity match, and same-labelled concepts are described as staying distinct.
+
+#### Outcome 5 — A division copy keeps the instructions
+
+- **B15 — The document survives initialisation.** **Given** a fresh copy initialised as in B2, **when** its files are inspected, **then** the “Agents start here” document is still present and unchanged in substance (it is not removed as template history).
+- **B16 — The copy’s stewards own the document.** **Given** the initialised copy of B15, **when** its CODEOWNERS is inspected, **then** the document is assigned to the copy’s recorded steward logins, as `AGENTS.md` is.
+
+### Uncertainties
+
+| ID | Question | Decision or explicit deferral | Basis |
+| --- | --- | --- | --- |
+| U1 | What makes “prompted” testable? | B5–B9: named prompts, each stating its declined default; every answer recorded as accepted, declined, or defaulted before any enabling step; the record is shown at handover. | Product-owner handoff question; analyst decision. |
+| U2 | What if the user will not answer an optional prompt? | Apply the declined default, record “defaulted — not answered”, and continue (B8). Required choices are never defaulted. | Decided by the user in analyst review. |
+| U3 | What evidence proves Outcome 1? | A scratch-copy initialisation following only the instructions, asserting B3; no real GitHub repository is created (B4). | Decided by the user in analyst review. |
+| U4 | Is the optional-setup list complete? | The five setups of B6 are the required minimum for this feature, closed from the current template inventory. A later optional feature amends the list by changing these behaviours. | Analyst decision from the documented optional features. |
+| U5 | Is new setup automation needed? | No. Documenting the existing template mechanism and `init-division` is the feature’s scope; a gap needing script changes is parked as a side issue. | Vision scope and out-of-scope. |
+| U6 | Are pointers from AGENTS.md and README discoverable enough, without a new skill? | Yes, for this feature: `AGENTS.md` is the canonical file every agent tool is pointed at. A dedicated skill is deferred as out of scope. | AGENTS.md pointer structure; vision scope. |
+| U7 | Does this feature introduce domain terms? | No new division knowledge concept is introduced, so `core/ontology.ttl` is unchanged. | Vision and Terms below. |
+
+### Terms
+
+This feature introduces no domain term, so `core/ontology.ttl` is unchanged. The words below are vocabulary of the instructions, not ontology concepts:
+
+- **Setup record:** the recorded required choices, each optional setup’s state (accepted, declined, or defaulted — not answered), and the pending hand-offs, handed over at the end of setup (B7, B9).
+- **Declined default:** the state that applies when an optional setup is declined or defaulted, as stated in its prompt (B6, B8).
+- **Pending hand-off:** a step recorded as needing a named person’s access or approval before the setup can be called complete (B11).
+
+Existing terms used unchanged: division steward (`division.json`), granted source, and the reviewed link kinds `exact` and `specializes`.
