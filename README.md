@@ -122,8 +122,15 @@ See [GOVERNANCE.md](GOVERNANCE.md). In brief:
 3. Use `exact` only when the local and shared concepts have the same meaning and canonical label. It emits `owl:equivalentClass`. Use `specializes` for a narrower local class; it emits `rdfs:subClassOf`. Matching labels alone create no link.
 4. Run the tests, build and check locally. Commit authored changes in a reviewed PR. The sync workflow proposes generated output in its own PR after that merges.
 
+## Licence
+
+This repository is source-available under the [PolyForm Noncommercial License 1.0.0](LICENSE).
+You may use, change and share it for any noncommercial purpose. Commercial use needs a separate
+licence from the copyright holder. Report security problems as described in
+[SECURITY.md](SECURITY.md).
+
 ## Current boundary
 
 The division build validates the shared core and produces a combined catalog. Source repositories remain authoritative for their own ontologies. Making participating repositories’ ontology checkers consume a pinned division-core snapshot needs a later Ontology Kit integration; division validation currently runs here when this catalog is built.
 
-CI runs the code tests without cross-repository credentials. The scheduled sync uses a GitHub App to read private sources. Until the [App and branch-rule setup](docs/automation-setup.md) is complete, catalog refreshes remain manual and the existing owner review applies. The catalog is private because it includes all concepts and descriptions from its sources.
+CI runs the code tests without cross-repository credentials. The scheduled sync uses a GitHub App to read private sources. Until the [App and branch-rule setup](docs/automation-setup.md) is complete, catalog refreshes remain manual and the existing owner review applies. This repository is public, and the catalog includes every concept and description from each registered source. Registering a private repository publishes its ontology here, so register only sources whose ontology may be public.

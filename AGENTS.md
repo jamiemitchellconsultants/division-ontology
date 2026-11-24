@@ -41,6 +41,8 @@ For Claude, Codex, Copilot or another coding agent, a person can say **“Add `o
 3. Build and check against clean checkouts for every configured source. Review the source commits and generated catalog locally. Commit only the source registration and related explanation to its PR; scheduled sync makes the generated-only PR after merge. Do not mix `dist/` and authored files in one PR.
 4. Follow the Narrative and AI fingerprint PR rules below. A division steward approves the source registration. A person with App administration access adds the private repository to the sync App installation; the agent cannot grant itself this access.
 
+This repository is public. Registering or granting a source publishes all of its concepts and descriptions in `dist/`. Before onboarding a private repository, get its owner's confirmation that its ontology may be public, and stop if you don't have it.
+
 For a source owner who can add repositories to the division's source-read App, the single action is a grant: write `.division-ontology.json` (`schemaVersion`, `ontologyPath`, `namespace`) at the root of the source repository's default branch, then add the repository to the source-read App. Do not edit `sources.json` for this; steward registration stays the path for linked terms and for sources that cannot be granted. A granted source cannot carry links, and its namespace must not overlap the core's or another source's.
 
 For an immediate sync, trigger `workflow_dispatch` on `Sync division catalog`, then report the workflow result or generated PR. A source validation or access failure needs its underlying cause fixed before retrying.
