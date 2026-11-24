@@ -154,3 +154,138 @@ The workspace bundle producer reads the version from the validated graph state a
 - [ADR 0024](../../adr/0024-version-source-graph-validation-at-the-c4-boundary.md) puts format and evidence-role rules at the pinned C4 import boundary.
 - [ADR 0025](../../adr/0025-preserve-design-provenance-in-c4-snapshots.md) preserves status and evidence as additions to the existing imported node records.
 - [ADR 0026](../../adr/0026-record-the-actual-source-graph-version-in-workspace-bundles.md) carries the source graph version through existing workspace bundle metadata.
+
+## User
+
+### Runbook
+
+#### Deploy
+
+Acceptance runs first on James's Mac with a clean division build and disposable Git repositories for Ecommerce, Warehouse, Accounting, and Widgets. The deployed environment is the same pinned C4 loader from the merged build PR, running on the disposable division catalog for the JEPA-Speech trial. The trial is the deployed source for this feature.
+
+1. Obtain a clean checkout of the importer revision. Install Node.js 20 or later and Git, then run `npm ci --ignore-scripts` from the division checkout. For workspace reader checks, use the SDK selected by `runtime/global.json`.
+2. Obtain a clean checkout of each source listed in the catalog. Every checkout needs the configured origin and the commit recorded in the catalog. At that source commit, enable the graph in `ontology.config.json`, set the graph root, and configure evidence selectors for the roles the graph cites.
+3. For the synthetic catalogs, use `npm run demo:setup` with an absolute scratch `DEMO_DIR`. Prepare the version 1 control from the Widgets `schema-1` tag and the version 2 catalog from `linked`, then leave the clean Widgets checkout at `promoted`. For the trial use the reviewed JEPA-Speech source commit `3bcf7e7f5926e42231ae5dbfd9275f8166cc952c` with its committed ontology and source graph. Register it only in the disposable catalog. [Fixture preparation and input files](../../detailed-implementations/c4-schema-2-source-graph-import/plan.md#final-pinned-verification) · [Catalog rebuild with the real builder](https://github.com/jamiemitchellconsultants/InternalOntology/blob/5df7c1f90ed2769c3926c58d19e79e0c03bc4e07/docs/features/graph-feature-document-links/feature.md#build-the-disposable-b23-catalog)
+4. Keep the importer checkout separate from the disposable catalog and the source checkouts. Record all three commit IDs and their absolute paths in the fixture input. If using a workspace deployment, update the bundle reader before publishing a bundle containing a schema 2 source. [Reader compatibility decision](../../adr/0026-record-the-actual-source-graph-version-in-workspace-bundles.md)
+
+#### Operate
+
+Use the same pinned catalog, clean source checkouts and reviewed importer revision for each inspection. A successful load reports the recorded source commit and an available graph for valid input. Sources with optional graphs can report unavailable with a reason. Confirm the schema version and inspect the evidence path, role, blob ID and inclusive line bounds at the source commit. In the trial, compare the imported design records and both B18 code paths with the source Turtle.
+
+**James's Mac, Terminal.** From the division checkout, set `C4_DESIGN_FIXTURES` to the absolute directory containing `dummy-v1.json`, `kit-v1.json`, `local-b23.json` and, for the trial, `deployed-b23.json`. Set `C4_DESIGN_KIT` to the absolute directory containing the pinned InternalOntology comparison at `5df7c1f90ed2769c3926c58d19e79e0c03bc4e07`. After owner approval, run the local command. After the build PR merges, rebind the input importer fields to the clean merged checkout and repeat the checks with `C4_DESIGN_TRIAL=1`.
+
+```sh
+node --test test/c4-schema-compatibility.test.mjs test/c4-design-records.test.mjs test/c4-graph.test.mjs test/c4-cli.test.mjs test/workspace-bundle.test.mjs test/acceptance/c4-design.test.mjs
+```
+
+Run `npm test` for the repository health check. For the bundle reader, run `dotnet test RuntimeKnowledge.Tests/RuntimeKnowledge.Tests.csproj --filter FullyQualifiedName~BundleGraphSchemaTests` from the `runtime` directory. Expect the available version 1 and 2 cases and unavailable null case to pass. A completed run has zero failures and no skipped checks in the selected layer.
+
+#### Recover
+
+Save the diagnostic and the importer, catalog and source commit IDs. Confirm the commits exist and the checkouts are clean and have the registered origins. For schema or role diagnostics, verify the source manifest and the selector configuration at the catalog pin. For evidence diagnostics, check that the path is a covered regular file at that commit and that the blob and line range match. Ask the source owner for a corrected graph commit and publish a new reviewed catalog pin, or reproduce the last working pins in a separate clean checkout. [Evidence rules](../../adr/0024-version-source-graph-validation-at-the-c4-boundary.md)
+
+For an unavailable graph, read the reason and confirm the source's intent at the pin. For a runtime rollback, restore the last verified bundle with versions supported by the chosen reader before rolling back the reader. Preserve the failed bundle and original pin for diagnosis. Rerun the catalog and importer checks against the same intended inputs before using the recovered output.
+
+### User guide
+
+- **B1–B3, import a graph.** Start from the catalog commit. A standard kit graph may use version 1 or 2. The bundled Ecommerce, Warehouse and Accounting graphs still load with their legacy version 1 evidence roles. Inspect the returned schema, record maps and coverage. A version 2 graph also exposes design nodes and links.
+- **B4, diagnose a rejected schema.** Inspect the source manifest at the recorded commit. There must be one manifest and one supported version. Behaviours, decisions, design status, node evidence, replacements and successions require version 2.
+- **B5, read role eligibility.** Match each citation to its own pinned selector for implementation, test, selected document, ontology or deployment. Standard roles work in both versions. The corresponding unprefixed roles work in version 1. A citation without a matching selector fails the load.
+- **B6, check a citation.** Open the recorded repository-relative path at the source commit. Compare the regular file's blob ID and cited lines. Check the effective coverage for that path. A present invalid citation fails the load.
+- **B7, read graph availability.** A source can be listed even when its graph is disabled or absent at the pin. Read the unavailable reason before drawing conclusions from empty graph records. An invalid present graph returns a diagnostic.
+- **B8–B9, inspect design provenance.** Use the pinned source revision even when the local checkout has moved. Compare each behaviour or decision's IRI, label, kind, design status and evidence reference with the source Turtle. Resolve the evidence record and compare each incident assertion's endpoints, relationship, basis and evidence. Review ordinary records and coverage alongside the design records.
+- **B10–B11, review status and history.** A behaviour is current or retired. A decision is proposed, accepted, superseded or deprecated. Each design node needs exactly one selected-document citation. Follow a replacement or succession in the recorded direction and inspect the original node's links under its original IRI.
+- **B12–B13, trace a behaviour.** Find the exact stable behaviour reference and follow incoming implementation assertions. For a component implementer, follow its outgoing containment assertions to code. Inspect the evidence on the actual assertions before using the trace. A missing implementation or containment assertion leaves that route empty, even if a name resembles the behaviour or component.
+
+### Acceptance
+
+Follow the walkthroughs first and record pass or fail for each numbered step. Inspect the named executable cases and approve them after the walkthrough passes. Run the approved cases in the local build, then repeat with the merged importer in the disposable deployed trial. Use the synthetic controls for absent or intentionally invalid inputs in both environments and the pinned JEPA-Speech graph for the deployed B18 trace. Record the date and participant for each result.
+
+#### B1 — Standard schema 1
+
+1. Load the `kit-v1` catalog and locate Widgets. Expect version 1, an available graph, 7 nodes, 6 assertions, 6 evidence records and 8 coverage entries.
+2. Inspect the implementation citation for `src/Invoice.cs` against the pinned Turtle. Expect its path and normalized implementation role to agree with the standard role IRI. Executable cases: `B1 imports standard kit schema 1 with readable source records` and the schema 1 standard-role cases.
+
+#### B2 — Bundled legacy graphs
+
+1. Load `dummy-v1` and list the three source IDs and pins. Expect Accounting, Ecommerce and Warehouse to be available at version 1.
+2. Inspect each graph's 4 nodes, 3 assertions, implementation evidence in `docs/architecture.md`, and 3 coverage entries. Expect the fixture facts to match. Executable case: `B2 preserves the three legacy dummy graphs`.
+
+#### B3 — Standard schema 2
+
+1. Load `local-b23` and inspect Widgets. Expect version 2, with behaviour and decision nodes and their evidence-backed links.
+2. Resolve one selected-document citation and one link citation in the imported evidence map. Expect both to point to pinned records. Repeat against the JEPA-Speech trial after merge. Executable cases: `B3 B8 B9 B11 B12 preserve and trace the pinned Widgets graph` and the deployed comparison.
+
+#### B4 — Rejected schemas
+
+1. Try the version 0, version 3, missing, conflicting and duplicate-manifest scratch inputs. Expect the schema or manifest diagnostic and no imported result.
+2. Try schema 1 with a design kind, status, node evidence, replacement or succession. Expect schema-version refusal. Executable cases: the manifest and under-schema-1 cases in `test/c4-schema-compatibility.test.mjs`.
+
+#### B5 — Evidence selector eligibility
+
+1. Compare the five configured keys with the standard evidence roles in the synthetic controls. Expect the matching path to load and normalize to its own key. Check the version 1 legacy role control against its key.
+2. Try a role with a nonmatching path, an unrecognized role and a legacy role under version 2. Expect evidence-role diagnostics. Executable cases: the standard, legacy and role-rejection cases in `test/c4-schema-compatibility.test.mjs` and the Terraform selector case in `test/c4-graph.test.mjs`.
+
+#### B6 — Pinned evidence integrity
+
+1. Read a valid evidence record and its pinned blob and lines. Expect the recorded role, path, blob ID and bounds to agree and the path to be covered.
+2. Try unsafe, missing, non-regular, stale, out-of-range and uncovered evidence in the controls. Expect each invalid source to refuse the import with the corresponding evidence or path diagnostic. Executable cases: the path, symlink, range and coverage cases in `test/c4-schema-compatibility.test.mjs`, and the stale evidence case in `test/c4-graph.test.mjs`.
+
+#### B7 — Unavailable graph
+
+1. Load scratch sources with disabled and missing graphs. Expect each source to stay present with an unavailable graph and a reason.
+2. Compare those results with the malformed present graph and inspect the bundle version check. Expect refusal for the malformed graph and a null per-source version for an unavailable graph. Executable cases: the optional and malformed graph cases in `test/c4-graph.test.mjs`, the published gap and mixed-version cases in `test/workspace-bundle.test.mjs`, and the bundle reader schema tests.
+
+#### B8 — Catalog pin over checkout HEAD
+
+1. Compare the `local-b23` Widgets source commit with its clean checkout HEAD. Expect the catalog to pin the earlier lite graph and the checkout to be at the promoted full-mode revision.
+2. Inspect the imported payment declaration and its evidence path. Expect the lite `docs/features/payments/feature.md` evidence and selector from the pin. Executable cases: the Widgets comparison and `preserves design provenance and both routes from the pinned config and graph`.
+
+#### B9 — Design record fidelity
+
+1. Compare the design nodes and incident assertions in the import with the pinned Turtle. Expect matching IRIs, labels, kinds, statuses, endpoints, relationships and basis.
+2. Resolve each cited evidence ID and check ordinary graph records and coverage. Expect the original path, role, blob and range to remain available. Executable cases: the pinned Widgets and deployed comparisons and the provenance test in `test/c4-design-records.test.mjs`.
+
+#### B10 — Rejected design records
+
+1. Load the controls for missing, conflicting, unknown and wrong-kind statuses and misplaced design properties. Expect refusal identifying the design record.
+2. Repeat with missing, multiple, literal, dangling and wrong-role node evidence. Expect an evidence diagnostic. Executable cases: the malformed record controls in `test/c4-design-records.test.mjs`.
+
+#### B11 — Retirement and succession
+
+1. Follow a retired behaviour's replacement and a superseded decision's successor in Widgets. Expect distinct node IRIs and preserved statuses, direction and evidence.
+2. Check the original nodes' incident links and evidence against their declarations. Expect no links to move to a different node. Executable cases: the pinned Widgets comparison and the provenance test in `test/c4-design-records.test.mjs`.
+
+#### B12 — Direct and component routes
+
+1. In Widgets, start at `payments#B1`. Expect one route to PayInvoice and another via Ledger to `src/Invoice.cs`.
+2. In the deployed import, start at `zener-shape-tracing-motor-test#B18`. Expect one route to Submit directly and one via MotorBlockRunner to `src/JepaSpeech.Study/Motor/MotorBlockRunner.cs`. Compare the traversed assertion endpoints and evidence with the pinned source. Executable cases: the Widgets and JEPA-Speech comparisons.
+
+#### B13 — Missing routes
+
+1. Inspect a control behaviour without an implementation assertion. Expect an empty route and inspect the remaining recorded coverage.
+2. Inspect one with an implementing component and no containment to code. Expect the component assertion to be visible and the code route to stay empty. Do not infer an edge from names. Executable case: the unlinked and partial branch checks in the provenance test in `test/c4-design-records.test.mjs`.
+
+#### Results
+
+On 2026-11-24, James Mitchell reported completing the local walkthrough on his Mac and supplied the review report at `/private/tmp/division-175-owner-local.ZBHAyT/review.md`. The report matched the expected outputs for the pinned catalogs and 47 controls. His reply was recorded as local walkthrough pass and approval of the mapped executable cases with no exceptions reported.
+
+The importer was pinned at `a3ebf43952ff3e5e5ce2b05f8f4286e155ee67ef`. The legacy catalog was `98fab08570aad7bbdd2526fcfd92b52845508c55`. The standard Widgets schema 1 catalog was `abb59c5a7cad5981f6395942e38ccf088687de5a` with its source at `81e756a70dbbb42fbcb51067c75ca484504547e5`. The Widgets schema 2 catalog was `1d86e69f9dc297ab8a0b02141d2a93ae41d31232` with its source at `566621b376324272efc64e895efa20d47f29c4d1` and the clean checkout at `7c574aa521410f5ee152744d9a0ef0fac22d83f5`.
+
+After owner review, all 75 local Node cases passed on the Mac and on each network-disabled Docker Node 20, 22 and 24 run. All eight .NET bundle reader cases passed on the Mac. No cases were skipped in either local suite. The logs are in `/private/tmp/division-c4-schema-2-feature.zZaBzZ/user-evidence`. Each local row below uses the same participant and date.
+
+| Behaviour | Local walkthrough | Local executable | Deployed walkthrough and executable |
+| --- | --- | --- | --- |
+| B1 | Pass | Approved and passed | Pending build PR merge |
+| B2 | Pass | Approved and passed | Pending build PR merge |
+| B3 | Pass | Approved and passed | Pending build PR merge |
+| B4 | Pass | Approved and passed | Pending build PR merge |
+| B5 | Pass | Approved and passed | Pending build PR merge |
+| B6 | Pass | Approved and passed | Pending build PR merge |
+| B7 | Pass | Approved and passed | Pending build PR merge |
+| B8 | Pass | Approved and passed | Pending build PR merge |
+| B9 | Pass | Approved and passed | Pending build PR merge |
+| B10 | Pass | Approved and passed | Pending build PR merge |
+| B11 | Pass | Approved and passed | Pending build PR merge |
+| B12 | Pass on Widgets | Approved and passed | Pending build PR merge |
+| B13 | Pass | Approved and passed | Pending build PR merge |

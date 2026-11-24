@@ -2,6 +2,13 @@ import {Parser, Store, DataFactory} from 'n3';
 import {createHash} from 'node:crypto';
 import {listAtCommit,readAtCommit} from './git.mjs';
 const K='https://ontology-kit.dev/schema#', RDF='http://www.w3.org/1999/02/22-rdf-syntax-ns#', RDFS='http://www.w3.org/2000/01/rdf-schema#';
+const XSD = 'http://www.w3.org/2001/XMLSchema#';
+const EVIDENCE_ROLES = ['implementation', 'test', 'selected-document', 'ontology', 'deployment'];
+const DESIGN_STATUSES = new Map([
+  [K + 'behaviour', new Set([K + 'current', K + 'retired'])],
+  [K + 'decision', new Set([K + 'proposed', K + 'accepted', K + 'superseded', K + 'deprecated'])],
+]);
+const DESIGN_SUCCESSORS = new Set([K + 'replaced-by', K + 'superseded-by']);
 const n=DataFactory.namedNode;
 export function matches(selector,path) {
   if (typeof selector!=='string' || selector.startsWith('/') || selector.split('/').includes('..')) throw new Error('invalid selector');
@@ -27,30 +34,77 @@ export function loadSourceGraph({checkout,commit,config}) {
   const objects=(subject,predicate)=>store.getObjects(n(subject),n(predicate),null);
   const one=(subject,predicate,type,optional=false)=>{const values=objects(subject,predicate); if(optional && !values.length) return undefined; if(values.length!==1 || values[0].termType!==type) throw new Error(`invalid ${predicate} on ${subject}`); return values[0].value;};
   const resources=type=>store.getSubjects(n(RDF+'type'),n(K+type),null).map(x=>{if(x.termType!=='NamedNode') throw new Error('graph resource must have named IRI'); return x.value;});
-  const manifests=resources('SourceKnowledgeGraph');
-  if(manifests.length!==1 || one(manifests[0],K+'schemaVersion','Literal')!=='1') throw new Error('invalid graph schema version');
+  const manifests = store.getSubjects(n(RDF + 'type'), n(K + 'SourceKnowledgeGraph'), null);
+  if (manifests.length !== 1 || manifests[0].termType !== 'NamedNode') {
+    throw new Error('invalid source graph manifest');
+  }
+  const [version, extraVersion] = objects(manifests[0].value, K + 'schemaVersion');
+  // The bundled schema 1 fixtures encode the version as a plain literal.
+  const validDatatype = version?.termType === 'Literal' &&
+    (version.datatype.value === XSD + 'integer' ||
+      (version.value === '1' && version.datatype.value === XSD + 'string'));
+  if (!validDatatype || extraVersion || (version.value !== '1' && version.value !== '2')) {
+    throw new Error('invalid graph schema version');
+  }
+  const schemaVersion = Number(version.value);
+  const designStatusSubjects = store.getSubjects(n(K + 'designStatus'), null, null);
+  if (schemaVersion === 1 && designStatusSubjects.length) {
+    throw new Error(`designStatus requires graph schema version 2 on ${designStatusSubjects[0].value}`);
+  }
   const nodes=new Map(), assertions=new Map(), evidence=new Map(), coverage=[];
-  for(const iri of resources('GraphNode')) nodes.set(iri,{iri,kind:one(iri,K+'kind','NamedNode'),label:one(iri,RDFS+'label','Literal'),denotes:one(iri,K+'denotes','NamedNode',true)});
   for(const iri of resources('GraphCoverage')) {
     const selector=one(iri,K+'pathSelector','Literal'), statusIri=one(iri,K+'status','NamedNode'), status=statusIri.startsWith(K)?statusIri.slice(K.length):'', priority=Number(one(iri,K+'priority','Literal')), reason=one(iri,K+'reason','Literal',true);
     if(!['covered','unknown','excluded'].includes(status) || !Number.isSafeInteger(priority) || (status!=='covered'&&!reason)) throw new Error('invalid graph coverage');
     matches(selector,''); coverage.push({iri,selector,status,priority,reason});
   }
-  const graph={status:'available',nodes,assertions,evidence,coverage};
+  const graph={status:'available',schemaVersion,nodes,assertions,evidence,coverage};
   for(const iri of resources('GraphEvidence')) {
-    const path=one(iri,K+'path','Literal'), startLine=Number(one(iri,K+'startLine','Literal')), endLine=Number(one(iri,K+'endLine','Literal')), blobId=one(iri,K+'blobId','Literal'), roleIri=one(iri,K+'role','NamedNode'), role=roleIri.startsWith(K)?roleIri.slice(K.length):'';
+    const path=one(iri,K+'path','Literal'), startLine=Number(one(iri,K+'startLine','Literal')), endLine=Number(one(iri,K+'endLine','Literal')), blobId=one(iri,K+'blobId','Literal'), roleIri=one(iri,K+'role','NamedNode');
+    const role = EVIDENCE_ROLES.find(key =>
+      roleIri === K + 'role-' + key || (schemaVersion === 1 && roleIri === K + key));
+    if (!role) throw new Error(`evidence role selector mismatch on ${iri}: ${roleIri}`);
     const content=readAtCommit(checkout,commit,path);
     if(content===null) throw new Error('evidence path missing');
     const bytes=Buffer.from(content), actual=createHash('sha1').update(`blob ${bytes.length}\0`).update(bytes).digest('hex');
     if(actual!==blobId) throw new Error('evidence blob mismatch');
     const lineCount=content.endsWith('\n')?content.split('\n').length-1:content.split('\n').length;
     if(!Number.isSafeInteger(startLine)||!Number.isSafeInteger(endLine)||startLine<1||endLine<startLine||endLine>lineCount) throw new Error('invalid evidence line range');
-    if(!Array.isArray(cfg.evidence?.[role]) || !cfg.evidence[role].some(selector=>matches(selector,path))) throw new Error('evidence role selector mismatch');
+    if(!Array.isArray(cfg.evidence?.[role]) || !cfg.evidence[role].some(selector=>matches(selector,path))) throw new Error(`evidence role selector mismatch on ${iri}: ${roleIri}`);
     if(coverageFor(graph,path).status!=='covered') throw new Error('evidence path is not covered');
     evidence.set(iri,{iri,path,startLine,endLine,blobId,role});
   }
+  for (const iri of resources('GraphNode')) {
+    const kind = one(iri, K + 'kind', 'NamedNode');
+    const statuses = DESIGN_STATUSES.get(kind);
+    const hasNodeEvidence = objects(iri, K + 'evidence').length > 0;
+    if (schemaVersion === 1 && (statuses || hasNodeEvidence)) {
+      throw new Error(`design records require graph schema version 2 on ${iri}`);
+    }
+    const node = { iri, kind, label: one(iri, RDFS + 'label', 'Literal'), denotes: one(iri, K + 'denotes', 'NamedNode', true) };
+    if (statuses) {
+      const designStatus = one(iri, K + 'designStatus', 'NamedNode');
+      if (!statuses.has(designStatus)) throw new Error(`invalid designStatus ${designStatus} on ${iri}`);
+      const evidenceIri = one(iri, K + 'evidence', 'NamedNode');
+      if (evidence.get(evidenceIri)?.role !== 'selected-document') {
+        throw new Error(`invalid selected-document evidence ${evidenceIri} on ${iri}`);
+      }
+      node.designStatus = designStatus;
+      node.evidenceIris = [evidenceIri];
+    } else if (hasNodeEvidence) {
+      throw new Error(`node evidence requires a behaviour or decision on ${iri}`);
+    }
+    nodes.set(iri, node);
+  }
+  for (const subject of designStatusSubjects) {
+    if (subject.termType !== 'NamedNode' || !DESIGN_STATUSES.has(nodes.get(subject.value)?.kind)) {
+      throw new Error(`designStatus requires a behaviour or decision on ${subject.value}`);
+    }
+  }
   for(const iri of resources('GraphAssertion')) {
     const subject=one(iri,K+'subject','NamedNode'), object=one(iri,K+'object','NamedNode'), relationship=one(iri,K+'relationship','NamedNode'), basisIri=one(iri,K+'basis','NamedNode'), basis=basisIri.startsWith(K)?basisIri.slice(K.length):'', evidenceIris=objects(iri,K+'evidence').map(x=>{if(x.termType!=='NamedNode') throw new Error('invalid evidence reference');return x.value;}).sort();
+    if (schemaVersion === 1 && DESIGN_SUCCESSORS.has(relationship)) {
+      throw new Error(`design relationship ${relationship} requires graph schema version 2 on ${iri}`);
+    }
     if(!nodes.has(subject)||!nodes.has(object)||!['direct','inferred'].includes(basis)||!evidenceIris.length||evidenceIris.some(x=>!evidence.has(x))) throw new Error('invalid graph assertion references');
     assertions.set(iri,{iri,subject,object,relationship,basis,evidenceIris});
   }
