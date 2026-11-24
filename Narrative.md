@@ -69,6 +69,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [59](#entry-ci-keep-only-the-newest-build-of-each-workspace-image) | 2026-11-24 | ci: keep only the newest build of each workspace image | product | GHCR keeps only the newest build of each workspace image. Retention is set by version count (3, one complete build) rather than by age. That keeps the newest build intact however long it has been since the last publish. |
 | [60](#entry-ci-refresh-open-narrative-proposals-when-main-moves) | 2026-11-24 | ci: refresh open narrative proposals when main moves | product | Install the Narrative refresh workflow as the tool documents it, pinned to the same Narrative commit as the existing narrative workflows. |
 | [61](#entry-import-schema-2-source-graphs-in-c4-snapshots-175) | 2026-11-24 | Import schema 2 source graphs in C4 snapshots (#175) | product | Interpret the two supported source schemas at the existing local Git snapshot boundary. Preserve design provenance in the graph maps and carry the validated per-source schema version through the existing workspace bundle field. |
+| [62](#entry-docs-agents-start-here-design) | 2026-11-24 | docs: agents start here design | product | Give “Agents start here” its own document, `docs/agents-start-here.md`, pointed to from the canonical entry points, as recorded in [ADR… |
 
 ---
 
@@ -1596,3 +1597,27 @@ Current kit graphs and existing legacy graphs use the same import path. The impo
 ---
 
 AI-Fingerprint: sha256:c71ec951eed0
+
+---
+
+<a id="entry-docs-agents-start-here-design"></a>
+
+## Entry 62 — 2026-11-24 — docs: agents start here design
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+This repository is a GitHub template, but an agent asked to create a division from it has no instructed path: `AGENTS.md` covers operating a division that already exists, and the creation steps live in human-facing README prose. Nothing requires the agent to ask the founder about the template’s optional setups, so it can silently skip them, enable them without consent, or report a partial setup as complete. The accepted vision and behaviours (B1–B16) require an ordered, discoverable creation path whose prompting step records every required choice and every optional setup — workspace deployment, embedding/semantic search, C4 pilot, granted sources via the source-read App, and catalogue auto-merge — each with its declined default.
+
+## Decision
+
+Give “Agents start here” its own document, `docs/agents-start-here.md`, pointed to from the canonical entry points, as recorded in [ADR 0027](https://github.com/jamiemitchellconsultants/division-ontology/blob/feature/agents-start-here/design/docs/adr/0027-agents-start-here-in-own-document.md). `AGENTS.md` gains only a pointer (carrying the phrase “Create a division from this template”) and the README one line; no canonical rules are copied into the new document. The prompting step and setup record live in the document as a table the agent completes in conversation and reports at handover — uncommitted and secret-free. `scripts/init-division.mjs` is unchanged; the initialiser’s CODEOWNERS rewrite transfers a new `/docs/agents-start-here.md` entry to a copy’s stewards automatically. Contract tests extend `test/onboarding-docs.test.mjs` (prompt, default, state, and link assertions) and `test/init-division.test.mjs` (survival and CODEOWNERS transfer in the existing scratch copies), so no real GitHub repository is ever created as evidence. Alternatives rejected in ADR 0027: a section inside `AGENTS.md`, a dedicated agent skill, and README-only placement.
+
+## Consequences
+
+A division copy inherits the document and its stewards own it, while routine agent context in `AGENTS.md` stays free of one-time creation detail. The `AGENTS.md` pointer becomes load-bearing for discoverability and is pinned by tests. The five-item optional-setup list is closed for this feature; adding a future optional feature means amending the behaviours and the document together. Unanswered optional prompts apply the declined default and are recorded as “defaulted — not answered”; administrator and consent steps are handed off as pending, never reported complete.
+
+---
+
+AI-Fingerprint: sha256:902f754631f9
