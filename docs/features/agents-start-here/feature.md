@@ -107,3 +107,71 @@ This feature introduces no domain term, so `core/ontology.ttl` is unchanged. The
 - **Pending hand-off:** a step recorded as needing a named person’s access or approval before the setup can be called complete (B11).
 
 Existing terms used unchanged: division steward (`division.json`), granted source, and the reviewed link kinds `exact` and `specializes`.
+
+## Architect — structure
+
+**Status:** Accepted by the user on 24 November 2026.
+
+**Basis:** the accepted vision and behaviours above, the analyst handoff on #189, and the current repository structure: `AGENTS.md` canonical with thin pointers to it, `scripts/init-division.mjs` and its scratch-copy test, `test/onboarding-docs.test.mjs`, and `.github/CODEOWNERS`.
+
+### Components
+
+| Component | Responsibility | Behaviours |
+| --- | --- | --- |
+| **Start-here document** (`docs/agents-start-here.md`, new) | The single ordered runbook for creating a division: prompting step, template creation and clone, one-time initialisation, diff review, automation-setup completion or hand-off, first-sync verification, and handover. It states each prompt, declined default, stop condition, and pending hand-off, and links to canonical documents instead of restating them. It is titled “Agents start here”. | B1–B16 |
+| **Canonical pointers** (`AGENTS.md`, `README.md`) | Make the document discoverable where agents already look: a short “Creating a division from this template” pointer in `AGENTS.md`, including the agent request phrase “Create a division from this template”, and one line in the README’s “Minimal instructions for an agent”. Pointers name the document and nothing else — no rules are copied. | B1, B5, B13 |
+| **Prompting step and setup record** (a section of the start-here document, enacted by the agent) | Presents the four required choices and the five optional setups, each optional prompt carrying its declined default from B6. Answers are recorded in the agent’s working record during setup and reported to the founder at handover in the document’s table form: each item as accepted, declined, or defaulted — not answered, plus pending hand-offs. The record is a conversation artefact reported to the founder; it is not committed to either repository, and it carries no secrets. Choosing an optional setup sends the agent to that setup’s existing canonical document; the start-here document does not contain the setup instructions themselves. | B5–B9, B11, B12 |
+| **Existing initialiser** (`scripts/init-division.mjs`, unchanged) | Refuses a copy with registered sources; rewrites the namespace in the core, `division.json`, and every CODEOWNERS entry; empties the Narrative; removes template history and the template-only tests; rebuilds `dist/`. The start-here document drives it and verifies its effects; no behaviour change is made to it in this feature. | B2, B3, B10, B15, B16 |
+| **Linked setup and operation documents** (existing, unchanged) | The automation setup (Apps, branch rules, auto-merge), the embedding-search guide, the C4 pilot material, the workspace runbook, `GOVERNANCE.md`, and `AGENTS.md`’s ongoing agent requests. Accepted optional setups and all ongoing operation follow these; the start-here document only links, with the condition for following each link (for example, the workspace runbook only when the workspace was chosen). | B6, B11, B13, B14 |
+| **Contract tests** (`test/onboarding-docs.test.mjs` and `test/init-division.test.mjs`, extended) | Pin the document’s content and survival without creating a real GitHub repository. The onboarding-docs tests assert the document exists and contains: the four required prompts; each of the five optional setups named with its declined default; the three answer states including “defaulted — not answered”; the stop and pending-hand-off wording; the canonical links of B13; and similarity described as discovery only. They also assert the `AGENTS.md` and README pointers exist. The init-division tests extend the existing scratch-copy flow (which already copies `docs/`) to assert the document is present after initialisation and that its CODEOWNERS entry was rewritten to the new stewards. | B3–B9, B13–B16 |
+| **CODEOWNERS entry** (`.github/CODEOWNERS`) | One added line, `/docs/agents-start-here.md`, beside the existing `/AGENTS.md` line. Because the initialiser rewrites every non-comment CODEOWNERS line to the new stewards, the entry transfers ownership in a division copy with no code change. | B16 |
+
+### Structure
+
+```mermaid
+flowchart TD
+  Founder["Founder: Create a division from this template"] --> Pointer["AGENTS.md / README pointer"]
+  Pointer --> Doc["docs/agents-start-here.md"]
+  Doc --> Prompt["Prompting step: required choices, optional setups with declined defaults"]
+  Prompt --> Record["Setup record (working record, not committed)"]
+  Record --> Create["Create repository from template, clone it"]
+  Create --> Init["scripts/init-division.mjs (unchanged)"]
+  Init --> Verify["Verify namespace, stewards, CODEOWNERS, empty Narrative and catalog"]
+  Verify --> Chosen{"Optional setups accepted?"}
+  Chosen -->|yes| Linked["Follow the linked canonical setup documents"]
+  Chosen -->|needs admin or consent| Pending["Record as pending hand-off, name who must act"]
+  Linked --> Handover["Handover: setup record reported to founder"]
+  Pending --> Handover
+  Handover --> Ongoing["AGENTS.md ongoing requests, GOVERNANCE.md"]
+```
+
+The start-here document is the only new artefact of substance. Everything it drives — the initialiser, the setup documents, CODEOWNERS transfer — already exists; the tests reuse the two existing test files that already pin onboarding documents and scratch-copy initialisation.
+
+### Deployment and runtime
+
+There is no runtime component and no deployment. The document ships in the template, is read by an agent only while a division is being created, and survives into every division copy, where the copy’s stewards own it. The tests run under the existing `npm test` (`node --test`), using the init-division scratch copies under the system temp directory; they need no GitHub credentials and create no real repository (U3). No ontology, catalogue, builder, merge-policy, or workspace files change.
+
+### Traceability
+
+| Behaviour | Components |
+| --- | --- |
+| B1 | Start-here document, canonical pointers |
+| B2 | Start-here document, existing initialiser |
+| B3 | Existing initialiser, contract tests |
+| B4 | Start-here document, contract tests |
+| B5 | Prompting step and setup record, canonical pointers |
+| B6 | Prompting step and setup record, linked setup documents |
+| B7 | Prompting step and setup record |
+| B8 | Prompting step and setup record |
+| B9 | Prompting step and setup record |
+| B10 | Start-here document, existing initialiser |
+| B11 | Prompting step and setup record, linked setup documents |
+| B12 | Prompting step and setup record |
+| B13 | Canonical pointers, linked setup and operation documents, contract tests |
+| B14 | Linked setup documents, contract tests |
+| B15 | Existing initialiser, contract tests |
+| B16 | CODEOWNERS entry, contract tests |
+
+### Decisions
+
+- [ADR 0027 — Give “Agents start here” its own document, pointed to from the canonical entry points](../../adr/0027-agents-start-here-in-own-document.md)
