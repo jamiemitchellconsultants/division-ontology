@@ -4,7 +4,7 @@
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
 :_meta a owl:Ontology ;
-    owl:versionInfo "0.4.0" .
+    owl:versionInfo "0.5.0" .
 
 # Scope and source evidence for the following traversal paging concepts:
 # docs/features/traversal-cursor-pagination/01-vision.md, outcomes 1, 4 and 6;
@@ -61,7 +61,7 @@
 
 :ImpactAssessment a owl:Class ;
     rdfs:label "ImpactAssessment" ;
-    rdfs:comment "An architect-authored, reviewable account of the likely effects of a change request across participating sources, identifying assessed elements, reasons, evidence, source revisions and unresolved gaps. It does not approve the request." .
+    rdfs:comment "An assessor-authored (architect or analyst), reviewable account of the likely effects of a change request across participating sources, identifying assessed elements, reasons, evidence, source revisions, the relationship master list it is pinned to, and unresolved gaps. It does not approve the request." .
 
 # Scope and source evidence for the following shared source-onboarding concepts:
 # docs/features/one-action-source-onboarding/01-vision.md, outcomes 1–4;
@@ -80,3 +80,26 @@
 :SourceImportStatus a owl:Class ;
     rdfs:label "SourceImportStatus" ;
     rdfs:comment "The catalog's per-source record of a granted source's state (current, invalid, not configured or access removed), last attempted commit, last published commit and any actionable failure reason." .
+
+# Scope and source evidence for the following generalised impact concepts:
+# docs/features/generalise-impact-assessment/01-vision.md, outcomes 1–6;
+# docs/features/generalise-impact-assessment/02-behaviours.md, B1–B36 and
+# Terms. The ImpactAssessment definition above is corrected from
+# architect-authored to assessor-authored by the same evidence. These
+# definitions add no equivalence links.
+
+:ImpactLead a owl:Class ;
+    rdfs:label "ImpactLead" ;
+    rdfs:comment "A graph node or catalog concept returned by candidate search for a change request, identified by source and IRI with how it matched. It is supported when a reviewed C4 mapping or verified evidence backs it. A lead is a starting point to confirm, never a conclusion about impact." .
+
+:ImpactPath a owl:Class ;
+    rdfs:label "ImpactPath" ;
+    rdfs:comment "An ordered chain of steps from a confirmed impact lead, each following a source assertion in the impact direction its relationship carries, a reviewed C4 binding, or a reviewed link crossing, and each shown with its evidence. A path never stands as a direct assertion between its endpoints." .
+
+:ReviewedLinkCrossing a owl:Class ;
+    rdfs:label "ReviewedLinkCrossing" ;
+    rdfs:comment "An impact path step from a node in one source to a node in another, made through the terms they denote and those terms' steward-reviewed links to a shared term. It is permitted for exact links in either direction and for specializes links only from the general term to its specialisations." .
+
+:AssessmentGap a owl:Class ;
+    rdfs:label "AssessmentGap" ;
+    rdfs:comment "A recorded limit on what a search, impact path trace or impact assessment could establish, with a code and a reason, such as an unlisted relationship, an unlinked term, a missing mapping, unavailable evidence text or a snapshot coverage gap. A gap never states that something is unaffected." .
