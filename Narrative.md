@@ -72,6 +72,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [62](#entry-docs-agents-start-here-design) | 2026-11-24 | docs: agents start here design | product | Give “Agents start here” its own document, `docs/agents-start-here.md`, pointed to from the canonical entry points, as recorded in [ADR… |
 | [63](#entry-docs-agents-start-here-implementation-plan) | 2026-11-24 | docs: agents start here implementation plan | product | One increment of five test-first tasks: (1) pin the document contract as failing tests in `test/onboarding-docs.test.mjs`; (2) write `docs/agents-start-here.md` to the settled outline — prompt tables with B6’s declined defaults, the… |
 | [64](#entry-docs-feature-vision-for-generalising-impact-assessment-beyond-c4-198) | 2026-11-26 | docs(feature): vision for generalising impact assessment beyond C4 (#198) | product | Repurpose #198 to generalise impact assessment beyond C4, in full mode. Any validated source graph can be assessed, with C4 views as an optional layer. |
+| [65](#entry-docs-feature-behaviours-for-generalised-impact-assessment-200) | 2026-11-26 | docs(feature): behaviours for generalised impact assessment (#200) | product | Decided with the user on 26 November 2026: - Readers search, trace, draft and export. Saving and editing need `ManageKnowledgeGraph`. |
 
 ---
 
@@ -1673,3 +1674,52 @@ The relationship master list becomes a prerequisite feature (#205), and outcome 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
 AI-Fingerprint: sha256:8beafab92c89
+
+---
+
+<a id="entry-docs-feature-behaviours-for-generalised-impact-assessment-200"></a>
+
+## Entry 65 — 2026-11-26 — docs(feature): behaviours for generalised impact assessment (#200)
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The accepted vision (PR #206) passed four questions to the analyst:
+- who may save an assessment;
+- how impact crosses `exact` and `specializes` links;
+- what makes a lead supported;
+- what happens to assessments when a new snapshot is activated.
+
+It also left an unstated conflict. Outcome 2 says unlisted relationships are not followed, but the relationship master list (#205) does not exist yet. Applied strictly, that would stop every path, including on the C4 fixtures, which must behave as today.
+
+## Decision
+
+Decided with the user on 26 November 2026:
+- Readers search, trace, draft and export. Saving and editing need `ManageKnowledgeGraph`.
+- Until a master list exists, paths follow every assertion from subject to object, as today, and report a `no-relationship-master-list` gap.
+- `exact` links are crossed in both directions. `specializes` links are crossed only from the general term to its specialisations.
+- A lead is supported by a C4 mapping, or by verified evidence of any role.
+- Saved assessments keep a frozen copy of what they cite and stay readable after a new snapshot, but cannot be edited. Unsaved drafts are discarded.
+
+The analyst also decided that:
+- workspace and command-line Markdown are byte-identical;
+- a relationship listed as carrying no impact is counted, not reported as a gap;
+- a link crossing counts as one depth step;
+- workspace search is cursor-paged;
+- deleting and retaining saved assessments is deferred.
+
+Rejected: following nothing until #205 lands, crossing both link kinds both ways, and counting only certain evidence roles.
+
+## Consequences
+
+Outcome 2 no longer blocks the other outcomes. On the C4 fixtures, B4 allows exactly three differences from today: extra support flags, paths from evidenced starts that had no mapping, and the master-list gap. The product owner should confirm that this reading of "same results as today" is acceptable. The architect must decide:
+- how the runtime serves cited text from the pinned bundle without publishing it;
+- how saved assessments freeze their content;
+- how page titles and Confluence addresses are read from exported pages.
+
+---
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+AI-Fingerprint: sha256:0651f3b80c6f
