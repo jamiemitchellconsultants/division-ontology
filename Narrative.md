@@ -71,6 +71,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [61](#entry-import-schema-2-source-graphs-in-c4-snapshots-175) | 2026-11-24 | Import schema 2 source graphs in C4 snapshots (#175) | product | Interpret the two supported source schemas at the existing local Git snapshot boundary. Preserve design provenance in the graph maps and carry the validated per-source schema version through the existing workspace bundle field. |
 | [62](#entry-docs-agents-start-here-design) | 2026-11-24 | docs: agents start here design | product | Give “Agents start here” its own document, `docs/agents-start-here.md`, pointed to from the canonical entry points, as recorded in [ADR… |
 | [63](#entry-docs-agents-start-here-implementation-plan) | 2026-11-24 | docs: agents start here implementation plan | product | One increment of five test-first tasks: (1) pin the document contract as failing tests in `test/onboarding-docs.test.mjs`; (2) write `docs/agents-start-here.md` to the settled outline — prompt tables with B6’s declined defaults, the… |
+| [64](#entry-docs-feature-vision-for-generalising-impact-assessment-beyond-c4-198) | 2026-11-26 | docs(feature): vision for generalising impact assessment beyond C4 (#198) | product | Repurpose #198 to generalise impact assessment beyond C4, in full mode. Any validated source graph can be assessed, with C4 views as an optional layer. |
 
 ---
 
@@ -1646,3 +1647,29 @@ The build can be executed task-by-task from this plan without further decisions,
 ---
 
 AI-Fingerprint: sha256:9ed1b25716e3
+
+---
+
+<a id="entry-docs-feature-vision-for-generalising-impact-assessment-beyond-c4-198"></a>
+
+## Entry 64 — 2026-11-26 — docs(feature): vision for generalising impact assessment beyond C4 (#198)
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+Issue #197 asked for source knowledge graphs to be imported into the catalog alongside the ontology Turtle, for the Confluence ontology import's group repositories. Product owner research found that the workspace bundle and the C4 pilot already read and validate source graphs from pinned checkouts, and the workspace already projects graph claims. A catalog-only import would add little. The C4 engine is mostly generic, but impact paths start only from C4-mapped nodes, run only from a local command with source checkouts, and treat code as the evidence that matters. That blocks impact assessment over policy and process knowledge preserved from Confluence.
+
+## Decision
+
+Repurpose #198 to generalise impact assessment beyond C4, in full mode. Any validated source graph can be assessed, with C4 views as an optional layer. Impact follows each relationship's meaning from the division's relationship master list, and crosses sources only through steward-reviewed links. Analysts and architects assess, save and share assessments in the runtime knowledge workspace, with cited document evidence shown from the pinned commit. Assessments stay pinned to their snapshot, carry their gaps and have no approval state. Rejected: importing graphs into the public catalog first (#197 set aside), following every relationship without impact meaning, and building the master list inside this feature.
+
+## Consequences
+
+The relationship master list becomes a prerequisite feature (#205), and outcome 2 cannot be accepted until it exists. #197 stays open, set aside. The analyst must decide who may save an assessment and how impact crosses `exact` and `specializes` links. The architect must decide how the workspace serves cited text from the pinned bundle, and how to keep C4 behaviour identical on existing fixtures.
+
+---
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+AI-Fingerprint: sha256:8beafab92c89
