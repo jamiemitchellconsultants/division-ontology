@@ -209,6 +209,10 @@ public sealed class ReplayStore(Db db, IBundleObjects objects)
         await AddRowsAsync("""
             SELECT to_jsonb(e)::text FROM workspace_journal.events e WHERE position <= $1 ORDER BY position
             """, position);
+        await AddRowsAsync("""
+            SELECT package_sha256 FROM workspace_projection.impact_models
+              WHERE generation = $1 ORDER BY snapshot_id
+            """, state.Generation);
         foreach (var edge in await AgeGraph.ReadActiveEdgesAsync(tx, state.GraphName, snapshot, token))
             Add(edge);
         return Convert.ToHexStringLower(hash.GetHashAndReset());

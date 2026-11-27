@@ -90,4 +90,31 @@ public sealed class ReplayTests
         Assert.Equal("rebuildStale", stale.Code);
         Assert.Equal(current.Generation, (await replay.DescribeCurrentAsync(None)).Generation);
     }
+
+    [Fact]
+    [Trait("Category", "Database")]
+    public async Task A_rebuild_reproduces_impact_models()
+    {
+        await using var scenario = await Scenario.OpenAsync();
+        var id = scenario.Bundles.AddCorpusBundle("confluence");
+        await scenario.Store.StageAsync(id, CancellationToken.None);
+        var position = await scenario.Store.ActivateAsync(id, CancellationToken.None);
+        var replay = new ReplayStore(scenario.Db, scenario.Bundles);
+        var live = await replay.DescribeCurrentAsync(CancellationToken.None);
+        var rebuilt = await replay.RebuildAsync(position, CancellationToken.None);
+        Assert.Equal(live.StateDigest, rebuilt.StateDigest);
+        await using var connection = await scenario.Db.OpenAsync(CancellationToken.None);
+        await using (var tx = await connection.BeginTransactionAsync())
+            Assert.NotNull(await ImpactModels.ReadPackageAsync(tx, rebuilt.Generation, id, CancellationToken.None));
+
+        // The state digest covers the stored model, so a changed package changes it.
+        await using (var update = new NpgsqlCommand(
+            "UPDATE workspace_projection.impact_models SET package_sha256 = $1 WHERE generation = $2", connection))
+        {
+            update.Parameters.AddWithValue(new string('0', 64));
+            update.Parameters.AddWithValue(live.Generation);
+            Assert.Equal(1, await update.ExecuteNonQueryAsync());
+        }
+        Assert.NotEqual(live.StateDigest, (await replay.DescribeCurrentAsync(CancellationToken.None)).StateDigest);
+    }
 }
