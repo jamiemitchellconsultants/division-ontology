@@ -39,8 +39,8 @@
       "matchedText": "Claim approval",
       "matchKind": "phrase",
       "sourceCommit": "f3477a0bf5dee574afb7248a6ac3bbe9e31f6326",
-      "supported": false,
-      "reason": "No supported mapping",
+      "supported": true,
+      "reason": "Verified evidence: selected-document",
       "kind": "graph"
     }
   ],

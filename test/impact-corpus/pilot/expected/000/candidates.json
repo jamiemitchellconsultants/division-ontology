@@ -51,8 +51,8 @@
       "matchedText": "Alpha API",
       "matchKind": "phrase",
       "sourceCommit": "9c08221fbb185a173313dd0e3317273cc8d0e992",
-      "supported": false,
-      "reason": "No supported mapping",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
       "kind": "graph"
     },
     {
@@ -87,8 +87,8 @@
       "matchedText": "API handler",
       "matchKind": "token",
       "sourceCommit": "9c08221fbb185a173313dd0e3317273cc8d0e992",
-      "supported": false,
-      "reason": "No supported mapping",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
       "kind": "graph"
     },
     {
@@ -99,8 +99,8 @@
       "matchedText": "Alpha service",
       "matchKind": "token",
       "sourceCommit": "9c08221fbb185a173313dd0e3317273cc8d0e992",
-      "supported": false,
-      "reason": "No supported mapping",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
       "kind": "graph"
     }
   ],
