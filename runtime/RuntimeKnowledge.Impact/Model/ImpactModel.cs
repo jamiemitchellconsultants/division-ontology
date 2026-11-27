@@ -167,6 +167,36 @@ public sealed class SourceModel
             if (a["object"]!.GetValue<string>() == objectIri) result.Add((JsonObject)a.DeepClone()!);
         return result;
     }
+
+    /// <summary>Returns the de-duplicated, sorted citing roles for a node.
+    /// Roles come from the node's own evidence (design records only) and from every assertion where it is subject or object.</summary>
+    public IReadOnlyList<string> CitingRoles(string nodeIri)
+    {
+        var roles = new HashSet<string>(StringComparer.Ordinal);
+
+        // Roles from assertions where this node is subject or object
+        foreach (var a in Assertions)
+        {
+            var subj = a["subject"]!.GetValue<string>();
+            var obj = a["object"]!.GetValue<string>();
+            if (subj == nodeIri || obj == nodeIri)
+            {
+                if (a["evidenceIris"] is JsonArray evidenceIris)
+                    foreach (var ei in evidenceIris)
+                    {
+                        var evIri = ei?.GetValue<string>();
+                        if (evIri != null && _evidence.TryGetValue(evIri, out var evNode))
+                        {
+                            var role = evNode["role"]?.GetValue<string>();
+                            if (!string.IsNullOrEmpty(role)) roles.Add(role);
+                        }
+                    }
+            }
+        }
+
+        var sorted = roles.OrderBy(r => r, StringComparer.Ordinal).ToList();
+        return sorted;
+    }
 }
 
 public sealed class RegistryModel
