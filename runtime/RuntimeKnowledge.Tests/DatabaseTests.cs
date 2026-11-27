@@ -52,6 +52,20 @@ public sealed class DatabaseTests
         Assert.Equal(1L, await Scalar(db, "SELECT count(*) FROM workspace_journal.events"));
     }
 
+    [Theory]
+    [InlineData("assessments", "SELECT,INSERT,UPDATE")]
+    [InlineData("assessment_revisions", "SELECT,INSERT")]
+    public async Task AssessmentTablesGrantTheirPrivileges(string table, string privileges)
+    {
+        await using var fixture = await DatabaseFixture.OpenAsync();
+        await using var db = new NpgsqlConnection(fixture.ConnectionString);
+        await db.OpenAsync();
+        foreach (var role in new[] { "workspace_api", "workspace_publisher" })
+            foreach (var privilege in new[] { "SELECT", "INSERT", "UPDATE", "DELETE" })
+                Assert.Equal(privileges.Split(',').Contains(privilege), await Scalar(db,
+                    $"SELECT has_table_privilege('{role}', 'workspace_projection.{table}', '{privilege}')"));
+    }
+
     private static async Task Execute(NpgsqlConnection db, string sql)
     {
         await using var command = new NpgsqlCommand(sql, db);
