@@ -3,7 +3,7 @@ import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join, resolve, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { recordScenario } from './capture.mjs';
-import { buildImpactBundle, writeImpactBundle } from '../../src/c4/impact-bundle.mjs';
+import { buildImpactBundle } from '../../src/c4/impact-bundle.mjs';
 import { readAtCommit } from '../../src/c4/git.mjs';
 import { loadSnapshot } from '../../src/c4/snapshot.mjs';
 import { loadRegistries } from '../../src/c4/registry.mjs';
@@ -46,7 +46,6 @@ export async function exportBundles() {
   const manifestsDir = join(objectsDir, 'manifests');
   const allBlobs = new Map();
   const allManifests = new Map();
-  let stepCounter = 0;
 
   for (const id of Object.keys(scenarios)) {
     const steps = await recordScenario(id, {
@@ -59,7 +58,6 @@ export async function exportBundles() {
           const catalogCommit = argv[argv.indexOf('--catalog-commit') + 1];
           const catalogBytes = readAtCommit(options.cwd, catalogCommit, 'dist/catalog.json');
           const bundle = buildImpactBundle({ snapshot, registry, catalogBytes, extraFiles });
-          writeImpactBundle(bundle, join(objectsDir, `temp-${stepCounter++}`));
           for (const file of bundle.manifest.files) {
             const blob = bundle.blobs.get(file.sha256);
             allBlobs.set(file.sha256, blob);
