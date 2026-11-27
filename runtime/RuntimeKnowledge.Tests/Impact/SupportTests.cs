@@ -54,4 +54,19 @@ public sealed class SupportTests
         });
         Assert.Equal("Verified evidence: implementation, test", Lead(Candidates.Find(model, "handle"), "https://alpha.example/#code")["reason"]!.GetValue<string>());
     }
+
+    [Fact]
+    public void A_node_cited_only_by_its_own_evidence_is_supported()                   // B1, design records
+    {
+        var model = TestModels.MakeModel(input =>
+        {
+            var graph = input["sources"]![0]!["graph"]!;
+            graph["assertions"] = new JsonArray();
+            graph["nodes"]![0]!["evidenceIris"] = new JsonArray("https://alpha.example/#evidence");
+            input["registry"]!["mappings"] = new JsonArray();
+        });
+        var iri = model.Sources[0].Nodes[0]["iri"]!.GetValue<string>();
+        var label = model.Sources[0].Nodes[0]["label"]!.GetValue<string>();
+        Assert.Equal("Verified evidence: implementation", Lead(Candidates.Find(model, label), iri)["reason"]!.GetValue<string>());
+    }
 }

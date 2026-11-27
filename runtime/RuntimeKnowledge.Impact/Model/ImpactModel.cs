@@ -186,24 +186,27 @@ public sealed class SourceModel
     {
         var roles = new HashSet<string>(StringComparer.Ordinal);
 
-        // Roles from assertions where this node is subject or object
+        void AddRoles(JsonNode? evidenceIris)
+        {
+            if (evidenceIris is not JsonArray iris) return;
+            foreach (var ei in iris)
+            {
+                var evIri = ei?.GetValue<string>();
+                if (evIri != null && _evidence.TryGetValue(evIri, out var evNode))
+                {
+                    var role = evNode["role"]?.GetValue<string>();
+                    if (!string.IsNullOrEmpty(role)) roles.Add(role);
+                }
+            }
+        }
+
+        if (_nodes.TryGetValue(nodeIri, out var node)) AddRoles(node["evidenceIris"]);
+
         foreach (var a in Assertions)
         {
             var subj = a["subject"]!.GetValue<string>();
             var obj = a["object"]!.GetValue<string>();
-            if (subj == nodeIri || obj == nodeIri)
-            {
-                if (a["evidenceIris"] is JsonArray evidenceIris)
-                    foreach (var ei in evidenceIris)
-                    {
-                        var evIri = ei?.GetValue<string>();
-                        if (evIri != null && _evidence.TryGetValue(evIri, out var evNode))
-                        {
-                            var role = evNode["role"]?.GetValue<string>();
-                            if (!string.IsNullOrEmpty(role)) roles.Add(role);
-                        }
-                    }
-            }
+            if (subj == nodeIri || obj == nodeIri) AddRoles(a["evidenceIris"]);
         }
 
         var sorted = roles.OrderBy(r => r, StringComparer.Ordinal).ToList();
