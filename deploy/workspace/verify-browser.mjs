@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { chromium } from 'playwright';
 import { verifyGraphExplorer } from './verify-graph-explorer.mjs';
-import { verifyImpactPages } from './verify-impact-browser.mjs';
+import { verifyAssessmentPages, verifyImpactPages } from './verify-impact-browser.mjs';
 
 const target = process.argv[2];
 const homeLab = target === 'home-lab';
@@ -240,6 +240,7 @@ try {
       writes: !homeLab || process.env.WORKSPACE_VERIFY_GRAPH_WRITES === '1'
     });
     await verifyImpactPages({ reader, origin });
+    await verifyAssessmentPages({ manager, reader, origin });
     await manager.close();
   }
   console.log(`${target} ${persistence ? 'persistence' : 'browser and API'} smoke passed for application ${appVersion}, snapshot ${snapshot}.`);

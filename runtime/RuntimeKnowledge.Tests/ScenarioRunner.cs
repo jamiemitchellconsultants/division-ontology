@@ -44,6 +44,18 @@ internal sealed class ScenarioRunner : IAsyncDisposable
         return id;
     }
 
+    /// <summary>Activates a corpus scenario's impact bundle as the workspace snapshot.</summary>
+    public async Task<string> ActivateCorpusAsync(string scenario)
+    {
+        var id = _store.Bundles.AddCorpusBundle(scenario);
+        await _store.Store.StageAsync(id, CancellationToken.None);
+        await IndexAsync();
+        await _store.Store.ActivateAsync(id, CancellationToken.None);
+        return id;
+    }
+
+    public HttpClient Client(string[] roles, string subject) => _api.ClientWithToken(roles, subject: subject);
+
     public async Task IndexAsync()
     {
         // This small fixture fits in a single batch.
