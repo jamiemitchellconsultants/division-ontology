@@ -96,10 +96,10 @@ async confluence(run) {
     writeFileSync(description, 'Raise the expense approval threshold\n');
     await run(['assessment-init', ...c, '--request-id', 'CR-9', '--description-file', description], o);  // 6
     const record = JSON.parse(readFileSync(join(f.outputDir, 'assessment.json'), 'utf8'));
-    const path = traced.paths.find(p => p.steps.length === 2);
+    const path = traced.paths.find(p => p.steps.length === 2);                  // none until B3 lands
     Object.assign(record, { assessor: 'Analyst A', confirmedLeads: [f.keys.policy],
-      likelyImpacts: [{ key: f.keys.ledger, reason: 'Ledger supports approvals', pathIds: [path.id],
-        evidenceIris: path.steps.flatMap(s => s.evidenceIris) }],
+      likelyImpacts: path ? [{ key: f.keys.ledger, reason: 'Ledger supports approvals', pathIds: [path.id],
+        evidenceIris: path.steps.flatMap(s => s.evidenceIris) }] : [],
       unresolved: [{ code: 'threshold-owner', reason: 'Who owns the threshold?' }] });
     const input = temp('assessment-input.json');
     writeFileSync(input, JSON.stringify(record));
@@ -110,7 +110,13 @@ async confluence(run) {
 
 Steps:
 - [ ] Write the fixture and scenario, and add `'confluence'` to `pending`.
-- [ ] Run `node test/impact-corpus/capture.mjs confluence`. It records today's engine behaviour: leads unsupported, steps 2 and 4 refused, the view `unsupported-focus`, and the render failing because there is no `architect`. Commit it, so later diffs show each behaviour arriving.
+- [ ] Run `node test/impact-corpus/capture.mjs confluence`. It records today's engine behaviour:
+  - leads unsupported (`No supported mapping`);
+  - steps 2, 3 and 4 exit 0 with an `unsupported-start` gap and no paths, so step 7's `likelyImpacts` is empty;
+  - the view `unsupported-focus`;
+  - step 7 exits 1 with no files, because the record has no `architect`. Do not add `architect` to make it pass: B30 changes this step later, and the baseline diff must show it.
+
+  Commit it, so later diffs show each behaviour arriving.
 - [ ] Run `node test/impact-corpus/export-bundles.mjs`.
 - [ ] Commit `test: add the Confluence-shaped impact fixture (#198)` and push.
 
