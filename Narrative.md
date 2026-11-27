@@ -75,6 +75,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [65](#entry-docs-feature-behaviours-for-generalised-impact-assessment-200) | 2026-11-26 | docs(feature): behaviours for generalised impact assessment (#200) | product | Decided with the user on 26 November 2026: - Readers search, trace, draft and export. Saving and editing need `ManageKnowledgeGraph`. |
 | [66](#entry-docs-feature-define-generalised-impact-assessment-architecture-201) | 2026-11-26 | docs(feature): define generalised impact assessment architecture (#201) | product | - One .NET impact engine, `RuntimeKnowledge.Impact`, serves both the command line and the workspace. `npm run c4` keeps its flags and calls a .NET tool. ADR 0028 supersedes ADR 0001. |
 | [67](#entry-docs-feature-amend-impact-assessment-behaviours-for-pushback-200) | 2026-11-27 | docs(feature): amend impact assessment behaviours for pushback (#200) | product | - B4 is retired. B37 lists every allowed difference, including B30's gap sections for every assessment, schema 1 records included. The user chose this over exempting schema 1 records. |
+| [68](#entry-docs-feature-amend-impact-assessment-architecture-for-pushback-201) | 2026-11-27 | docs(feature): amend impact assessment architecture for pushback (#201) | product | - The traceability table now covers B37 and B38. Comparing against the C4 baseline fails on any difference outside B37's list. - The engine reports one `unlinked-term` gap for each source and term, listing the nodes in sorted order. |
 
 ---
 
@@ -1813,3 +1814,41 @@ The developer's first task is to capture today's C4 outputs as the fixed baselin
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
 AI-Fingerprint: sha256:15ca906dca66
+
+---
+
+<a id="entry-docs-feature-amend-impact-assessment-architecture-for-pushback-201"></a>
+
+## Entry 68 — 2026-11-27 — docs(feature): amend impact assessment architecture for pushback (#201)
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The behaviours amendment (#213) made four changes that the architecture had to follow:
+- it retired B4 in favour of B37 and added B38;
+- it defined an exported page as a cited Markdown file that opens with a front-matter block;
+- it limited `unlinked-term` to one gap for each source and term;
+- it narrowed `no-c4-mapping` to a focus with no mapping at all.
+
+Feature-analyze had also found that the successor route was open to readers, while B35 says a manager starts a new assessment from a saved one.
+
+## Decision
+
+- The traceability table now covers B37 and B38. Comparing against the C4 baseline fails on any difference outside B37's list.
+- The engine reports one `unlinked-term` gap for each source and term, listing the nodes in sorted order.
+- `no-c4-mapping` applies only to an unmapped focus. A wrong-level mapping keeps `unsupported-focus`.
+- ADR 0031 is amended in place, not superseded, because its decision is unchanged, only narrowed, and none of it has been built. Page metadata is read only for exported pages, and ordinary documents keep code evidence's fields with no gap.
+- `POST /api/assessments/{id}/successor` needs `ManagePolicy`.
+
+## Consequences
+
+- Repository ADRs and feature documents cited as evidence raise no page-metadata gaps.
+- Path results stay bounded on divisions that have no reviewed links.
+- Readers who are not managers can still draft from scratch, but cannot start a draft from a saved assessment.
+
+---
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+AI-Fingerprint: sha256:01f18c928c91
