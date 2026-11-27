@@ -181,9 +181,11 @@
       "--input",
       "$input/007/assessment-input.json"
     ],
-    "exit": 1,
-    "stderr": "architect is required\n",
-    "files": [],
+    "exit": 0,
+    "stderr": "",
+    "files": [
+      "assessment.md"
+    ],
     "manifest": "c063d8e577c6343f6971806f35434b76bb9b0b1dbf1abcdc144a1d5c54841d6c"
   }
 ]

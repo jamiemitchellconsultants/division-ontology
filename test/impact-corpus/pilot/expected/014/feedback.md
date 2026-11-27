@@ -1,6 +1,6 @@
 # Pilot feedback: CR-1
 
-Assessment digest: 107de59f11e60f2cc46e8e8449193671e18e607a0f433f3d8aa1a25171fb6d90
+Assessment digest: 550e5c17edea22811e7de98c15c0f5162872f5b974d2c34723d07bb084b8df04
 
 - architect: Architect A
 - reviewer: Reviewer B

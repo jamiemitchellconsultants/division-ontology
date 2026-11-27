@@ -369,5 +369,28 @@
       "feedback.md"
     ],
     "manifest": "55727934017e199531832324b45631940104a117e8b1ab32b87ca525f49b535a"
+  },
+  {
+    "argv": [
+      "assessment-render",
+      "--catalog-commit",
+      "e63348017b778e678b0c349160b8ec2bbc659ff5",
+      "--registry-commit",
+      "e63348017b778e678b0c349160b8ec2bbc659ff5",
+      "--checkout",
+      "$checkout:fixture/Alpha",
+      "--checkout",
+      "$checkout:fixture/Beta",
+      "--output",
+      "$output",
+      "--input",
+      "$input/015/assessment-v1.json"
+    ],
+    "exit": 0,
+    "stderr": "",
+    "files": [
+      "assessment.md"
+    ],
+    "manifest": "55727934017e199531832324b45631940104a117e8b1ab32b87ca525f49b535a"
   }
 ]
