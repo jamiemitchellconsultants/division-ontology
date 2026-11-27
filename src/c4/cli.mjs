@@ -5,6 +5,7 @@ import {tmpdir} from 'node:os';
 import {pathToFileURL} from 'node:url';
 import {loadSnapshot} from './snapshot.mjs';
 import {loadRegistries} from './registry.mjs';
+import {buildImpactInput,impactInputBytes} from './impact-input.mjs';
 import {buildImpactCli,runImpactCli} from './engine.mjs';
 const allowed={search:['query','exact-iri'],paths:['start','max-depth'],view:['focus','level','supplement'], 'assessment-init':['request-id','description-file'],'assessment-render':['input','view-input'],'feedback-render':['input','assessment-file','view-input']};
 const common=['catalog-commit','registry-commit','checkout','output'];
@@ -17,16 +18,15 @@ function parse(argv) {
 function pair(value) {const index=value?.indexOf('=')??-1;if(index<1 || index===value.length-1) throw new Error('expected source ID=value');return [value.slice(0,index),value.slice(index+1)];}
 const sourceKey=x=>{const [sourceId,nodeIri]=pair(x);return {sourceId,nodeIri};};
 function canonicalPath(path) {const abs=resolve(path);return existsSync(abs)?realpathSync(abs):join(canonicalPath(dirname(abs)),basename(abs));}
-function buildBundle(stagingDir, impactInputPath) {
+function buildBundleFromBytes(stagingDir, impactBytes) {
  const bundleDir=join(stagingDir,'bundle');
  const manifestDir=join(bundleDir,'manifests');
  const blobDir=join(bundleDir,'blobs');
  mkdirSync(manifestDir,{recursive:true});
  mkdirSync(blobDir,{recursive:true});
- const content=readFileSync(impactInputPath);
- const sha256=createHash('sha256').update(content).digest('hex');
- writeFileSync(join(blobDir,sha256),content);
- const manifest={schemaVersion:1,files:[{role:'impactInput',sourceId:'division-core',path:'impact-input.json',sha256,bytes:content.length}]};
+ const sha256=createHash('sha256').update(impactBytes).digest('hex');
+ writeFileSync(join(blobDir,sha256),impactBytes);
+ const manifest={schemaVersion:1,files:[{role:'impactInput',sourceId:'division-core',path:'impact-input.json',sha256,bytes:impactBytes.length}]};
  const manifestJson=JSON.stringify(manifest)+'\n';
  const manifestSha256=createHash('sha256').update(manifestJson).digest('hex');
  writeFileSync(join(manifestDir,manifestSha256+'.json'),manifestJson);
@@ -57,19 +57,16 @@ export async function runC4Cli(argv,{cwd=process.cwd(),stdout=process.stdout,std
   const outDir=join(staging,'out');
   mkdirSync(outDir);
 
-  // Build impact bundle from dist/impact-input.json
-  const impactInputPath=resolve(cwd,'dist','impact-input.json');
-  if(!existsSync(impactInputPath)) throw new Error('missing dist/impact-input.json');
-  const manifestId=buildBundle(staging, impactInputPath);
-
-  // Build catalog sources for the .NET engine
-  const catalogSources=JSON.stringify(snapshot.id.sources);
+  // Build impact bundle from in-memory impact input (not from disk)
+  const impactInput=buildImpactInput({snapshot,registry});
+  const impactBytes=impactInputBytes(impactInput);
+  const manifestId=buildBundleFromBytes(staging,impactBytes);
 
   // Build tool flags
-  const toolArgs=[command,'--bundle',join(staging,'bundle'),'--manifest',manifestId,'--staging',outDir,'--catalog-sources',catalogSources];
+  const toolArgs=[command,'--bundle',join(staging,'bundle'),'--manifest',manifestId,'--staging',outDir];
 
   // Add command-specific flags (skip Node-only flags)
-  const skipFlags=new Set([...common.filter(f=>f!=='checkout'),'catalog-sources']);
+  const skipFlags=new Set([...common.filter(f=>f!=='checkout')]);
   const pathFlags=new Set(['supplement','input','assessment-file','view-input']);
   for(let i=0;i<argv.length;i++) {
    const flag=argv[i];
