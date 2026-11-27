@@ -6,4 +6,6 @@
   <Project Path="RuntimeKnowledge.Worker/RuntimeKnowledge.Worker.csproj" />
   <Project Path="RuntimeKnowledge.Api/RuntimeKnowledge.Api.csproj" />
   <Project Path="RuntimeKnowledge.Web/RuntimeKnowledge.Web.csproj" />
+  <Project Path="RuntimeKnowledge.Impact/RuntimeKnowledge.Impact.csproj" />
+  <Project Path="RuntimeKnowledge.Impact.Cli/RuntimeKnowledge.Impact.Cli.csproj" />
 </Solution>
