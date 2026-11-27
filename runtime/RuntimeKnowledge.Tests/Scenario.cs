@@ -222,6 +222,15 @@ internal sealed class MemoryBundles : IBundleObjects
         return id;
     }
 
+    /// <summary>Adds a prepared bundle: its manifest and every blob it lists. Returns the manifest id.</summary>
+    public string Add(byte[] manifest, IReadOnlyDictionary<string, byte[]> blobs)
+    {
+        foreach (var (digest, bytes) in blobs) _objects[$"blobs/{digest}"] = bytes;
+        var id = Digest(manifest);
+        _objects[$"manifests/{id}.json"] = manifest;
+        return id;
+    }
+
     private BundleFile AddFile(string role, string path, byte[] bytes)
     {
         var digest = Digest(bytes);

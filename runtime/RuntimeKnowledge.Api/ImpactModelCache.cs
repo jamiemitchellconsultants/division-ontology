@@ -48,6 +48,12 @@ public sealed class ImpactModelCache(Db db)
         }
     }
 
+    /// <summary>Drops every cached model, so the next call loads from the database. For measurements only.</summary>
+    internal void Clear()
+    {
+        lock (_gate) _entries.Clear();
+    }
+
     private async Task<ImpactModel> LoadAsync(Guid generation, string snapshotId)
     {
         var package = await ImpactReads.PackageAsync(db, generation, snapshotId, CancellationToken.None)

@@ -27,6 +27,7 @@
     "n3": "2.7.12"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.10.2",
     "playwright": "1.63.0",
     "yaml": "2.8.1"
   }

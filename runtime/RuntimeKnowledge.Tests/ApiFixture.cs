@@ -95,6 +95,8 @@ internal sealed class ApiFixture : IAsyncDisposable
 
     public HttpClient CreateClient() => _factory.CreateClient();
 
+    public T Service<T>() where T : notnull => _factory.Services.GetRequiredService<T>();
+
     public HttpClient ClientWithToken(string[] roles, bool expired = false, string? issuer = null,
         string? audience = null, bool wrongSignature = false, string? keycloakClient = null, bool injectCapability = false,
         string subject = "fixture-user")
