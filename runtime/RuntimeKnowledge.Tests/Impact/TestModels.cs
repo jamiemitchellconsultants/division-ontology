@@ -14,7 +14,7 @@ internal static class TestModels
         var alphaCommit = new string('1', 40);
         var betaCommit = new string('2', 40);
         var catalogCommit = new string('3', 40);
-        var registryCommit = new string('4', 40);
+        var registryCommit = new string('e', 40);
         var appContent = "export const api = 1;\n";
         var appBytes = Encoding.UTF8.GetBytes(appContent);
         var appSha256 = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(appBytes));
@@ -57,7 +57,7 @@ internal static class TestModels
                 ["sourceAssertionIri"] = "https://alpha.example/#assertion", ["sourceEvidenceIri"] = "https://alpha.example/#evidence",
                 ["identityEvidence"] = new JsonObject {
                     ["sourceId"] = "fixture/Alpha", ["path"] = "src/app.ts", ["startLine"] = 1, ["endLine"] = 1,
-                    ["blobId"] = "1".Repeat(40), ["reason"] = "reviewed identity"
+                    ["blobId"] = "1".Repeat(40), ["reason"] = "reviewed"
                 }
             }
         );
