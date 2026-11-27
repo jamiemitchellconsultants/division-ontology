@@ -2,7 +2,7 @@
 
 Catalog commit: `e63348017b778e678b0c349160b8ec2bbc659ff5`
 Registry commit: `e63348017b778e678b0c349160b8ec2bbc659ff5`
-View digest: 89d2738a366688eacb735a30e42c25567703a1e833fad62922b317c41448ff9f
+View digest: 28dae46728b613520aa4ca71362d083767ff26d0686f9d76f235329e9fb64e37
 
 ```mermaid
 flowchart LR
@@ -28,4 +28,4 @@ Legend: dashed relationships are inferred and tentative; architect-inspected cod
 
 | Code | Source | Scope | Reason |
 | --- | --- | --- | --- |
-| unsupported-focus | fixture/Beta |  | Focus lacks the required supported mapping |
+| no-c4-mapping | fixture/Beta |  | Node has no C4 mapping; C4 views need a reviewed mapping |

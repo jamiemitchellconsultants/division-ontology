@@ -48,10 +48,10 @@
   "nextFocus": [],
   "gaps": [
     {
-      "code": "unsupported-focus",
+      "code": "no-c4-mapping",
       "sourceId": "fixture/Beta",
       "nodeIri": "https://beta.example/#system",
-      "reason": "Focus lacks the required supported mapping"
+      "reason": "Node has no C4 mapping; C4 views need a reviewed mapping"
     }
   ]
 }
