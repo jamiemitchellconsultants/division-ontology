@@ -93,8 +93,7 @@ public sealed class AssessmentsV1Tests
         var model = TestModels.MakeModel();
         var a = NewV1(model, "CR-1", "Change");
         a["snapshotId"]!["catalogCommit"] = new string('0', 40);
-        Assert.Throws<ImpactException>(() => Assessments.Validate(a, model, PathsFixture, Array.Empty<JsonObject>()))
-            .Message.Contains("snapshot");
+        Assert.Contains("snapshot", Assert.Throws<ImpactException>(() => Assessments.Validate(a, model, PathsFixture, Array.Empty<JsonObject>())).Message);
 
         var b = NewV1(model, "CR-1", "Change");
         b["likelyImpacts"] = new JsonArray(
@@ -114,8 +113,7 @@ public sealed class AssessmentsV1Tests
     {
         var model = TestModels.MakeModel();
         var a = NewV1(model, "CR-1", "Change");
-        Assert.Throws<ImpactException>(() => AssessmentMarkdownV1.Render(a, model, PathsFixture, Array.Empty<JsonObject>()))
-            .Message.Contains("architect");
+        Assert.Contains("architect", Assert.Throws<ImpactException>(() => AssessmentMarkdownV1.Render(a, model, PathsFixture, Array.Empty<JsonObject>())).Message);
     }
 
     [Fact]
@@ -176,7 +174,6 @@ public sealed class AssessmentsV1Tests
 
         var badFeedback = (JsonObject)feedback.DeepClone()!;
         badFeedback["assessmentDigest"] = new string('0', 64);
-        Assert.Throws<ImpactException>(() => FeedbackMarkdown.Render(badFeedback, assessment))
-            .Message.Contains("digest");
+        Assert.Contains("digest", Assert.Throws<ImpactException>(() => FeedbackMarkdown.Render(badFeedback, assessment)).Message);
     }
 }

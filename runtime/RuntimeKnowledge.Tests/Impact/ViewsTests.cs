@@ -67,18 +67,13 @@ public sealed class ViewsTests
     }
 
     [Fact]
-    public void Context_view_retains_same_source_mappings_and_edges()
+    public void External_context_is_evidenced_and_retains_source_identity()
     {
-        var model = TestModels.MakeModel();
-        var v = Views.Project(model, AlphaSystem, "context");
-        // Context view only includes same-source context mappings (Alpha system + external)
-        var items = v["items"]!.AsArray().Select(i => i!["key"]!.AsObject()["nodeIri"]!.GetValue<string>()).ToList();
-        Assert.Contains("https://alpha.example/#system", items);
-        Assert.Contains("https://alpha.example/#external", items);
-        // No Beta (different source)
-        Assert.DoesNotContain("https://beta.example/#system", items);
-        // The alpha-external assertion produces an edge
-        Assert.True(v["edges"]!.AsArray().Any(e => e!["assertionIri"]!.GetValue<string>() == "https://alpha.example/#assertion"));
+        var v = Views.Project(TestModels.MakeModel(), AlphaSystem, "context");
+        var items = v["items"]!.AsArray().Select(i => i!["key"]!.AsObject()).ToList();
+        Assert.Contains(items, k => k["nodeIri"]!.GetValue<string>() == "https://alpha.example/#external");
+        Assert.Contains(v["edges"]!.AsArray(), e => e!["basis"]!.GetValue<string>() == "inferred");
+        Assert.All(items, k => Assert.NotEqual("fixture/Unjoined", k["sourceId"]!.GetValue<string>()));
     }
 
     [Fact]
@@ -122,86 +117,62 @@ public sealed class ViewsTests
         Assert.True(v["edges"]!.AsArray().Any(e => e!["assertionIri"]!.GetValue<string>() == "link"));
     }
 
+    // Ports of test/c4-code-evidence.test.mjs, against the pilot bundle of the step that passes --supplement.
+    private static (ImpactModel Model, JsonObject Supplement) SupplementStep()
+    {
+        var step = CorpusPaths.Steps("pilot").First(s => s!["argv"]!.AsArray().Any(a => a!.GetValue<string>() == "--supplement"))!;
+        var model = ImpactModel.Build(ImpactBundle.Open(CorpusPaths.Objects, step["manifest"]!.GetValue<string>()));
+        var supplement = JsonNode.Parse(File.ReadAllText(Path.Combine(CorpusPaths.Corpus, "pilot", "inputs", "011", "supplement.json")))!.AsObject();
+        return (model, supplement);
+    }
+
+    private static JsonObject With(JsonObject supplement, string key, JsonNode value)
+    {
+        var copy = supplement.DeepClone().AsObject();
+        copy[key] = value;
+        return copy;
+    }
+
     [Fact]
     public void Verified_source_line_is_visibly_architect_inspected()
     {
-        var model = TestModels.MakeModel();
-        var supplement = new JsonObject
-        {
-            ["sourceId"] = "fixture/Alpha",
-            ["path"] = "src/app.ts",
-            ["startLine"] = 1,
-            ["endLine"] = 1,
-            ["blobId"] = "129fbfa125de7a8b2b24c3dbc34ef5d0e0570747",
-            ["component"] = new JsonObject
-            {
-                ["sourceId"] = "fixture/Alpha",
-                ["nodeIri"] = "https://alpha.example/#component"
-            },
-            ["reason"] = "Inspected code",
-            ["role"] = "implementation"
-        };
-        var v = Views.Project(model, AlphaComponent, "code", supplement);
-        var inspected = v["items"]!.AsArray().First(i => i!["basis"]?.GetValue<string>() == "architect-inspected");
-        Assert.Equal("src/app.ts", inspected!["path"]!.GetValue<string>());
+        var (model, good) = SupplementStep();
+        var result = CodeSupplement.Verify(model, AlphaComponent, good);
+        Assert.Equal("architect-inspected", result["basis"]!.GetValue<string>());
+        Assert.Equal(model.Source("fixture/Alpha")!.Commit, result["commit"]!.GetValue<string>());
+        Assert.Equal("src/app.ts", result["path"]!.GetValue<string>());
     }
 
     [Fact]
     public void Wrong_blob_focus_and_line_range_fail()
     {
-        var model = TestModels.MakeModel();
-        var good = new JsonObject
-        {
-            ["sourceId"] = "fixture/Alpha",
-            ["path"] = "src/app.ts",
-            ["startLine"] = 1,
-            ["endLine"] = 1,
-            ["blobId"] = "129fbfa125de7a8b2b24c3dbc34ef5d0e0570747",
-            ["component"] = new JsonObject
-            {
-                ["sourceId"] = "fixture/Alpha",
-                ["nodeIri"] = "https://alpha.example/#component"
-            },
-            ["reason"] = "Inspected code",
-            ["role"] = "implementation"
-        };
-
-        Assert.Throws<ImpactException>(
-            () => CodeSupplement.Verify(model, AlphaComponent, new JsonObject { ["sourceId"] = "fixture/Alpha", ["path"] = "src/app.ts", ["startLine"] = 1, ["endLine"] = 1, ["blobId"] = new string('0', 40), ["component"] = new JsonObject { ["sourceId"] = "fixture/Alpha", ["nodeIri"] = "https://alpha.example/#component" }, ["reason"] = "Inspected code", ["role"] = "implementation" }))
-            .Message.Contains("blob");
-
-        Assert.Throws<ImpactException>(
-            () => CodeSupplement.Verify(model, AlphaComponent, new JsonObject { ["sourceId"] = "fixture/Alpha", ["path"] = "src/app.ts", ["startLine"] = 1, ["endLine"] = 9999, ["blobId"] = "129fbfa125de7a8b2b24c3dbc34ef5d0e0570747", ["component"] = new JsonObject { ["sourceId"] = "fixture/Alpha", ["nodeIri"] = "https://alpha.example/#component" }, ["reason"] = "Inspected code", ["role"] = "implementation" }))
-            .Message.Contains("line");
-
-        var focusEx = Assert.Throws<ImpactException>(() => CodeSupplement.Verify(model, AlphaSystem, good));
-        Assert.True(focusEx.Message.Contains("focus") || focusEx.Message.Contains("component"));
+        var (model, good) = SupplementStep();
+        Assert.Matches("(?i)blob", Assert.Throws<ImpactException>(() =>
+            CodeSupplement.Verify(model, AlphaComponent, With(good, "blobId", new string('0', 40)))).Message);
+        Assert.Matches("(?i)line", Assert.Throws<ImpactException>(() =>
+            CodeSupplement.Verify(model, AlphaComponent, With(good, "endLine", 9999))).Message);
+        Assert.Matches("(?i)focus|component", Assert.Throws<ImpactException>(() =>
+            CodeSupplement.Verify(model, AlphaSystem, good)).Message);
     }
 
     [Fact]
     public void Deployment_evidence_must_match_its_configured_selector()
     {
-        var model = TestModels.MakeModel(input =>
+        var bytes = System.Text.Encoding.UTF8.GetBytes("export const api = 1;\n");
+        var model = TestModels.MakeModel(input => input["sources"]![0]!["evidenceSelectors"] = new JsonObject
         {
-            input["sources"]![0]!["evidenceSelectors"]!["deployment"] = new JsonArray("**/*.tf");
+            ["implementation"] = new JsonArray("src/**"),
+            ["deployment"] = new JsonArray("**/*.tf")
         });
         var supplement = new JsonObject
         {
-            ["sourceId"] = "fixture/Alpha",
-            ["path"] = "src/app.ts",
-            ["startLine"] = 1,
-            ["endLine"] = 1,
-            ["blobId"] = "129fbfa125de7a8b2b24c3dbc34ef5d0e0570747",
-            ["component"] = new JsonObject
-            {
-                ["sourceId"] = "fixture/Alpha",
-                ["nodeIri"] = "https://alpha.example/#component"
-            },
-            ["reason"] = "Inspected code",
-            ["role"] = "deployment"
+            ["sourceId"] = "fixture/Alpha", ["path"] = "src/app.ts", ["startLine"] = 1, ["endLine"] = 1,
+            ["blobId"] = RuntimeKnowledge.Impact.Json.GitBlob.Sha1Hex(bytes),
+            ["component"] = new JsonObject { ["sourceId"] = "fixture/Alpha", ["nodeIri"] = "https://alpha.example/#component" },
+            ["reason"] = "Inspected code", ["role"] = "deployment"
         };
-        var depEx = Assert.Throws<ImpactException>(() => CodeSupplement.Verify(model, AlphaComponent, supplement));
-        Assert.True(depEx.Message.Contains("role") || depEx.Message.Contains("selector"));
+        Assert.Matches("(?i)role|selector", Assert.Throws<ImpactException>(() =>
+            CodeSupplement.Verify(model, AlphaComponent, supplement)).Message);
     }
 
     [Theory]
