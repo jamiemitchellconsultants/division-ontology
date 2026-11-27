@@ -60,3 +60,5 @@ public sealed record SavedAssessment(Guid Id, int Version, string SnapshotId, st
     JsonObject Frozen, string Markdown, IReadOnlyList<AssessmentRevision> Revisions);
 public sealed record AssessmentSummary(Guid Id, string RequestId, Actor Author, DateTimeOffset SavedAt, string SnapshotId, bool PinnedToEarlierSnapshot);
 public sealed record AssessmentPage(IReadOnlyList<AssessmentSummary> Assessments, string? NextCursor);
+/// <param name="Record">A new schema 2 draft on the active snapshot. It holds only the earlier request and description, and startedFrom.</param>
+public sealed record AssessmentSuccessor(string SnapshotId, JsonObject Record);

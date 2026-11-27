@@ -21,6 +21,10 @@
     }
     <p>@Text(record["description"])</p>
     <p>Saved by @saved.Author.Subject on @saved.SavedAt.ToString("u") · version @saved.Version</p>
+    @if (saved.StartedFrom is { } earlier)
+    {
+        <p>Started from <a href="@($"assessments/{earlier:D}")">the earlier assessment</a></p>
+    }
 
     <section aria-labelledby="assessment-pins">
         <h2 id="assessment-pins">Pins</h2>
@@ -78,6 +82,7 @@
     <div class="actions">
         <a href="@DownloadHref" download="@($"{saved.RequestId}.md")">Download Markdown</a>
         @if (canManage && !saved.PinnedToEarlierSnapshot) { <button type="button" @onclick="Edit">Edit</button> }
+        @if (canManage) { <button type="button" @onclick="StartFromThis">Start a new assessment from this one</button> }
     </div>
 
     <section aria-labelledby="assessment-history">
@@ -128,5 +133,24 @@
     {
         Draft.LoadForEdit(saved!);
         Navigation.NavigateTo("assessments/draft");
+    }
+
+    [CascadingParameter] private Task<AuthenticationState>? Authentication { get; set; }
+
+    // B35: the new draft is on the active snapshot and carries only the request forward.
+    private async Task StartFromThis()
+    {
+        error = null;
+        try
+        {
+            var successor = await Api.Successor(Id);
+            var record = successor.Record;
+            var user = Authentication is null ? null : (await Authentication).User;
+            var assessor = user?.FindFirst("name")?.Value ?? user?.FindFirst("sub")?.Value ?? "Workspace user";
+            Draft.Start(successor.SnapshotId, Text(record["requestId"]), Text(record["description"]), assessor,
+                record["pins"]!.AsObject(), Id);
+            Navigation.NavigateTo("assessments/draft");
+        }
+        catch (WorkspaceApiException problem) { error = problem; }
     }
 }

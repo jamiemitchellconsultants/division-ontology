@@ -37,6 +37,8 @@ public sealed class EndpointDescriptionTests
         { "get", "/api/assessments", "List saved assessments, newest first", "Assessments", Read, "200 AssessmentPage", null,
             ["invalidLimit", "invalidCursor", "snapshotUnavailable"] },
         { "get", "/api/assessments/{id}", "Open a saved assessment", "Assessments", Read, "200 SavedAssessment", null, ["assessmentNotFound"] },
+        { "post", "/api/assessments/{id}/successor", "Start a new assessment from a saved one", "Assessments", Manage, "200 AssessmentSuccessor", null,
+            ["assessmentNotFound", "impactUnavailable", "snapshotUnavailable"] },
         { "get", "/api/assessments/{id}/markdown", "Download a saved assessment's Markdown", "Assessments", Read, "200 text/markdown", null, ["assessmentNotFound"] },
         { "put", "/api/assessments/{id}", "Edit a saved assessment", "Assessments", Manage, "200 AssessmentSaved", "AssessmentEditRequest",
             ["invalidAssessment", "approvalNotSupported", "assessmentNotFound", "versionConflict", "snapshotMismatch", "snapshotChanged", "impactUnavailable", "snapshotUnavailable", "writesPaused"] },

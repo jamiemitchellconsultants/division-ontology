@@ -723,6 +723,96 @@
         "x-agent-output": "none"
       }
     },
+    "/api/assessments/{id}/successor": {
+      "post": {
+        "tags": [
+          "Assessments"
+        ],
+        "summary": "Start a new assessment from a saved one",
+        "description": "Returns a new schema 2 draft on the active snapshot that carries the saved assessment's request id and description forward, with startedFrom naming it. Nothing else is copied, because leads, paths and evidence belong to the earlier snapshot. Nothing is stored: fill in the draft, preview it, and save it with saveAssessment, which links the new assessment back to this one.",
+        "operationId": "startAssessmentFrom",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssessmentSuccessor"
+                }
+              }
+            },
+            "links": {
+              "saveAssessment": {
+                "operationId": "saveAssessment",
+                "description": "Save the completed draft; requires ManageKnowledgeGraph."
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/unreadableRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "404": {
+            "description": "Not Found. Codes: assessmentNotFound",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "assessmentNotFound"
+            ]
+          },
+          "500": {
+            "$ref": "#/components/responses/internalError"
+          },
+          "503": {
+            "description": "Service Unavailable. Codes: impactUnavailable, snapshotUnavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "impactUnavailable",
+              "snapshotUnavailable"
+            ]
+          }
+        },
+        "security": [
+          {
+            "bearer": [ ]
+          }
+        ],
+        "x-workspace-role": "ManageKnowledgeGraph",
+        "x-agent-tool-name": "workspace_start_assessment_from",
+        "x-agent-idempotent": true,
+        "x-agent-retryable": true,
+        "x-agent-side-effects": "none",
+        "x-agent-input": "parameters",
+        "x-agent-output": "AssessmentSuccessor"
+      }
+    },
     "/api/contributions/annotations": {
       "post": {
         "tags": [
@@ -2712,6 +2802,21 @@
               "string"
             ],
             "format": "int64"
+          }
+        }
+      },
+      "AssessmentSuccessor": {
+        "required": [
+          "snapshotId",
+          "record"
+        ],
+        "type": "object",
+        "properties": {
+          "snapshotId": {
+            "type": "string"
+          },
+          "record": {
+            "$ref": "#/components/schemas/JsonObject"
           }
         }
       },

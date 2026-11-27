@@ -211,6 +211,49 @@ public sealed class AssessmentUiTests
         }
     }
 
+    [Fact]
+    public void Start_from_this_one_is_hidden_for_readers_and_starts_a_draft_with_started_from()   // B35
+    {
+        var (readerContext, _, _) = Context(canManage: false, (_, _, _) => (HttpStatusCode.OK, Saved(pinned: true)));
+        using (readerContext)
+        {
+            var view = readerContext.Render<SavedAssessmentView>(p => p.Add(c => c.Id, Guid.Parse("11111111-1111-1111-1111-111111111111")));
+            view.WaitForAssertion(() => Assert.Contains("History", view.Markup));
+            Assert.DoesNotContain(view.FindAll("button"), b => b.TextContent == "Start a new assessment from this one");
+        }
+
+        var successor = new AssessmentSuccessor("newer-snapshot", new JsonObject
+        {
+            ["schemaVersion"] = 2, ["requestId"] = "CR-1", ["description"] = "Raise the claim threshold", ["assessor"] = "",
+            ["pins"] = Pins.DeepClone(), ["confirmedLeads"] = new JsonArray(), ["rejectedLeads"] = new JsonArray(),
+            ["likelyImpacts"] = new JsonArray(), ["unresolved"] = new JsonArray(),
+            ["startedFrom"] = new JsonObject { ["assessmentId"] = "11111111-1111-1111-1111-111111111111" }
+        });
+        var (context, draft, api) = Context(canManage: true, (_, path, _) => path.EndsWith("/successor")
+            ? (HttpStatusCode.OK, successor)
+            : (HttpStatusCode.OK, Saved(pinned: true)));
+        using var _ = context;
+        var page = context.Render<SavedAssessmentView>(p => p.Add(c => c.Id, Guid.Parse("11111111-1111-1111-1111-111111111111")));
+        page.WaitForAssertion(() => Assert.Contains(page.FindAll("button"), b => b.TextContent == "Start a new assessment from this one"));
+        page.FindAll("button").Single(b => b.TextContent == "Start a new assessment from this one").Click();
+        page.WaitForAssertion(() => Assert.NotNull(draft.Record));
+        Assert.Equal("newer-snapshot", draft.SnapshotId);
+        Assert.Equal("CR-1", draft.RequestId);
+        Assert.Equal("11111111-1111-1111-1111-111111111111", (string)draft.Record!["startedFrom"]!["assessmentId"]!);
+        Assert.Contains(api.Requests, r => r.Method == "POST" && r.Path == "api/assessments/11111111-1111-1111-1111-111111111111/successor");
+    }
+
+    [Fact]
+    public void A_successor_links_back_to_the_assessment_it_started_from()                     // B35
+    {
+        var earlier = Guid.Parse("22222222-2222-2222-2222-222222222222");
+        var (context, _, _) = Context(canManage: false, (_, _, _) => (HttpStatusCode.OK, Saved(pinned: false) with { StartedFrom = earlier }));
+        using var _ = context;
+        var page = context.Render<SavedAssessmentView>(p => p.Add(c => c.Id, Guid.Parse("11111111-1111-1111-1111-111111111111")));
+        page.WaitForAssertion(() => Assert.Contains("Started from", page.Markup));
+        Assert.Equal($"assessments/{earlier:D}", page.Find("a[href^='assessments/2222']").GetAttribute("href"));
+    }
+
     private static AssessmentSummary Summary(int n, bool pinned = false) =>
         new(Guid.Parse($"00000000-0000-0000-0000-{n:000000000000}"), $"CR-{n}", new Actor("https://issuer.test", "manager"),
             DateTimeOffset.UnixEpoch.AddDays(n), new string('f', 64), pinned);

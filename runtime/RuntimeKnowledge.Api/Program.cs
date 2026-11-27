@@ -68,6 +68,7 @@ public partial class ApiProgram
             endpoints.MapWorkspaceRoutes();
             endpoints.MapImpactRoutes();
             endpoints.MapAssessmentRoutes();
+            endpoints.MapSuccessorRoute();
             endpoints.MapOpenApi("/api/openapi/{documentName}.json").AllowAnonymous();
         });
     }

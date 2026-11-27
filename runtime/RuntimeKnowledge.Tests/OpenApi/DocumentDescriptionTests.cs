@@ -35,7 +35,7 @@ public sealed class DocumentDescriptionTests
         foreach (var (path, method, op) in operations)
         {
             var manages = path.StartsWith("/api/contributions/") ||
-                (method, path) is ("post", "/api/assessments") or ("put", "/api/assessments/{id}");
+                (method, path) is ("post", "/api/assessments") or ("put", "/api/assessments/{id}") or ("post", "/api/assessments/{id}/successor");
             var expected = manages ? "ManageKnowledgeGraph" : "ReadKnowledgeGraph";
             Assert.Equal(expected, (string)op["x-workspace-role"]!);
             Assert.Equal("""[{"bearer":[]}]""", op["security"]!.ToJsonString());

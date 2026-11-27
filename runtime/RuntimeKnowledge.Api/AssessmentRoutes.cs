@@ -96,6 +96,24 @@ internal static class AssessmentRoutes
             .WithMetadata(new RequestExample(OpenApiExamples.AssessmentEdit));
     }
 
+    // B35: a new draft on the active snapshot that carries the earlier request forward, and nothing else from it.
+    // Nothing is stored; saving the draft links back through startedFrom.
+    internal static void MapSuccessorRoute(this IEndpointRouteBuilder app) =>
+        app.MapPost("/api/assessments/{id:guid}/successor", async (Guid id, AssessmentStore store, ImpactModelCache cache,
+                HttpContext context, CancellationToken token) =>
+            {
+                var earlier = await store.GetAsync(id, token) ?? throw NotFound();
+                var (snapshotId, model) = await cache.GetAsync(null, token);
+                var description = earlier.Frozen["record"]?["description"]?.GetValue<string>() ?? "";
+                var record = Impact.Engine.Assessments.New(model, earlier.RequestId, description);
+                record["startedFrom"] = new JsonObject { ["assessmentId"] = id.ToString("D") };
+                WorkspaceLinks.Append(context, WorkspaceLinks.AssessmentPreview);
+                return new AssessmentSuccessor(snapshotId, record);
+            })
+            .RequireAuthorization(Identity.ManagePolicy)
+            .WithSummary("Start a new assessment from a saved one").WithTags(Assessments)
+            .ProducesWorkspaceErrors("assessmentNotFound", "impactUnavailable", "snapshotUnavailable");
+
     private static async Task<(JsonObject Frozen, string Markdown)> FreezeAsync(string snapshotId, JsonObject record,
         IReadOnlyList<JsonObject>? views, ImpactModelCache cache, CancellationToken token)
     {
