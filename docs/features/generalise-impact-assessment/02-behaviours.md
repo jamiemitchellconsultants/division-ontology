@@ -13,7 +13,16 @@ sources: [01-vision.md]
 
 **Basis:** [Accepted vision](01-vision.md) (PR #206), the product-owner handoff on #198, and the analyst decisions recorded with the user on 26 November 2026. Each numbered outcome below matches the vision. Scenarios specify observable behaviour. They do not prescribe components, storage or deployment.
 
-An **assessor** is the architect or analyst carrying out an assessment. A **reader** holds `ReadKnowledgeGraph`. A **manager** holds `ManageKnowledgeGraph`. The **Confluence fixture** is a test source shaped like a Confluence group graph. Its nodes and assertions cite `selected-document` evidence: line ranges of exported pages. It has no C4 mappings. The **C4 fixtures** are the existing C4 pilot fixtures, used with the same inputs as today.
+**Amended** on 27 November 2026 in answer to the developer's pushback on #200, which feature-analyze raised before developer planning:
+- B4 is retired and replaced by B37.
+- B38 is added.
+- B1, B5, B13, B25 and B26 are refined, and keep their meaning.
+- U16 to U20 are added.
+- The ImpactPath definition is corrected.
+
+An **assessor** is the architect or analyst carrying out an assessment. A **reader** holds `ReadKnowledgeGraph`. A **manager** holds `ManageKnowledgeGraph`. The **Confluence fixture** is a test source shaped like a Confluence group graph. Its nodes and assertions cite `selected-document` evidence: line ranges of exported pages. It has no C4 mappings. The **C4 fixtures** are the existing C4 pilot fixtures, used with the same inputs as today, including the design-record fixtures.
+
+Evidence **cites a node** in two cases: the node carries the evidence itself, as a design record does, or the node is the subject or object of an assertion that carries the evidence. An **exported page** is a Markdown file, cited by `selected-document` evidence, that opens with a front-matter metadata block. Any other file cited by `selected-document` evidence is an **ordinary document**.
 
 Gap codes are written in `code` form. Every gap carries a reason, and no gap ever states that something is unaffected.
 
@@ -25,7 +34,7 @@ Gap codes are written in `code` form. Every gap carries a reason, and no gap eve
 
 **Priority:** P1
 
-**Given** the Confluence fixture, and a change request description that matches the label of a node cited by verified `selected-document` evidence, **when** an assessor searches, **then** that node is returned as an ImpactLead with `supported: true`. The ImpactLead shows its source id, its node IRI, its source commit, how it matched, and a reason that names each evidence role backing it (here, `selected-document`). Evidence counts when it verifies at the pinned commit. Any evidence role counts.
+**Given** the Confluence fixture, and a change request description that matches the label of a node cited by verified `selected-document` evidence, **when** an assessor searches, **then** that node is returned as an ImpactLead with `supported: true`. The ImpactLead shows its source id, its node IRI, its source commit, how it matched, and a reason that names each distinct evidence role citing it, in sorted order (here, `selected-document`). Evidence counts when it verifies at the pinned commit, and any evidence role counts. A node that is the subject or object of an evidenced assertion is cited by that assertion's evidence, even if it carries no evidence itself.
 
 #### B2 — A node with no evidence and no mapping is an unsupported lead
 
@@ -39,30 +48,36 @@ Gap codes are written in `code` form. Every gap carries a reason, and no gap eve
 
 **Given** a supported ImpactLead from the Confluence fixture, **when** an assessor traces impact paths from it, **then** paths start from that node, and no `unsupported-start` gap is reported for it. **Given** a start that is not supported under B1, **when** paths are traced, **then** the start is skipped with an `unsupported-start` gap, and its reason is `Start lacks verified evidence or a supported mapping`.
 
-#### B4 — C4 fixtures behave as today, apart from the intended changes
+#### B37 — C4 fixtures behave as today, apart from an exhaustive list of intended changes
 
 **Priority:** P1
+
+Replaces B4.
 
 **Given** the C4 fixtures, with no relationship master list and the same command-line inputs as today, **when** search, paths, C4 views and assessment rendering run, **then** these are unchanged from today:
 
 - the identity, order and match of every lead;
-- every path from a C4-mapped start;
-- every C4 view;
+- the identity, order and steps of every path from a C4-mapped start;
+- the items and edges of every C4 view;
 - every rendered assessment whose record cites only C4-mapped starts.
 
-Only these differences appear:
+Only these differences appear, and any other difference fails:
 
 - unmapped nodes that verified evidence cites become supported, with an evidence reason (B1);
 - starts that were refused only because they had no mapping now produce paths (B3);
-- every path result and assessment carries the `no-relationship-master-list` gap (B9).
+- a start that is still refused carries B3's reason, `Start lacks verified evidence or a supported mapping`;
+- every path result and assessment carries the `no-relationship-master-list` gap (B9);
+- a path result carries one `unlinked-term` gap for each denoted term without a reviewed link (B13);
+- a view focused on a node with no C4 mapping reports `no-c4-mapping` in place of `unsupported-focus` (B5);
+- every rendered assessment also lists the snapshot's coverage gaps, and the gaps from the searches and path traces it cites (B30).
 
-A C4-mapped lead keeps the reason `Reviewed mapping`.
+A C4-mapped lead keeps the reason `Reviewed mapping`. Ordinary-document evidence on the design-record fixtures renders as today (B38).
 
 #### B5 — C4 views are optional
 
 **Priority:** P2
 
-**Given** a supported node with no C4 mapping, **when** an assessor asks for a C4 view focused on it, **then** the view is refused with a `no-c4-mapping` gap that names the node. Search, paths and the assessment itself carry on unaffected.
+**Given** a supported node with no C4 mapping, **when** an assessor asks for a C4 view focused on it, **then** the view is refused with a `no-c4-mapping` gap that names the node. Search, paths and the assessment itself carry on unaffected. For a node with no C4 mapping at all, `no-c4-mapping` takes the place of today's `unsupported-focus`. A focus that is mapped, but at a level other than the one the view needs, still reports `unsupported-focus`.
 
 ### Outcome 2 — Impact follows the meaning of each relationship
 
@@ -115,6 +130,8 @@ A C4-mapped lead keeps the reason `Reviewed mapping`.
 **Priority:** P1
 
 **Given** the B11 fixture with the links removed, so that A's and B's terms have identical labels but no reviewed link, **when** a path reaches A, **then** no path reaches B. The result reports an `unlinked-term` gap for A's term, stating that other sources are not reached from it. Labels are never compared to make a crossing.
+
+A result reports one `unlinked-term` gap for each source and denoted term, however many nodes or paths meet that term. The gap names the nodes it was met at, in sorted order. A node that denotes no term reports no `unlinked-term` gap.
 
 #### B14 — C4 bindings are still crossed
 
@@ -190,13 +207,19 @@ A C4-mapped lead keeps the reason `Reviewed mapping`.
 
 **Priority:** P1
 
-**Given** `selected-document` evidence citing lines of an exported page, **when** a lead, a path step or an assessment shows that evidence, **then** it shows the page's title, its original Confluence address and the exact cited lines, all read from the exported file at the pinned commit. Every cited line range in the assessment is shown this way.
+**Given** `selected-document` evidence citing lines of an exported page, as defined above, **when** a lead, a path step or an assessment shows that evidence, **then** it shows the page's title, its original Confluence address and the exact cited lines, all read from the exported file at the pinned commit. Every cited line range in the assessment is shown this way.
 
 #### B26 — Missing page metadata is a gap, not a blank
 
 **Priority:** P1
 
-**Given** an exported page with no recorded title or Confluence address, **when** its evidence is shown, **then** the file path and the cited lines are shown, along with a `page-metadata-missing` gap for that page.
+**Given** an exported page whose front-matter block records no title, or no Confluence address, or neither, **when** its evidence is shown, **then** the file path and the cited lines are shown, along with a `page-metadata-missing` gap for that page.
+
+#### B38 — Ordinary document evidence is shown like code evidence
+
+**Priority:** P1
+
+**Given** `selected-document` evidence citing an ordinary document, such as a feature document or an ADR with no front-matter block, **when** a lead, a path step or an assessment shows it, **then** it shows the path, line range, commit and role, as B28 does for code evidence. No `page-metadata-missing` gap is reported for it. In the workspace, the cited lines are also shown. In exported Markdown, its cited lines are not shown, as for code evidence.
 
 #### B27 — Cited text that cannot be read is a gap
 
@@ -283,7 +306,7 @@ A C4-mapped lead keeps the reason `Reviewed mapping`.
 | U1 | Who may save an assessment? | Readers search, trace, draft and export. Saving and editing need `ManageKnowledgeGraph`, as every other workspace write does (B17 to B19). Analysts who must save are given the manage role. | User, 26 Nov 2026 |
 | U2 | How do paths behave before the master list (#205) exists? | Every assertion is followed from subject to object, as today, with one `no-relationship-master-list` gap (B9). Once a list exists, outcome 2 applies in full (B6 to B8). Outcome 2 therefore does not block the other outcomes. | User, 26 Nov 2026 |
 | U3 | How does impact cross `exact` and `specializes` links? | `exact` in both directions. `specializes` only from the general term to its specialisations. Climbing is reported as a `specialization-boundary` gap (B11, B12). | User, 26 Nov 2026 |
-| U4 | When is a lead supported? | When a C4 mapping backs it, or when at least one evidence record of any role cites it and verifies at the pinned commit (B1). On the C4 fixtures, "the same results as today" is read as the same leads, order, mapped-start paths, views and assessments, with the differences listed in B4 intended. **The product owner should confirm this reading.** | User, 26 Nov 2026 |
+| U4 | When is a lead supported? | When a C4 mapping backs it, or when at least one evidence record of any role cites it and verifies at the pinned commit (B1). On the C4 fixtures, "the same results as today" is read as the same leads, order, mapped-start paths, views and assessments, with the differences listed in B4 intended. **The product owner should confirm this reading.** B4 was later retired in favour of B37 (U16). | User, 26 Nov 2026 |
 | U5 | What happens to assessments when a new snapshot is activated? | Saved assessments keep a frozen copy of everything they cite, and stay readable and exportable, but cannot be edited (B33, B34). A new assessment can start from one (B35). An unsaved draft is refused on its next action and discarded (B36). | User, 26 Nov 2026 |
 | U6 | Must the workspace and command-line Markdown be identical? | Yes, byte-identical for the same snapshot, master list, registry and record (B23). That is testable and keeps one renderer contract. | Analyst's call |
 | U7 | Is a relationship listed as carrying no impact reported as a gap? | No. The stewards decided its meaning. It is counted, not reported as a gap (B7). | Analyst's call |
@@ -295,16 +318,29 @@ A C4-mapped lead keeps the reason `Reviewed mapping`.
 | U13 | Can readers who are not managers see each other's drafts? | No. Drafts live only in the author's browser until a manager saves them (B17, B19). | Analyst's call |
 | U14 | How do the workspace's evidence text and the bundle relate? | Architecture question, passed to the architect. Behaviour fixed by B25, B27 and B29. | Deferred to architect |
 | U15 | Does an assessment need its own access control, beyond workspace roles? | Deferred, out of scope. Every reader of the workspace can open every saved assessment. | Analyst's call |
+| U16 | B4 conflicted with B30, B5 and B3. What may differ on the C4 fixtures? | B4 is retired. B37 lists every allowed difference, including B30's gap sections for every assessment (schema 1 included), B3's reason text, `no-c4-mapping` and `unlinked-term`. Any other difference fails. | User, 27 Nov 2026 (pushback) |
+| U17 | What makes a cited file an exported page? | A Markdown file cited by `selected-document` evidence that opens with a front-matter metadata block. Other cited files are ordinary documents, shown like code evidence, with no metadata gap (B38). | User, 27 Nov 2026 (pushback) |
+| U18 | What does it mean for evidence to cite a node (B1)? | The node carries the evidence itself, or it is the subject or object of an assertion that carries it. Without the second case, nodes in a Confluence-shaped graph could never be supported, because only design records carry node evidence. | Analyst's call (pushback) |
+| U19 | How often is `unlinked-term` reported? | Once for each source and denoted term in a result, naming the nodes it was met at. A node that denotes no term reports nothing (B13). | Analyst's call (pushback) |
+| U20 | Does `no-c4-mapping` replace `unsupported-focus`? | Only for a focus with no mapping at all. A focus mapped at the wrong level keeps `unsupported-focus` (B5). | Analyst's call (pushback) |
 
 ## Terms
 
 The following shared terms are proposed for `core/ontology.ttl` and division-steward review. Each is wider than any one source repository. The vision and these behaviours are their evidence. No existing IRI is changed, and no equivalence link is proposed.
 
 - **ImpactLead** — a graph node or catalog concept returned by candidate search for a change request. It is identified by source and IRI and records how it matched. It is supported when a reviewed C4 mapping or verified evidence backs it. A lead is a starting point to confirm, never a conclusion about impact.
-- **ImpactPath** — an ordered chain of steps from a confirmed ImpactLead. Each step follows a source assertion in the impact direction its relationship carries, a reviewed C4 binding, or a ReviewedLinkCrossing. Each step is shown with its evidence, and a path never stands as a direct assertion between its endpoints.
+- **ImpactPath** — an ordered chain of steps from a supported ImpactLead chosen as a start. Each step follows a source assertion in the impact direction its relationship carries, a reviewed C4 binding, or a ReviewedLinkCrossing. Each step is shown with its evidence, and a path never stands as a direct assertion between its endpoints.
 - **ReviewedLinkCrossing** — an ImpactPath step from a node in one source to a node in another. It is made through the terms they denote and the steward-reviewed links of those terms to a shared term. It is permitted for `exact` links in either direction, and for `specializes` links only from general to specific.
 - **AssessmentGap** — a recorded limit on what a search, an ImpactPath trace or an ImpactAssessment could establish, with a code and a reason. Examples are an unlisted relationship, an unlinked term, a missing mapping, unavailable evidence text or a snapshot coverage gap. A gap never states that something is unaffected.
 
 **Correction to an existing term.** `ImpactAssessment` is currently defined as *architect-authored*. Under outcome 4, analysts write assessments too. Its definition is corrected to *assessor-authored* (an architect or analyst), and it records the snapshot and the relationship master list it is pinned to. Its IRI and label are unchanged, and its meaning is otherwise the same.
 
+**Correction to ImpactPath (amendment, 27 November 2026).** ImpactPath was defined as starting from a *confirmed* impact lead. B3 and B16 start paths from any supported lead that the assessor chooses, and confirming a lead is a separate step of the assessment (B17). The definition is corrected to *a supported impact lead chosen as a start*. Its IRI and label are unchanged.
+
 `PublishedKnowledgeSnapshot`, `C4Diagram` and the Ontology Kit terms (`SourceKnowledgeGraph`, `GraphAssertion`, `GraphEvidence`, `GraphCoverage`) keep their meaning. The **relationship master list** and its impact directions belong to #205, which will define those terms.
+
+## Retired behaviours
+
+| Id | Was | Reason | Replaced by |
+| --- | --- | --- | --- |
+| B4 | C4 fixtures behave as today, apart from three listed differences. | Its list of differences conflicted with B30, B5 and B3's new reason text. Widening the list changes what the behaviour guarantees (U16). | B37 |
