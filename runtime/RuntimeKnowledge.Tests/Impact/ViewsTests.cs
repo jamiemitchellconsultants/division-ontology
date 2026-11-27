@@ -16,6 +16,24 @@ public sealed class ViewsTests
     private static readonly (string, string) AlphaComponent = ("fixture/Alpha", "https://alpha.example/#component");
 
     [Fact]
+    public void An_unmapped_focus_is_refused_with_no_c4_mapping()          // B5
+    {
+        var v = Views.Project(TestModels.MakeModel(), ("fixture/Beta", "https://beta.example/#system"), "container");
+        var gap = Assert.Single(v["gaps"]!.AsArray(), g => g!["code"]!.GetValue<string>() == "no-c4-mapping");
+        Assert.Equal("https://beta.example/#system", gap!["nodeIri"]!.GetValue<string>());
+        Assert.DoesNotContain(v["gaps"]!.AsArray(), g => g!["code"]!.GetValue<string>() == "unsupported-focus");
+        Assert.Empty(v["items"]!.AsArray());
+    }
+
+    [Fact]
+    public void A_focus_mapped_at_another_level_keeps_unsupported_focus()
+    {
+        var v = Views.Project(TestModels.MakeModel(), ("fixture/Alpha", "https://alpha.example/#container"), "container");
+        Assert.Contains(v["gaps"]!.AsArray(), g => g!["code"]!.GetValue<string>() == "unsupported-focus");
+        Assert.DoesNotContain(v["gaps"]!.AsArray(), g => g!["code"]!.GetValue<string>() == "no-c4-mapping");
+    }
+
+    [Fact]
     public void All_four_levels_retain_focus_and_reviewed_boundaries()
     {
         var model = TestModels.MakeModel();

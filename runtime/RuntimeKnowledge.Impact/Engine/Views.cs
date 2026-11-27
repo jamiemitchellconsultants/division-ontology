@@ -50,7 +50,19 @@ public static class Views
             ["gaps"] = new JsonArray(gaps.Select(g => g.DeepClone()!).ToArray())
         };
 
-        if (focusMapping == null || focusMapping["level"]!.GetValue<string>() != expected)
+        if (focusMapping == null)
+        {
+            view["gaps"]!.AsArray().Add(new JsonObject
+            {
+                ["code"] = "no-c4-mapping",
+                ["sourceId"] = focus.SourceId,
+                ["nodeIri"] = focus.NodeIri,
+                ["reason"] = "Node has no C4 mapping; C4 views need a reviewed mapping"
+            });
+            return view;
+        }
+
+        if (focusMapping["level"]!.GetValue<string>() != expected)
         {
             var gap = new JsonObject { ["code"] = "unsupported-focus" };
             gap["sourceId"] = focus.SourceId;
