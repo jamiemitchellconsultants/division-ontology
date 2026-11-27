@@ -5,6 +5,7 @@ import {tmpdir} from 'node:os';
 import {pathToFileURL} from 'node:url';
 import {loadSnapshot} from './snapshot.mjs';
 import {loadRegistries} from './registry.mjs';
+import {loadMasterList} from './master-list.mjs';
 import {buildImpactBundle,writeImpactBundle} from './impact-bundle.mjs';
 import {pinnedBytes} from '../workspace/bundle.mjs';
 import {buildImpactCli,runImpactCli} from './engine.mjs';
@@ -27,6 +28,7 @@ export async function runC4Cli(argv,{cwd=process.cwd(),stdout=process.stdout,std
   for(const root of [resolve(cwd),...checkouts.values()]) {const rel=relative(canonicalPath(root),output);if(!rel || (!rel.startsWith('..')&&!isAbsolute(rel))) throw new Error('output must be outside repositories');}
   const snapshot=loadSnapshot({divisionRoot:cwd,catalogCommit:v['catalog-commit'],checkouts});
   const registry=loadRegistries({divisionRoot:cwd,registryCommit:v['registry-commit'],snapshot});
+  const masterList=loadMasterList({divisionRoot:cwd,catalogCommit:v['catalog-commit']});
 
   // Pre-validate inputs that can throw before calling the engine
   if(command==='view') {if(!v.focus||!v.level) throw new Error('focus and level required');if(v.supplement) JSON.parse(readFileSync(resolve(cwd,v.supplement),'utf8'));}
@@ -59,7 +61,7 @@ export async function runC4Cli(argv,{cwd=process.cwd(),stdout=process.stdout,std
 
   // Build and write impact bundle
   const catalogBytes=pinnedBytes(cwd,v['catalog-commit'],'dist/catalog.json');
-  const bundle=buildImpactBundle({snapshot,registry,catalogBytes,extraFiles});
+  const bundle=buildImpactBundle({snapshot,registry,masterList,catalogBytes,extraFiles});
   writeImpactBundle(bundle,join(staging,'bundle'));
 
   // Build tool flags: command-specific flags with absolute paths, no Node-only flags

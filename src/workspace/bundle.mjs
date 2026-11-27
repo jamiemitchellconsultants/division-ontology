@@ -7,6 +7,7 @@ import { coverageGaps } from '../c4/graph.mjs';
 import { loadRegistries } from '../c4/registry.mjs';
 import { loadSnapshot } from '../c4/snapshot.mjs';
 import { buildImpactInput, impactInputBytes } from '../c4/impact-input.mjs';
+import { loadMasterList, MASTER_LIST_PATH } from '../c4/master-list.mjs';
 
 export const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const compare = (a, b) => a < b ? -1 : a > b ? 1 : 0;
@@ -177,8 +178,10 @@ export function buildBundle({ divisionRoot, catalogCommit, registryCommit = null
         pinnedBytes(source.checkout, source.commit, identityEvidence.path));
     }
   }
+  const masterList = loadMasterList({ divisionRoot, catalogCommit });
   include('impactInput', 'division-core', 'impact-input.json',
-    impactInputBytes(buildImpactInput({ snapshot, registry })));
+    impactInputBytes(buildImpactInput({ snapshot, registry, masterList })));
+  if (masterList) include('relationshipMasterList', 'division-core', MASTER_LIST_PATH, masterList.bytes);
   include('projection', 'division-core', 'projection.json', jsonBytes(project(snapshot, registry)));
   const manifest = { schemaVersion: 1, divisionCommit: catalogCommit, catalogSha256: hash(catalog),
     sources, registryCommit, files: [...files.entries()].sort(([a], [b]) => compare(a, b)).map(([, row]) => row) };

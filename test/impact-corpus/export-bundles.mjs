@@ -7,6 +7,7 @@ import { buildImpactBundle } from '../../src/c4/impact-bundle.mjs';
 import { readAtCommit } from '../../src/c4/git.mjs';
 import { loadSnapshot } from '../../src/c4/snapshot.mjs';
 import { loadRegistries } from '../../src/c4/registry.mjs';
+import { loadMasterList } from '../../src/c4/master-list.mjs';
 import { scenarios } from './scenarios.mjs';
 
 const corpus = fileURLToPath(new URL('.', import.meta.url));
@@ -24,19 +25,23 @@ function loadFromRealArgs(argv, options) {
   }
   const snapshot = loadSnapshot({ divisionRoot: options.cwd, catalogCommit, checkouts });
   const registry = loadRegistries({ divisionRoot: options.cwd, registryCommit, snapshot });
-  return { snapshot, registry };
+  const masterList = loadMasterList({ divisionRoot: options.cwd, catalogCommit });
+  return { snapshot, registry, masterList };
 }
 
+// The same extra files the CLI front end bundles: the supplement, and inspected items of each view input.
 function collectExtraFiles(argv) {
   const extraFiles = [];
-  const supplementIndex = argv.indexOf('--supplement');
-  if (supplementIndex !== -1 && supplementIndex + 1 < argv.length) {
-    const supplementPath = argv[supplementIndex + 1];
-    const supplementData = JSON.parse(readFileSync(supplementPath, 'utf8'));
-    if (supplementData.sourceId && supplementData.path) {
-      extraFiles.push({ sourceId: supplementData.sourceId, path: supplementData.path });
+  argv.forEach((flag, i) => {
+    if (flag === '--supplement') {
+      const supplement = JSON.parse(readFileSync(argv[i + 1], 'utf8'));
+      if (supplement.sourceId && supplement.path) extraFiles.push({ sourceId: supplement.sourceId, path: supplement.path });
     }
-  }
+    if (flag === '--view-input') {
+      for (const item of JSON.parse(readFileSync(argv[i + 1], 'utf8')).items ?? [])
+        if (item.basis === 'architect-inspected' && item.path) extraFiles.push({ sourceId: item.key.sourceId, path: item.path });
+    }
+  });
   return extraFiles;
 }
 
@@ -53,11 +58,11 @@ export async function exportBundles() {
         if (!engineCommands.has(argv[0])) return;
         if (step.exit !== 0) return;
         try {
-          const { snapshot, registry } = loadFromRealArgs(argv, options);
+          const { snapshot, registry, masterList } = loadFromRealArgs(argv, options);
           const extraFiles = collectExtraFiles(argv);
           const catalogCommit = argv[argv.indexOf('--catalog-commit') + 1];
           const catalogBytes = readAtCommit(options.cwd, catalogCommit, 'dist/catalog.json');
-          const bundle = buildImpactBundle({ snapshot, registry, catalogBytes, extraFiles });
+          const bundle = buildImpactBundle({ snapshot, registry, masterList, catalogBytes, extraFiles });
           for (const file of bundle.manifest.files) {
             const blob = bundle.blobs.get(file.sha256);
             allBlobs.set(file.sha256, blob);

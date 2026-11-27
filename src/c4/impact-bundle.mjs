@@ -4,10 +4,11 @@ import { basename, dirname, join, resolve } from 'node:path';
 import { hash, jsonBytes, pinnedBytes } from '../workspace/bundle.mjs';
 import { buildImpactInput, impactInputBytes } from './impact-input.mjs';
 import { listAtCommit, readAtCommit } from './git.mjs';
+import { MASTER_LIST_PATH } from './master-list.mjs';
 
 const digestPattern = /^[0-9a-f]{64}$/;
 
-export function buildImpactBundle({ snapshot, registry, catalogBytes, extraFiles = [] }) {
+export function buildImpactBundle({ snapshot, registry, masterList = null, catalogBytes, extraFiles = [] }) {
   const files = new Map();
   const blobs = new Map();
   function include(role, sourceId, path, bytes) {
@@ -19,8 +20,9 @@ export function buildImpactBundle({ snapshot, registry, catalogBytes, extraFiles
   }
 
   // impactInput
-  const impactInput = buildImpactInput({ snapshot, registry });
+  const impactInput = buildImpactInput({ snapshot, registry, masterList });
   include('impactInput', 'division-core', 'impact-input.json', impactInputBytes(impactInput));
+  if (masterList) include('relationshipMasterList', 'division-core', MASTER_LIST_PATH, masterList.bytes);
 
   // evidence files from each source
   for (const source of snapshot.sources.values()) {
