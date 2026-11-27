@@ -175,4 +175,114 @@ internal static class TestModels
             sha256 == appSha256 ? appBytes : sha256 == impactDigest ? impactBytes : sha256 == listSha256 ? listBytes : null;
         return ImpactModel.Build(ImpactBundle.FromObjects(manifestId, manifestBytes, Blob));
     }
+
+    public const string NodeA = "https://example.test/a/graph#claim";
+    public const string NodeA2 = "https://example.test/a/graph#claim-copy";
+    public const string NodeB = "https://example.test/b/graph#claim";
+    private const string Next = "https://example.test/rel#next";
+
+    /// <summary>Two sources whose "Claim" nodes denote their own local terms, linked to a shared core term
+    /// by the reviewed links given (null for none). Task 20's fixture for crossings.</summary>
+    public static ImpactModel TwoSourceModel(string termA, string termB, string shared, string? relationA, string? relationB)
+    {
+        var catalogCommit = new string('a', 40);
+        var code = Encoding.UTF8.GetBytes("claim\n");
+        var codeSha256 = Convert.ToHexStringLower(SHA256.HashData(code));
+
+        JsonObject Source(string id, string commit, string evidenceIri, params (string Iri, string Label, string? Term)[] nodes)
+        {
+            var subject = nodes[0].Iri;
+            return new JsonObject
+            {
+                ["id"] = id, ["commit"] = commit,
+                ["graph"] = new JsonObject
+                {
+                    ["status"] = "available",
+                    ["nodes"] = new JsonArray(nodes.Select(n =>
+                    {
+                        var node = new JsonObject { ["iri"] = n.Iri, ["kind"] = K + "component", ["label"] = n.Label };
+                        if (n.Term != null) node["denotes"] = n.Term;
+                        return (JsonNode)node;
+                    }).ToArray()),
+                    ["assertions"] = new JsonArray(new JsonObject
+                    {
+                        ["iri"] = evidenceIri + "-next", ["subject"] = subject, ["object"] = nodes[1].Iri, ["relationship"] = Next,
+                        ["basis"] = "direct", ["evidenceIris"] = new JsonArray(evidenceIri)
+                    }),
+                    ["evidence"] = new JsonArray(new JsonObject
+                    {
+                        ["iri"] = evidenceIri, ["path"] = "src/claim.ts", ["startLine"] = 1, ["endLine"] = 1,
+                        ["blobId"] = GitBlob.Sha1Hex(code), ["role"] = "implementation"
+                    }),
+                    ["coverage"] = new JsonArray()
+                }
+            };
+        }
+
+        var links = new JsonArray();
+        if (relationA != null) links.Add(new JsonObject { ["source"] = "fixture/a", ["local"] = termA, ["shared"] = shared, ["relation"] = relationA });
+        if (relationB != null) links.Add(new JsonObject { ["source"] = "fixture/b", ["local"] = termB, ["shared"] = shared, ["relation"] = relationB });
+
+        var masterList = new JsonObject
+        {
+            ["schemaVersion"] = 1,
+            ["relationships"] = new JsonArray(new JsonObject { ["iri"] = Next, ["impact"] = "subject-to-object" })
+        };
+        var listBytes = Encoding.UTF8.GetBytes(EcmaJson.Stringify(masterList));
+        var listSha256 = Convert.ToHexStringLower(SHA256.HashData(listBytes));
+
+        var input = new JsonObject
+        {
+            ["schemaVersion"] = 1,
+            ["snapshotId"] = new JsonObject
+            {
+                ["catalogCommit"] = catalogCommit, ["catalogSha256"] = new string('b', 64),
+                ["sources"] = new JsonArray(
+                    new JsonObject { ["id"] = "fixture/a", ["commit"] = new string('c', 40) },
+                    new JsonObject { ["id"] = "fixture/b", ["commit"] = new string('d', 40) })
+            },
+            ["sources"] = new JsonArray(
+                Source("fixture/a", new string('c', 40), "https://example.test/a/graph#evidence",
+                    (NodeA, "Claim", termA), (NodeA2, "Claim", termA)),
+                Source("fixture/b", new string('d', 40), "https://example.test/b/graph#evidence",
+                    (NodeB, "Claim", termB), ("https://example.test/b/graph#ledger", "Ledger", null))),
+            ["catalog"] = new JsonObject
+            {
+                ["concepts"] = new JsonArray(
+                    new JsonObject { ["iri"] = termA, ["source"] = "fixture/a", ["label"] = "Claim" },
+                    new JsonObject { ["iri"] = termB, ["source"] = "fixture/b", ["label"] = "Claim" },
+                    new JsonObject { ["iri"] = shared, ["source"] = "division-core", ["label"] = "Claim" })
+            },
+            ["reviewedLinks"] = links,
+            ["registry"] = new JsonObject
+            {
+                ["commit"] = new string('e', 40), ["mappingSha256"] = new string('f', 64), ["bindingSha256"] = new string('0', 64),
+                ["mappings"] = new JsonArray(), ["bindings"] = new JsonArray(), ["gaps"] = new JsonArray()
+            },
+            ["masterList"] = new JsonObject { ["status"] = "listed", ["catalogCommit"] = catalogCommit, ["sha256"] = listSha256 }
+        };
+
+        var inputBytes = Encoding.UTF8.GetBytes(EcmaJson.Stringify(input) + "\n");
+        var inputSha256 = Convert.ToHexStringLower(SHA256.HashData(inputBytes));
+        JsonObject File(string role, string sourceId, string path, string sha256, int length) =>
+            new() { ["role"] = role, ["sourceId"] = sourceId, ["path"] = path, ["sha256"] = sha256, ["bytes"] = length };
+        var manifest = new JsonObject
+        {
+            ["schemaVersion"] = 1, ["divisionCommit"] = catalogCommit, ["catalogSha256"] = new string('b', 64),
+            ["sources"] = new JsonArray(
+                new JsonObject { ["id"] = "fixture/a", ["commit"] = new string('c', 40), ["graphSchemaVersion"] = 1, ["graphStatus"] = "available" },
+                new JsonObject { ["id"] = "fixture/b", ["commit"] = new string('d', 40), ["graphSchemaVersion"] = 1, ["graphStatus"] = "available" }),
+            ["registryCommit"] = new string('e', 40),
+            ["files"] = new JsonArray(
+                File("impactInput", "division-core", "impact-input.json", inputSha256, inputBytes.Length),
+                File("relationshipMasterList", "division-core", MasterList.Path, listSha256, listBytes.Length),
+                File("graphEvidence", "fixture/a", "src/claim.ts", codeSha256, code.Length),
+                File("graphEvidence", "fixture/b", "src/claim.ts", codeSha256, code.Length))
+        };
+        var manifestBytes = Encoding.UTF8.GetBytes(EcmaJson.Stringify(manifest) + "\n");
+        var manifestId = Convert.ToHexStringLower(SHA256.HashData(manifestBytes));
+        byte[]? Blob(string sha256) =>
+            sha256 == inputSha256 ? inputBytes : sha256 == listSha256 ? listBytes : sha256 == codeSha256 ? code : null;
+        return ImpactModel.Build(ImpactBundle.FromObjects(manifestId, manifestBytes, Blob));
+    }
 }

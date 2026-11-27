@@ -21,6 +21,10 @@ public static class Paths
         // B8: per unlisted relationship, its distinct assertion IRIs and the nodes they were met at.
         public SortedDictionary<string, (HashSet<string> Assertions, SortedDictionary<string, (string SourceId, string NodeIri)> Nodes)> Unlisted { get; } =
             new(StringComparer.Ordinal);
+        // B13, U19: per (source, term) without a reviewed link, the nodes visited that denote it.
+        public Dictionary<(string SourceId, string Term), SortedDictionary<string, (string SourceId, string NodeIri)>> Unlinked { get; } = new();
+        // B12: one gap per (source, term, shared term) that is not climbed.
+        public HashSet<(string SourceId, string Term, string Shared)> Boundaries { get; } = new();
     }
 
     private static string Key((string SourceId, string NodeIri) pair) => EcmaJson.Stringify(new JsonObject
@@ -71,7 +75,7 @@ public static class Paths
             Step(walk, start, [], [Key(start)]);
         }
 
-        gaps.InsertRange(evidenceGapsAt, walk.EvidenceGaps.Values.Concat(UnlistedGaps(walk)));
+        gaps.InsertRange(evidenceGapsAt, walk.EvidenceGaps.Values.Concat(UnlistedGaps(walk)).Concat(TermGaps(walk)));
 
         if (!walk.Paths.Any())
             gaps.Add(new JsonObject
@@ -113,8 +117,82 @@ public static class Paths
         ["reason"] = "The impact of this relationship is unknown: it is not in the relationship master list"
     });
 
+    private static IEnumerable<JsonObject> TermGaps(Walk walk)
+    {
+        static IEnumerable<JsonObject> Sorted(IEnumerable<JsonObject> gaps) =>
+            gaps.OrderBy(g => EcmaJson.Stringify(g), StringComparer.Ordinal);
+        var unlinked = walk.Unlinked.Select(u => new JsonObject
+        {
+            ["code"] = "unlinked-term",
+            ["sourceId"] = u.Key.SourceId,
+            ["term"] = u.Key.Term,
+            ["nodes"] = new JsonArray(u.Value.Values.Select(n => (JsonNode)new JsonObject
+            {
+                ["sourceId"] = n.SourceId,
+                ["nodeIri"] = n.NodeIri
+            }).ToArray()),
+            ["reason"] = "Term has no reviewed link, so other sources are not reached from it"
+        });
+        var boundaries = walk.Boundaries.Select(b => new JsonObject
+        {
+            ["code"] = "specialization-boundary",
+            ["sourceId"] = b.SourceId,
+            ["term"] = b.Term,
+            ["sharedTerm"] = b.Shared,
+            ["reason"] = "Impact is not followed from a specialised term to its general term"
+        });
+        return Sorted(unlinked).Concat(Sorted(boundaries));
+    }
+
+    // B11–B13: a visited node crosses to other sources only through an exact reviewed link of the term it denotes.
+    // Labels are never compared.
+    private static List<(JsonObject Target, JsonObject Step)> Crossings(Walk walk, (string SourceId, string NodeIri) current)
+    {
+        var model = walk.Model;
+        var edges = new List<(JsonObject, JsonObject)>();
+        var term = model.TermOf(current.SourceId, current.NodeIri);
+        if (term == null) return edges;
+
+        var links = model.LinksFrom(current.SourceId, term);
+        if (links.Count == 0)
+        {
+            if (!walk.Unlinked.TryGetValue((current.SourceId, term), out var nodes))
+                walk.Unlinked[(current.SourceId, term)] = nodes = new SortedDictionary<string, (string, string)>(StringComparer.Ordinal);
+            nodes.TryAdd(Key(current), current);
+            return edges;
+        }
+
+        foreach (var fromLink in links)
+        {
+            var shared = fromLink["shared"]!.GetValue<string>();
+            if (fromLink["relation"]!.GetValue<string>() != "exact")
+            {
+                walk.Boundaries.Add((current.SourceId, term, shared));
+                continue;
+            }
+            foreach (var other in model.Sources.Where(s => s.Id != current.SourceId))
+                foreach (var toLink in model.LinksTo(other.Id, shared))
+                    foreach (var nodeIri in model.NodesDenoting(other.Id, toLink["local"]!.GetValue<string>()))
+                    {
+                        var target = new JsonObject { ["sourceId"] = other.Id, ["nodeIri"] = nodeIri };
+                        edges.Add((target, new JsonObject
+                        {
+                            ["type"] = "reviewedLinkCrossing",
+                            ["from"] = new JsonObject { ["sourceId"] = current.SourceId, ["nodeIri"] = current.NodeIri },
+                            ["to"] = target.DeepClone(),
+                            ["sharedTerm"] = shared,
+                            ["links"] = new JsonArray(fromLink.DeepClone(), toLink.DeepClone()),
+                            ["catalogCommit"] = model.SnapshotId["catalogCommit"]!.DeepClone()
+                        }));
+                    }
+        }
+        return edges;
+    }
+
     private static void Step(Walk walk, (string SourceId, string NodeIri) current, IReadOnlyList<JsonObject> steps, HashSet<string> visited)
     {
+        // Term gaps are recorded for every visited node, including one the depth limit stops at.
+        var crossings = Crossings(walk, current);
         if (steps.Count >= walk.MaxDepth) return;
         var model = walk.Model;
 
@@ -184,6 +262,8 @@ public static class Paths
                 ["identityEvidence"] = binding["identityEvidence"]!.DeepClone()!.AsObject()
             }));
         }
+
+        edges.AddRange(crossings);
 
         static string Text(JsonObject step, string name) => step[name]?.GetValue<string>() ?? "";
         edges.StableSort((a, b) =>

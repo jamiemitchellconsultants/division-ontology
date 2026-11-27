@@ -45,6 +45,43 @@ public sealed class ImpactModel
 
     public bool IsSupported(string sourceId, string nodeIri) => Support(sourceId, nodeIri).Supported;
 
+    /// <summary>The term a node denotes, or null (B13: such a node takes part in no crossing).</summary>
+    public string? TermOf(string sourceId, string nodeIri) => Source(sourceId)?.Node(nodeIri)?["denotes"]?.GetValue<string>();
+
+    /// <summary>The reviewed links from a source's local term. A term that is itself a division-core concept
+    /// has a synthetic exact link to itself (U3).</summary>
+    public IReadOnlyList<JsonObject> LinksFrom(string sourceId, string term)
+    {
+        var links = ReviewedLinks
+            .Where(l => Str(l, "source") == sourceId && Str(l, "local") == term)
+            .Select(l => Link(sourceId, term, Str(l, "shared")!, Str(l, "relation")!))
+            .ToList();
+        if (IsCoreTerm(term)) links.Add(Link(sourceId, term, term, "exact"));
+        return links;
+    }
+
+    /// <summary>The links in a source whose shared term is the one given, by either relation, plus the
+    /// synthetic exact link of the shared term itself.</summary>
+    public IReadOnlyList<JsonObject> LinksTo(string sourceId, string sharedTerm)
+    {
+        var links = ReviewedLinks
+            .Where(l => Str(l, "source") == sourceId && Str(l, "shared") == sharedTerm)
+            .Select(l => Link(sourceId, Str(l, "local")!, sharedTerm, Str(l, "relation")!))
+            .ToList();
+        if (IsCoreTerm(sharedTerm)) links.Add(Link(sourceId, sharedTerm, sharedTerm, "exact"));
+        return links;
+    }
+
+    public IReadOnlyList<string> NodesDenoting(string sourceId, string term) =>
+        Source(sourceId)?.Nodes.Where(n => n["denotes"]?.GetValue<string>() == term).Select(n => n["iri"]!.GetValue<string>()).ToList() ?? [];
+
+    private bool IsCoreTerm(string iri) => Concepts.Any(c => Str(c, "source") == "division-core" && Str(c, "iri") == iri);
+
+    private static string? Str(JsonObject o, string key) => o[key]?.GetValue<string>();
+
+    private static JsonObject Link(string source, string local, string shared, string relation) =>
+        new() { ["source"] = source, ["local"] = local, ["shared"] = shared, ["relation"] = relation };
+
     public static ImpactModel Build(ImpactBundle bundle)
     {
         var inputBytes = bundle.Read("impactInput", "division-core", "impact-input.json");
