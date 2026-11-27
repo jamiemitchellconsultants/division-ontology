@@ -31,7 +31,7 @@ public sealed class ImpactModel
 
     public SourceModel? Source(string id) => _byId.TryGetValue(id, out var s) ? s : null;
 
-    public static ImpactModel Build(ImpactBundle bundle)
+    public static ImpactModel Build(ImpactBundle bundle, List<(string Id, string Commit)>? catalogSources = null)
     {
         var inputBytes = bundle.Read("impactInput", "division-core", "impact-input.json");
         if (inputBytes == null)
@@ -44,19 +44,74 @@ public sealed class ImpactModel
             throw new ImpactException("unsupported impact input schema version");
 
         var snapshotId = input["snapshotId"]!.DeepClone()!.AsObject();
+        // Use catalog sources if provided, otherwise use bundle sources
+        var catalogSourcesList = catalogSources != null && catalogSources.Count > 0
+            ? new List<(string Id, string Commit)>(catalogSources)
+            : new List<(string Id, string Commit)>();
+        if (catalogSourcesList.Count == 0)
+        {
+            var bundleSources = input["sources"]!.AsArray();
+            foreach (var src in bundleSources)
+            {
+                var so = src!.AsObject();
+                catalogSourcesList.Add((so["id"]!.GetValue<string>(), so["commit"]!.GetValue<string>()));
+            }
+        }
+        // Add sources to snapshotId (matches Node baseline)
+        var snapshotSources = new JsonArray();
+        foreach (var (id, commit) in catalogSourcesList)
+        {
+            snapshotSources.Add(new JsonObject { ["id"] = id, ["commit"] = commit });
+        }
+        snapshotId["sources"] = snapshotSources;
         var sources = new List<SourceModel>();
-        var sourceArray = input["sources"]!.AsArray();
-        foreach (var srcNode in sourceArray)
+        var bundleSourcesArr = input["sources"]!.AsArray();
+        var sourceIndex = 0;
+        foreach (var srcNode in bundleSourcesArr)
         {
             var src = srcNode!.AsObject();
             var id = src["id"]!.GetValue<string>();
-            var commit = src["commit"]!.GetValue<string>();
+            // Use catalog commit if provided
+            var commit = sourceIndex < catalogSourcesList.Count ? catalogSourcesList[sourceIndex].Commit : src["commit"]!.GetValue<string>();
+            sourceIndex++;
             var graph = src["graph"]!.AsObject();
+            // Override graph status from checkout if available
             var status = graph["status"]!.GetValue<string>();
             var reason = graph["reason"]?.GetValue<string>();
+            var checkoutDir = bundle.GetCheckoutDir(id);
+            if (checkoutDir != null)
+            {
+                var configBytes = bundle.ReadFileFromCheckout(id, "ontology.config.json");
+                if (configBytes != null)
+                {
+                    var config = JsonNode.Parse(configBytes);
+                    if (config is JsonObject co && co["sourceGraph"] is JsonObject sg && sg["enabled"] is JsonValue sev && sev.GetValue<bool>() == false)
+                    {
+                        status = "unavailable";
+                        reason = "Source graph not enabled";
+                    }
+                }
+            }
             var schemaVer = graph["schemaVersion"] as JsonValue;
             var schemaVersionVal = schemaVer?.GetValue<int?>();
             var evidenceSelectors = src["evidenceSelectors"] as JsonObject;
+            // Fall back to evidence selectors from checkout config
+            if (evidenceSelectors == null)
+            {
+                var configDir = bundle.GetCheckoutDir(id);
+                if (configDir != null)
+                {
+                    var configBytes = bundle.ReadFileFromCheckout(id, "ontology.config.json");
+                    if (configBytes != null)
+                    {
+                        var config = JsonNode.Parse(configBytes);
+                        if (config is JsonObject co && co["sourceGraph"] is JsonObject sg)
+                        {
+                            evidenceSelectors = sg["evidence"] as JsonObject;
+                        }
+                    }
+                }
+            }
 
             var nodes = new List<JsonObject>();
             foreach (var n in graph["nodes"]!.AsArray()) nodes.Add(n!.DeepClone()!.AsObject());

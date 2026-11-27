@@ -1,7 +1,7 @@
 {
   "snapshotId": {
-    "catalogCommit": "e63348017b778e678b0c349160b8ec2bbc659ff5",
-    "catalogSha256": "c90d3acfa72250b00fc49921e67e37ca60767fc63956931c1f09186fcc920d0d",
+    "catalogCommit": "placeholder",
+    "catalogSha256": "placeholder",
     "sources": [
       {
         "id": "fixture/Alpha",
@@ -13,26 +13,11 @@
       }
     ]
   },
-  "registryCommit": "e63348017b778e678b0c349160b8ec2bbc659ff5",
-  "coverage": [
-    {
-      "sourceId": "fixture/Alpha",
-      "iri": "https://alpha.example/#coverage",
-      "selector": "src/**",
-      "status": "covered",
-      "priority": 1
-    },
-    {
-      "sourceId": "fixture/Beta",
-      "iri": "https://beta.example/#coverage",
-      "selector": "src/**",
-      "status": "covered",
-      "priority": 1
-    }
-  ],
+  "registryCommit": "f8df41df4e41c57c58ea600bb8b52b52b988fb02",
+  "coverage": [],
   "paths": [
     {
-      "id": "1bd1d1600d7b33afdf262ccdc107bc865b89a2c4768e1ada87ae0d1dc5d35984",
+      "id": "c82e84265d6ffa91eb0ccced5673408b5771dc4e78af854e4085341767fb8f42",
       "steps": [
         {
           "type": "assertion",
@@ -45,7 +30,7 @@
             "nodeIri": "https://alpha.example/#container"
           },
           "direction": "outgoing",
-          "assertionIri": "https://alpha.example/#contains1",
+          "assertionIri": "https://alpha.example/#one",
           "relationship": "https://ontology-kit.dev/schema#contains",
           "basis": "direct",
           "evidenceIris": [
@@ -66,7 +51,7 @@
       ]
     },
     {
-      "id": "21e770fcc7d23e48fcb70666c82e28563dc3f4707dda0a9001c4409b88b910ce",
+      "id": "1ae86864979d926d280fedde255daa80aad74a9306181a95fafa05a12dfdf2d3",
       "steps": [
         {
           "type": "assertion",
@@ -79,7 +64,7 @@
             "nodeIri": "https://alpha.example/#external"
           },
           "direction": "outgoing",
-          "assertionIri": "https://alpha.example/#assertion",
+          "assertionIri": "https://alpha.example/#four",
           "relationship": "https://ontology-kit.dev/schema#communicates-with",
           "basis": "inferred",
           "evidenceIris": [

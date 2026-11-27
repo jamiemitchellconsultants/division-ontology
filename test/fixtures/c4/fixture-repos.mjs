@@ -2,6 +2,7 @@ import {mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync} from 'node:
 import {tmpdir} from 'node:os';
 import {join, dirname} from 'node:path';
 import {execFileSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
 import {Writer, DataFactory} from 'n3';
 const {namedNode, literal, quad}=DataFactory;
 const K='https://ontology-kit.dev/schema#', RDF='http://www.w3.org/1999/02/22-rdf-syntax-ns#', RDFS='http://www.w3.org/2000/01/rdf-schema#';
@@ -20,20 +21,24 @@ function graph(root, base) {
   type('coverage','GraphCoverage'); add('coverage',K+'pathSelector',lit('src/**')); add('coverage',K+'priority',lit(1)); add('coverage',K+'status',iri('covered'));
   let result; w.end((e,text)=>{if(e) throw e; result=text}); put(root,'graph/manifest.ttl',result);
   put(root,'ontology.config.json',JSON.stringify({sourceGraph:{enabled:true,root:'graph',evidence:{implementation:['src/**']}}}));
+  return {status:'available',nodes:new Map([[base+'system',{iri:base+'system',kind:K+'system',label:'Alpha API'}],[base+'external',{iri:base+'external',kind:K+'system',label:'Beta'}],[base+'container',{iri:base+'container',kind:K+'component',label:'Alpha service'}],[base+'component',{iri:base+'component',kind:K+'component',label:'API handler'}],[base+'code',{iri:base+'code',kind:K+'source-symbol',label:'handle'}]]),assertions:new Map([[base+'four',{iri:base+'four',subject:base+'system',object:base+'external',relationship:K+'communicates-with',basis:'inferred',evidenceIris:[base+'evidence']}],[base+'one',{iri:base+'one',subject:base+'system',object:base+'container',relationship:K+'contains',basis:'direct',evidenceIris:[base+'evidence']}],[base+'two',{iri:base+'two',subject:base+'container',object:base+'component',relationship:K+'contains',basis:'direct',evidenceIris:[base+'evidence']}],[base+'three',{iri:base+'three',subject:base+'component',object:base+'code',relationship:K+'contains',basis:'direct',evidenceIris:[base+'evidence']}]]),evidence:new Map([[base+'evidence',{iri:base+'evidence',path:'src/app.ts',startLine:1,endLine:1,blobId:blob,role:'implementation'}]]),coverage:[]};
 }
 
 const git = (root, ...args) => execFileSync('git', args, {cwd:root, encoding:'utf8', stdio:['ignore','pipe','pipe']}).trim();
 function put(root, path, data) { const f=join(root,path); mkdirSync(dirname(f),{recursive:true}); writeFileSync(f,data); }
 function init(root, url) { mkdirSync(root,{recursive:true}); git(root,'init','-q'); git(root,'config','user.name','Fixture'); git(root,'config','user.email','fixture@example.test'); git(root,'remote','add','origin',url); }
 function commit(root, message) { git(root,'add','.'); git(root,'commit','-qm',message); return git(root,'rev-parse','HEAD'); }
+function graphStateToJSON(gs) {
+  return {status:gs.status,nodes:[...gs.nodes.values()],assertions:[...gs.assertions.values()],evidence:[...gs.evidence.values()],coverage:gs.coverage};
+}
 export async function withPilotFixture(run) {
   const root=mkdtempSync(join(tmpdir(),'c4-fixture-'));
   try {
     const divisionRoot=join(root,'division'), alpha=join(root,'alpha'), beta=join(root,'beta');
     const sources=[['fixture/Alpha',alpha],['fixture/Beta',beta]];
     for (const [id,path] of sources) { init(path,`https://github.com/${id}.git`); put(path,'README.md',id); }
-    graph(alpha,'https://alpha.example/#');
-    graph(beta,'https://beta.example/#');
+    const alphaGraph=graph(alpha,'https://alpha.example/#');
+    const betaGraph=graph(beta,'https://beta.example/#');
     const sourceCommits={alpha:commit(alpha,'initial'),beta:commit(beta,'initial')};
     init(divisionRoot,'https://github.com/fixture/division.git');
     put(divisionRoot,'sources.json',JSON.stringify({sources:sources.map(([id])=>({id,url:`https://github.com/${id}.git`}))}));
@@ -42,10 +47,15 @@ export async function withPilotFixture(run) {
     const mapping={sourceId:'fixture/Alpha',nodeIri:keys.alphaSystem.nodeIri,level:'context',role:'software-system',supportAssertionIri:'https://alpha.example/#assertion',supportEvidenceIri:'https://alpha.example/#evidence'};
     const binding={fromSourceId:'fixture/Alpha',externalNodeIri:keys.externalBeta.nodeIri,toSourceId:'fixture/Beta',targetNodeIri:keys.betaSystem.nodeIri,sourceAssertionIri:'https://alpha.example/#assertion',sourceEvidenceIri:'https://alpha.example/#evidence',identityEvidence:{sourceId:'fixture/Alpha',path:'src/app.ts',startLine:1,endLine:1,blobId:git(alpha,'hash-object','src/app.ts'),reason:'reviewed identity'}};
     const additional=[['alphaContainer','container','container','alphaSystem','contains1'],['alphaComponent','component','component','alphaContainer','contains2'],['alphaCode','code','code','alphaComponent','contains3']].map(([key,level,role,parent,support])=>({...keys[key],level,role,parent:keys[parent],supportAssertionIri:'https://alpha.example/#'+support,supportEvidenceIri:'https://alpha.example/#evidence'}));
-    put(divisionRoot,'c4/mappings.json',JSON.stringify({schemaVersion:1,mappings:[mapping,...additional]}));
-    put(divisionRoot,'c4/bindings.json',JSON.stringify({schemaVersion:1,bindings:[binding]}));
+    const mappings=[mapping,...additional];
+    const mappingsContent=JSON.stringify({schemaVersion:1,mappings});
+    const bindingsContent=JSON.stringify({schemaVersion:1,bindings:[binding]});
+    put(divisionRoot,'c4/mappings.json',mappingsContent);
+    put(divisionRoot,'c4/bindings.json',bindingsContent);
+    const registryCommit=commit(divisionRoot,'registry');
+    put(divisionRoot,'dist/impact-input.json',JSON.stringify({schemaVersion:1,snapshotId:{catalogCommit:'placeholder',catalogSha256:'placeholder'},sources:[{id:'fixture/Alpha',commit:sourceCommits.alpha,graph:graphStateToJSON(alphaGraph)},{id:'fixture/Beta',commit:sourceCommits.beta,graph:graphStateToJSON(betaGraph)}],catalog:{concepts:[]},reviewedLinks:[],registry:{commit:registryCommit,mappingSha256:createHash('sha256').update(mappingsContent).digest('hex'),bindingSha256:createHash('sha256').update(bindingsContent).digest('hex'),mappings,bindings:[binding],gaps:[]}}));
     const catalogCommit=commit(divisionRoot,'catalog');
-    await run({divisionRoot,catalogCommit,registryCommit:catalogCommit,checkouts:new Map(sources),sourceCommits,keys,codeSupplement:()=>({sourceId:'fixture/Alpha',path:'src/app.ts',startLine:1,endLine:1,blobId:git(alpha,'hash-object','src/app.ts'),component:keys.alphaComponent,reason:'Inspected code',role:'implementation'}),outputDir:join(root,'output'),writeDivision:(p,d)=>put(divisionRoot,p,d),readDivision:p=>readFileSync(join(divisionRoot,p),'utf8'),commitDivision:m=>commit(divisionRoot,m),readSource:(id,p)=>readFileSync(join(new Map(sources).get(id),p),'utf8'),writeSource:(id,p,d)=>put(new Map(sources).get(id),p,d),commitSource:(id,m)=>commit(new Map(sources).get(id),m)});
+    await run({divisionRoot,catalogCommit,registryCommit:registryCommit,checkouts:new Map(sources),sourceCommits,keys,codeSupplement:()=>({sourceId:'fixture/Alpha',path:'src/app.ts',startLine:1,endLine:1,blobId:git(alpha,'hash-object','src/app.ts'),component:keys.alphaComponent,reason:'Inspected code',role:'implementation'}),outputDir:join(root,'output'),writeDivision:(p,d)=>put(divisionRoot,p,d),readDivision:p=>readFileSync(join(divisionRoot,p),'utf8'),commitDivision:m=>commit(divisionRoot,m),readSource:(id,p)=>readFileSync(join(new Map(sources).get(id),p),'utf8'),writeSource:(id,p,d)=>put(new Map(sources).get(id),p,d),commitSource:(id,m)=>commit(new Map(sources).get(id),m)});
   } finally { rmSync(root,{recursive:true,force:true}); }
 }
 export function makeModel() {

@@ -1,8 +1,8 @@
 # C4 component view
 
-Catalog commit: `7442de3a6a7929f51124be38bff0f7709207a9ef`
-Registry commit: `7442de3a6a7929f51124be38bff0f7709207a9ef`
-View digest: 4b0d869cf1534b815894eae5c916915e70e8be89d73af11c2c4c6e66ce28b3f7
+Catalog commit: `6dbb53695ef3a724da249a566916933cf1bc3559`
+Registry commit: `6dbb53695ef3a724da249a566916933cf1bc3559`
+View digest: 2f0e74f7945c9d3980333d34534478935f57d2a99363d17ccb3fde62b9c5f1db
 
 ```mermaid
 flowchart LR
@@ -10,7 +10,7 @@ flowchart LR
     nd3ed265d10f08973["Address validation"]
     n8ae5503d64813fb1["Order processing"]
   end
-  n01d3023c94c8126f["Order store"]
+  n01d3023c94c8126f["Order store v2"]
   nd3ed265d10f08973 --> n01d3023c94c8126f
   n8ae5503d64813fb1 -.-> nd3ed265d10f08973
   click nd3ed265d10f08973 "#evidence-d3ed265d10f08973"
@@ -24,11 +24,11 @@ Legend: dashed relationships are inferred and tentative; architect-inspected cod
 
 | Item | Assertion / basis | Repository | Commit | Source | Blob |
 | --- | --- | --- | --- | --- | --- |
-| <a id="evidence-d3ed265d10f08973"></a>Address validation | https://example.test/ecommerce/graph#has-address | fixture/ecommerce | 54666d869c335bd01817d5780feed7ea80bb82be | [docs/acceptance-architecture.md:1-5](https://github.com/fixture/ecommerce/blob/54666d869c335bd01817d5780feed7ea80bb82be/docs/acceptance-architecture.md#L1-L5) | c18767a9dc1fb28a12fed1390185f31bd740b30b |
+| <a id="evidence-d3ed265d10f08973"></a>Address validation | https://example.test/ecommerce/graph#has-address | fixture/ecommerce | 54666d869c335bd01817d5780feed7ea80bb82be | [docs/acceptance-architecture.md:1-5](https://github.com/fixture/ecommerce/blob/54666d869c335bd01817d5780feed7ea80bb82be/docs/acceptance-architecture.md#L1-L5) | 21c826cfa5f5e9d5d3837e4f42e50f491914cb56 |
 | <a id="evidence-8ae5503d64813fb1"></a>Order processing | https://example.test/ecommerce/graph#contains-container | fixture/ecommerce | 54666d869c335bd01817d5780feed7ea80bb82be | [docs/architecture.md:1-5](https://github.com/fixture/ecommerce/blob/54666d869c335bd01817d5780feed7ea80bb82be/docs/architecture.md#L1-L5) | 6365581ca2babd6f039e1c5b476f0ee8e24a20a0 |
-| <a id="evidence-01d3023c94c8126f"></a>Order store | https://example.test/ecommerce/graph#has-store | fixture/ecommerce | 54666d869c335bd01817d5780feed7ea80bb82be | [docs/acceptance-architecture.md:1-5](https://github.com/fixture/ecommerce/blob/54666d869c335bd01817d5780feed7ea80bb82be/docs/acceptance-architecture.md#L1-L5) | c18767a9dc1fb28a12fed1390185f31bd740b30b |
-| https://ontology-kit.dev/schema#communicates-with | https://example.test/ecommerce/graph#reads / direct | fixture/ecommerce | 54666d869c335bd01817d5780feed7ea80bb82be | [docs/acceptance-architecture.md:1-5](https://github.com/fixture/ecommerce/blob/54666d869c335bd01817d5780feed7ea80bb82be/docs/acceptance-architecture.md#L1-L5) | c18767a9dc1fb28a12fed1390185f31bd740b30b |
-| https://ontology-kit.dev/schema#communicates-with | https://example.test/ecommerce/graph#validates / inferred | fixture/ecommerce | 54666d869c335bd01817d5780feed7ea80bb82be | [docs/acceptance-architecture.md:1-5](https://github.com/fixture/ecommerce/blob/54666d869c335bd01817d5780feed7ea80bb82be/docs/acceptance-architecture.md#L1-L5) | c18767a9dc1fb28a12fed1390185f31bd740b30b |
+| <a id="evidence-01d3023c94c8126f"></a>Order store v2 | https://example.test/ecommerce/graph#has-store | fixture/ecommerce | 54666d869c335bd01817d5780feed7ea80bb82be | [docs/acceptance-architecture.md:1-5](https://github.com/fixture/ecommerce/blob/54666d869c335bd01817d5780feed7ea80bb82be/docs/acceptance-architecture.md#L1-L5) | 21c826cfa5f5e9d5d3837e4f42e50f491914cb56 |
+| https://ontology-kit.dev/schema#communicates-with | https://example.test/ecommerce/graph#reads / direct | fixture/ecommerce | 54666d869c335bd01817d5780feed7ea80bb82be | [docs/acceptance-architecture.md:1-5](https://github.com/fixture/ecommerce/blob/54666d869c335bd01817d5780feed7ea80bb82be/docs/acceptance-architecture.md#L1-L5) | 21c826cfa5f5e9d5d3837e4f42e50f491914cb56 |
+| https://ontology-kit.dev/schema#communicates-with | https://example.test/ecommerce/graph#validates / inferred | fixture/ecommerce | 54666d869c335bd01817d5780feed7ea80bb82be | [docs/acceptance-architecture.md:1-5](https://github.com/fixture/ecommerce/blob/54666d869c335bd01817d5780feed7ea80bb82be/docs/acceptance-architecture.md#L1-L5) | 21c826cfa5f5e9d5d3837e4f42e50f491914cb56 |
 
 ## Coverage
 

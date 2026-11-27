@@ -1,7 +1,7 @@
 {
   "snapshotId": {
-    "catalogCommit": "e63348017b778e678b0c349160b8ec2bbc659ff5",
-    "catalogSha256": "c90d3acfa72250b00fc49921e67e37ca60767fc63956931c1f09186fcc920d0d",
+    "catalogCommit": "placeholder",
+    "catalogSha256": "placeholder",
     "sources": [
       {
         "id": "fixture/Alpha",
@@ -13,23 +13,8 @@
       }
     ]
   },
-  "registryCommit": "e63348017b778e678b0c349160b8ec2bbc659ff5",
-  "coverage": [
-    {
-      "sourceId": "fixture/Alpha",
-      "iri": "https://alpha.example/#coverage",
-      "selector": "src/**",
-      "status": "covered",
-      "priority": 1
-    },
-    {
-      "sourceId": "fixture/Beta",
-      "iri": "https://beta.example/#coverage",
-      "selector": "src/**",
-      "status": "covered",
-      "priority": 1
-    }
-  ],
+  "registryCommit": "f8df41df4e41c57c58ea600bb8b52b52b988fb02",
+  "coverage": [],
   "paths": [],
   "gaps": [
     {

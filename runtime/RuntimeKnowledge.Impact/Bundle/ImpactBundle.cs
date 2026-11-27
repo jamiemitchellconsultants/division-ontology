@@ -101,4 +101,25 @@ public sealed class ImpactBundle
         if (bytes != null) _blobs.TryAdd(file.Sha256, bytes);
         return bytes;
     }
+
+    private readonly Dictionary<string, string> _checkouts = new(StringComparer.Ordinal);
+
+    public void SetCheckout(string sourceId, string dir)
+    {
+        _checkouts[sourceId] = dir;
+    }
+
+    public string? GetCheckoutDir(string sourceId)
+    {
+        _checkouts.TryGetValue(sourceId, out var dir);
+        return dir;
+    }
+
+    public byte[]? ReadFileFromCheckout(string sourceId, string path)
+    {
+        var dir = GetCheckoutDir(sourceId);
+        if (dir == null) return null;
+        var filePath = Path.Combine(dir, path);
+        return File.Exists(filePath) ? File.ReadAllBytes(filePath) : null;
+    }
 }

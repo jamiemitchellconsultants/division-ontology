@@ -4,6 +4,9 @@ import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import { Writer, DataFactory } from 'n3';
 import { runCli } from '../../../src/cli.mjs';
+import { loadSnapshot } from '../../../src/c4/snapshot.mjs';
+import { loadRegistries } from '../../../src/c4/registry.mjs';
+import { buildImpactInput, impactInputBytes } from '../../../src/c4/impact-input.mjs';
 
 const { namedNode, literal, quad } = DataFactory;
 const K = 'https://ontology-kit.dev/schema#', RDF = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#', RDFS = 'http://www.w3.org/2000/01/rdf-schema#';
@@ -61,8 +64,14 @@ export async function setup(directory) {
     const args=[...checkouts].flatMap(([id,path])=>['--checkout',`${id}=${path}`]);
     await runCli(['build',...args],{root:divisionRoot});
     const revision=commit(divisionRoot);
-    put(root,'fixture.json',JSON.stringify({divisionRoot,commit:revision,checkouts:Object.fromEntries(checkouts),output:join(root,'output')},null,2)+'\n');
-    return {root,divisionRoot,commit:revision,checkouts};
+    // Create dist/impact-input.json for the C4 CLI
+    const snapshot = loadSnapshot({ divisionRoot, catalogCommit: revision, checkouts });
+    const registry = loadRegistries({ divisionRoot, registryCommit: revision, snapshot });
+    const impactInput = buildImpactInput({ snapshot, registry });
+    put(divisionRoot,'dist/impact-input.json',JSON.stringify(impactInput)+'\n');
+    const finalRevision=commit(divisionRoot);
+    put(root,'fixture.json',JSON.stringify({divisionRoot,commit:finalRevision,checkouts:Object.fromEntries(checkouts),output:join(root,'output')},null,2)+'\n');
+    return {root,divisionRoot,commit:finalRevision,checkouts};
   } catch(error) { rmSync(root,{recursive:true,force:true}); throw error; }
 }
 export function teardown(directory) {

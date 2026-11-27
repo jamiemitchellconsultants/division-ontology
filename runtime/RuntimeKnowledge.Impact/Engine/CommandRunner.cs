@@ -25,7 +25,40 @@ public static class CommandRunner
                 return (1, Array.Empty<(string, string)>(), "missing required flags: --bundle, --manifest");
 
             var bundle = ImpactBundle.Open(bundleDir, manifestId);
-            var model = ImpactModel.Build(bundle);
+            // Parse --checkout flags: --checkout sourceId=path
+            var checkoutIdx = 0;
+            while ((checkoutIdx = Array.IndexOf(args, "--checkout", checkoutIdx)) >= 0 && checkoutIdx + 1 < args.Length)
+            {
+                var pair = args[checkoutIdx + 1];
+                var eq = pair.IndexOf('=');
+                if (eq > 0)
+                {
+                    var sourceId = pair[..eq];
+                    var dir = pair[(eq + 1)..];
+                    if (!Path.IsPathRooted(dir)) dir = Path.GetFullPath(dir);
+                    bundle.SetCheckout(sourceId, dir);
+                }
+                checkoutIdx += 2;
+            }
+
+            // Parse --catalog-sources flag: JSON array of {id, commit}
+            var catalogSourcesFlag = GetFlag(args, "--catalog-sources");
+            List<(string Id, string Commit)>? catalogSources = null;
+            if (catalogSourcesFlag != null)
+            {
+                var sourcesNode = JsonNode.Parse(catalogSourcesFlag);
+                if (sourcesNode is JsonArray sa)
+                {
+                    catalogSources = new List<(string, string)>();
+                    foreach (var s in sa)
+                    {
+                        var so = s!.AsObject();
+                        catalogSources.Add((so["id"]!.GetValue<string>(), so["commit"]!.GetValue<string>()));
+                    }
+                }
+            }
+
+            var model = ImpactModel.Build(bundle, catalogSources);
 
             var files = new List<(string Name, string Text)>();
 

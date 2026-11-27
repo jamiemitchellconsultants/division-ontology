@@ -2,6 +2,9 @@ import { execFileSync } from 'node:child_process';
 import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { runCli } from '../../src/cli.mjs';
+import { loadSnapshot } from '../../src/c4/snapshot.mjs';
+import { loadRegistries } from '../../src/c4/registry.mjs';
+import { buildImpactInput } from '../../src/c4/impact-input.mjs';
 import { setup, teardown } from '../fixtures/representative/setup.mjs';
 
 export const key = (source, node) => ({
@@ -29,6 +32,12 @@ function commit(cwd, message) {
 export async function acceptanceFixture(root) {
   const fixture = await setup(root);
   const { divisionRoot, checkouts } = fixture;
+  const buildImpact = (catalogCommit) => {
+    const snap = loadSnapshot({ divisionRoot, catalogCommit, checkouts });
+    const reg = loadRegistries({ divisionRoot, registryCommit: catalogCommit, snapshot: snap });
+    const impact = buildImpactInput({ snapshot: snap, registry: reg });
+    writeFileSync(join(divisionRoot, 'dist', 'impact-input.json'), JSON.stringify(impact) + '\n');
+  };
   try {
     const checkout = checkouts.get(shop.sourceId);
     const graph = join(checkout, 'graph/manifest.ttl');
@@ -76,6 +85,7 @@ accept:reads a kit:GraphAssertion; kit:subject accept:address; kit:object accept
     const flags = [...checkouts].flatMap(([id, path]) => ['--checkout', id + '=' + path]);
     await runCli(['build', ...flags], { root: divisionRoot });
     const baseline = commit(divisionRoot, 'Publish acceptance baseline catalog');
+    buildImpact(baseline);
 
     writeFileSync(graph, readFileSync(graph, 'utf8').replace('"Order store"', '"Order store v2"'));
     appendFileSync(join(checkout, evidence), 'The second snapshot renames the Order store to Order store v2.\n');
@@ -85,6 +95,7 @@ accept:reads a kit:GraphAssertion; kit:subject accept:address; kit:object accept
     await runCli(['build', ...flags], { root: divisionRoot });
     await runCli(['check', ...flags], { root: divisionRoot });
     const newer = commit(divisionRoot, 'Publish revised acceptance catalog');
+    buildImpact(newer);
     return { ...fixture, flags, baseline, newer, oldSource, newSource };
   } catch (error) {
     teardown(root);
