@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "relationships": [
+    {
+      "iri": "https://example.test/rel#affects",
+      "impact": "subject-to-object"
+    },
+    {
+      "iri": "https://example.test/rel#reviews",
+      "impact": "object-to-subject"
+    },
+    {
+      "iri": "https://example.test/rel#relatesTo",
+      "impact": "both"
+    },
+    {
+      "iri": "https://example.test/rel#mentions",
+      "impact": "none"
+    }
+  ]
+}

@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { withPilotFixture } from '../fixtures/c4/fixture-repos.mjs';
 import { withConfluenceFixture } from '../fixtures/impact/confluence-repos.mjs';
+import { withMeaningFixture } from '../fixtures/impact/meaning-repos.mjs';
 import { generateWalkthrough } from '../acceptance/c4-walkthrough.mjs';
 
 const common = f => ['--catalog-commit', f.catalogCommit, '--registry-commit', f.registryCommit,
@@ -78,6 +79,29 @@ export const scenarios = {
       const input = temp('assessment-input.json');
       writeFileSync(input, JSON.stringify(record));
       await run(['assessment-render', ...c, '--input', input], o);                // 7: B25, B30, B32
+    });
+  },
+  async meaning(run) {
+    await withMeaningFixture(async f => {
+      const at_ = commit => ['--catalog-commit', commit, '--registry-commit', f.registryCommit,
+        ...[...f.checkouts].flatMap(([id, path]) => ['--checkout', `${id}=${path}`]), '--output', f.outputDir];
+      const c = at_(f.catalogCommit), o = { cwd: f.divisionRoot };
+      const temp = name => join(f.divisionRoot, '..', name);
+      await run(['search', ...c, '--query', 'claim'], o);                                     // 0: supported leads
+      await run(['paths', ...c, '--start', at(f.keys.claim)], o);                             // 1: B6–B8, B10, B11
+      const traced = JSON.parse(readFileSync(join(f.outputDir, 'paths.json'), 'utf8'));
+      const description = temp('description.txt');
+      writeFileSync(description, 'Change how claims affect cases\n');
+      await run(['assessment-init', ...c, '--request-id', 'CR-21', '--description-file', description], o); // 2
+      const record = JSON.parse(readFileSync(join(f.outputDir, 'assessment.json'), 'utf8'));
+      const path = traced.paths.find(p => p.steps.length === 1 && p.steps[0].object?.nodeIri === f.keys.case.nodeIri);
+      Object.assign(record, { assessor: 'Analyst A', confirmedLeads: [f.keys.claim],
+        likelyImpacts: [{ key: f.keys.case, reason: 'Claims affect cases', pathIds: [path.id], evidenceIris: path.steps[0].evidenceIris }] });
+      const input = temp('assessment-input.json');
+      writeFileSync(input, JSON.stringify(record));
+      await run(['assessment-render', ...c, '--input', input], o);                            // 3: B10 pin
+      await run(['paths', ...at_(f.unlinkedCommit), '--start', at(f.keys.claim)], o);         // 4: B13 unlinked term
+      await run(['paths', ...at_(f.corruptCommit), '--start', at(f.keys.claim)], o);          // 5: invalid list
     });
   }
 };

@@ -1,0 +1,88 @@
+{
+  "snapshotId": {
+    "catalogCommit": "2359dc06ecb6b24835b2e27619b813a71bb54b2f",
+    "catalogSha256": "c1619c89d9084c23942175747fbc8f621eca046e46ea58cd33f14ac2cea7bdce",
+    "sources": [
+      {
+        "id": "fixture/claims",
+        "commit": "5687e7eab469364f156583ae33ccb689a7bac135"
+      },
+      {
+        "id": "fixture/ledger",
+        "commit": "2720c5f8ed371a8de4ee62e2193834655f569cd0"
+      }
+    ]
+  },
+  "registryCommit": "2359dc06ecb6b24835b2e27619b813a71bb54b2f",
+  "coverage": [
+    {
+      "sourceId": "fixture/claims",
+      "iri": "https://example.test/claims/graph#coverage",
+      "selector": "pages/**",
+      "status": "covered",
+      "priority": 1
+    },
+    {
+      "sourceId": "fixture/ledger",
+      "iri": "https://example.test/ledger/graph#coverage",
+      "selector": "pages/**",
+      "status": "covered",
+      "priority": 1
+    }
+  ],
+  "leads": [
+    {
+      "key": {
+        "sourceId": "fixture/claims",
+        "nodeIri": "https://example.test/claims/graph#claim"
+      },
+      "matchedText": "Claim",
+      "matchKind": "phrase",
+      "sourceCommit": "5687e7eab469364f156583ae33ccb689a7bac135",
+      "supported": true,
+      "reason": "Verified evidence: selected-document",
+      "kind": "graph",
+      "pageEvidence": [
+        {
+          "evidenceIri": "https://example.test/claims/graph#ev-page",
+          "path": "pages/claim-policy.md",
+          "startLine": 5,
+          "endLine": 8,
+          "title": "Claim policy",
+          "confluenceUrl": "https://confluence.example.test/pages/3001",
+          "lines": [
+            "A claim affects its case.",
+            "Auditors review every claim.",
+            "A claim relates to its archive record.",
+            "Claims mention the archive and are archived by it."
+          ]
+        }
+      ]
+    },
+    {
+      "key": {
+        "sourceId": "fixture/claims",
+        "nodeIri": "https://example.test/claims/ontology#Claim"
+      },
+      "matchedText": "Claim",
+      "matchKind": "phrase",
+      "sourceCommit": "5687e7eab469364f156583ae33ccb689a7bac135",
+      "supported": false,
+      "reason": "Catalog concept is not a supported graph node",
+      "kind": "concept"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/ledger",
+        "nodeIri": "https://example.test/ledger/ontology#Claim"
+      },
+      "matchedText": "Claim",
+      "matchKind": "phrase",
+      "sourceCommit": "2720c5f8ed371a8de4ee62e2193834655f569cd0",
+      "supported": false,
+      "reason": "Catalog concept is not a supported graph node",
+      "kind": "concept"
+    }
+  ],
+  "gaps": []
+}

@@ -1,0 +1,139 @@
+[
+  {
+    "argv": [
+      "search",
+      "--catalog-commit",
+      "2359dc06ecb6b24835b2e27619b813a71bb54b2f",
+      "--registry-commit",
+      "2359dc06ecb6b24835b2e27619b813a71bb54b2f",
+      "--checkout",
+      "$checkout:fixture/claims",
+      "--checkout",
+      "$checkout:fixture/ledger",
+      "--output",
+      "$output",
+      "--query",
+      "claim"
+    ],
+    "exit": 0,
+    "stderr": "",
+    "files": [
+      "candidates.json"
+    ],
+    "manifest": "9be9fe05ea5d990f7786a317fecf0e04a8a66b81c5326f66294fa1ee58f79c3a"
+  },
+  {
+    "argv": [
+      "paths",
+      "--catalog-commit",
+      "2359dc06ecb6b24835b2e27619b813a71bb54b2f",
+      "--registry-commit",
+      "2359dc06ecb6b24835b2e27619b813a71bb54b2f",
+      "--checkout",
+      "$checkout:fixture/claims",
+      "--checkout",
+      "$checkout:fixture/ledger",
+      "--output",
+      "$output",
+      "--start",
+      "fixture/claims=https://example.test/claims/graph#claim"
+    ],
+    "exit": 0,
+    "stderr": "",
+    "files": [
+      "paths.json"
+    ],
+    "manifest": "9be9fe05ea5d990f7786a317fecf0e04a8a66b81c5326f66294fa1ee58f79c3a"
+  },
+  {
+    "argv": [
+      "assessment-init",
+      "--catalog-commit",
+      "2359dc06ecb6b24835b2e27619b813a71bb54b2f",
+      "--registry-commit",
+      "2359dc06ecb6b24835b2e27619b813a71bb54b2f",
+      "--checkout",
+      "$checkout:fixture/claims",
+      "--checkout",
+      "$checkout:fixture/ledger",
+      "--output",
+      "$output",
+      "--request-id",
+      "CR-21",
+      "--description-file",
+      "$input/002/description.txt"
+    ],
+    "exit": 0,
+    "stderr": "",
+    "files": [
+      "assessment.json"
+    ],
+    "manifest": "9be9fe05ea5d990f7786a317fecf0e04a8a66b81c5326f66294fa1ee58f79c3a"
+  },
+  {
+    "argv": [
+      "assessment-render",
+      "--catalog-commit",
+      "2359dc06ecb6b24835b2e27619b813a71bb54b2f",
+      "--registry-commit",
+      "2359dc06ecb6b24835b2e27619b813a71bb54b2f",
+      "--checkout",
+      "$checkout:fixture/claims",
+      "--checkout",
+      "$checkout:fixture/ledger",
+      "--output",
+      "$output",
+      "--input",
+      "$input/003/assessment-input.json"
+    ],
+    "exit": 0,
+    "stderr": "",
+    "files": [
+      "assessment.md"
+    ],
+    "manifest": "9be9fe05ea5d990f7786a317fecf0e04a8a66b81c5326f66294fa1ee58f79c3a"
+  },
+  {
+    "argv": [
+      "paths",
+      "--catalog-commit",
+      "5ee008b53c367a315d3300e1b00a67f17bc00708",
+      "--registry-commit",
+      "2359dc06ecb6b24835b2e27619b813a71bb54b2f",
+      "--checkout",
+      "$checkout:fixture/claims",
+      "--checkout",
+      "$checkout:fixture/ledger",
+      "--output",
+      "$output",
+      "--start",
+      "fixture/claims=https://example.test/claims/graph#claim"
+    ],
+    "exit": 0,
+    "stderr": "",
+    "files": [
+      "paths.json"
+    ],
+    "manifest": "35333d2f76216861f52a1d3816dd24fe18768b1ebb68cbc2fa221717372c5b15"
+  },
+  {
+    "argv": [
+      "paths",
+      "--catalog-commit",
+      "e46a878e843311b045bb42b37472131b3dedb860",
+      "--registry-commit",
+      "2359dc06ecb6b24835b2e27619b813a71bb54b2f",
+      "--checkout",
+      "$checkout:fixture/claims",
+      "--checkout",
+      "$checkout:fixture/ledger",
+      "--output",
+      "$output",
+      "--start",
+      "fixture/claims=https://example.test/claims/graph#claim"
+    ],
+    "exit": 1,
+    "stderr": "invalid relationship master list\n",
+    "files": []
+  }
+]
