@@ -78,6 +78,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [68](#entry-docs-feature-amend-impact-assessment-architecture-for-pushback-201) | 2026-11-27 | docs(feature): amend impact assessment architecture for pushback (#201) | product | - The traceability table now covers B37 and B38. Comparing against the C4 baseline fails on any difference outside B37's list. - The engine reports one `unlinked-term` gap for each source and term, listing the nodes in sorted order. |
 | [69](#entry-docs-feature-plan-generalised-impact-assessment-build-202) | 2026-11-27 | docs(feature): plan generalised impact assessment build (#202) | product | - **The walking skeleton is a fixed baseline.** I1 first captures today's Node outputs on every C4 fixture scenario, with Git dates and identities pinned so the capture is deterministic, under `test/impact-corpus/`. |
 | [70](#entry-docs-feature-hand-the-198-build-to-opencode-with-a-local-model) | 2026-11-27 | docs(feature): hand the #198 build to opencode with a local model | product | The build is run by opencode with the local model Qwen 3.6 27B (Q6), from [build-handover-opencode.md](docs/detailed-implementations/generalise-impact-assessment/build-handover-opencode.md). |
+| [71](#entry-docs-feature-forbid-re-running-the-baseline-capture-in-the-198-build-han) | 2026-11-27 | docs(feature): forbid re-running the baseline capture in the #198 build handover | product | The hard rules now forbid running `capture.mjs` after Task 1. |
 
 ---
 
@@ -1919,3 +1920,27 @@ The build is run by opencode with the local model Qwen 3.6 27B (Q6), from [build
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
 AI-Fingerprint: sha256:478639c32762
+
+---
+
+<a id="entry-docs-feature-forbid-re-running-the-baseline-capture-in-the-198-build-han"></a>
+
+## Entry 71 — 2026-11-27 — docs(feature): forbid re-running the baseline capture in the #198 build handover
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+During Task 10 the opencode executor re-ran `capture.mjs`. That re-recorded the B37 baseline (45 files under `test/impact-corpus/`) from the broken front end, which then made the conformance failures impossible to diagnose. The prompt banned editing `expected/` by hand, but never mentioned the script that rewrites it.
+
+## Decision
+
+The hard rules now forbid running `capture.mjs` after Task 1. The only exceptions are the detailed plan's own capture steps: I2's baseline update procedure (Tasks 13, 14, 15 and 17) and the single-scenario captures in Tasks 12, 16 and 21, each with exactly the arguments the step gives. A failing baseline test means fix the code, or stop and report.
+
+## Consequences
+
+The executor can no longer turn a bug into the baseline by re-capturing. A baseline change happens only where the plan schedules it, and is reviewed against B37's list.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+AI-Fingerprint: sha256:e61863ef4fe9
