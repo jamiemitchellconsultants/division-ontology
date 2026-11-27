@@ -24,6 +24,8 @@
 
 Exact signatures, payloads, fixtures and test code are in the detailed plans under [`docs/detailed-implementations/generalise-impact-assessment/`](../../../detailed-implementations/generalise-impact-assessment/), one file per increment.
 
+**Who runs the build:** opencode with the local model Qwen 3.6 27B (Q6), from the handover prompt [build-handover-opencode.md](../../../detailed-implementations/generalise-impact-assessment/build-handover-opencode.md). It runs one increment per session and stops at each boundary. The developer role (feature-dev, build step 3) then checks that every task has its commit, that every increment ended with a handoff, and that the tests pass.
+
 ## Increments
 
 Each increment delivers its behaviours end to end. It leaves `npm test`, `dotnet test` and CI green, and the workspace deployable. Every behaviour id belongs to exactly one increment. Some behaviours have both a command-line part and a workspace part. Such a behaviour is placed in the increment that finishes it, and earlier increments build its command-line part as enabling work.
