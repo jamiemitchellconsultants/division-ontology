@@ -24,7 +24,8 @@
     "files": [
       "view-context.json",
       "view-context.md"
-    ]
+    ],
+    "manifest": "5a3935d929c565fc412cb3a207fb8032cbba7cf346f46c225d7a689c7bba223f"
   },
   {
     "argv": [
@@ -51,7 +52,8 @@
     "files": [
       "view-container.json",
       "view-container.md"
-    ]
+    ],
+    "manifest": "5a3935d929c565fc412cb3a207fb8032cbba7cf346f46c225d7a689c7bba223f"
   },
   {
     "argv": [
@@ -78,7 +80,8 @@
     "files": [
       "view-component.json",
       "view-component.md"
-    ]
+    ],
+    "manifest": "5a3935d929c565fc412cb3a207fb8032cbba7cf346f46c225d7a689c7bba223f"
   },
   {
     "argv": [
@@ -105,7 +108,8 @@
     "files": [
       "view-code.json",
       "view-code.md"
-    ]
+    ],
+    "manifest": "5a3935d929c565fc412cb3a207fb8032cbba7cf346f46c225d7a689c7bba223f"
   },
   {
     "argv": [
@@ -130,7 +134,8 @@
     "files": [
       "view-code.json",
       "view-code.md"
-    ]
+    ],
+    "manifest": "55727934017e199531832324b45631940104a117e8b1ab32b87ca525f49b535a"
   },
   {
     "argv": [
@@ -157,7 +162,8 @@
     "files": [
       "view-code.json",
       "view-code.md"
-    ]
+    ],
+    "manifest": "0c7838b7bdb223fa78afb33675c65dc7195e4713eade663851c974927a9511d4"
   },
   {
     "argv": [
@@ -184,7 +190,8 @@
     "files": [
       "view-container.json",
       "view-container.md"
-    ]
+    ],
+    "manifest": "5a3935d929c565fc412cb3a207fb8032cbba7cf346f46c225d7a689c7bba223f"
   },
   {
     "argv": [
@@ -211,7 +218,8 @@
     "files": [
       "view-container.json",
       "view-container.md"
-    ]
+    ],
+    "manifest": "e2b31215000836d909c9699c063da58a681cd29da5b92b08053cb676c7945473"
   },
   {
     "argv": [
@@ -238,6 +246,7 @@
     "files": [
       "view-context.json",
       "view-context.md"
-    ]
+    ],
+    "manifest": "5a3935d929c565fc412cb3a207fb8032cbba7cf346f46c225d7a689c7bba223f"
   }
 ]

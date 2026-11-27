@@ -134,3 +134,21 @@ test('bundles mixed graph versions under the existing envelope', () => withFixtu
   assert.ok(published(bundle).entities.some(entity => entity.key.sourceId === 'fixture/ecommerce' && entity.key.kind === 'node'));
   assert.ok(published(bundle).edges.some(edge => edge.provenance.evidence.some(evidence => evidence.role === 'implementation')));
 }));
+
+test('workspace bundle includes impactInput with schema 1 and registry', () => withFixture(async args => {
+  const bundle = buildBundle(args);
+  const impactFile = bundle.manifest.files.find(f => f.role === 'impactInput');
+  assert.ok(impactFile);
+  assert.equal(impactFile.sourceId, 'division-core');
+  assert.equal(impactFile.path, 'impact-input.json');
+  const impactInput = JSON.parse(bundle.blobs.get(impactFile.sha256).toString('utf8'));
+  assert.equal(impactInput.schemaVersion, 1);
+  assert.equal(impactInput.registry.commit, args.registryCommit);
+}));
+
+test('workspace bundle impactInput registry is null when no registry', () => withFixture(async args => {
+  const bundle = buildBundle({ ...args, registryCommit: null });
+  const impactFile = bundle.manifest.files.find(f => f.role === 'impactInput');
+  const impactInput = JSON.parse(bundle.blobs.get(impactFile.sha256).toString('utf8'));
+  assert.equal(impactInput.registry, null);
+}));

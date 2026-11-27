@@ -1,0 +1,5 @@
+# Ecommerce
+
+Ecommerce contains Storefront API, which contains Order processing.
+Orders are sent to Warehouse fulfilment for picking and dispatch.
+This is fabricated evidence for a synthetic acceptance fixture.

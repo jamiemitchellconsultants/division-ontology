@@ -36,6 +36,34 @@ public sealed class BundleGraphSchemaTests
         Assert.Equal("invalidBundle", error.Code);
     }
 
+    [Fact]
+    public async Task Bundle_with_impact_input_role_is_read()
+    {
+        var cancellation = CancellationToken.None;
+        var objects = new MemoryBundles();
+        var originalId = objects.AddSnapshot("initial");
+        var impactInputBytes = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(
+            new { schemaVersion = 1 }, WorkspaceJson.Options);
+        var impactDigest = Convert.ToHexStringLower(
+            System.Security.Cryptography.SHA256.HashData(impactInputBytes));
+        await objects.PutImmutableAsync("blobs/" + impactDigest, new MemoryStream(impactInputBytes), cancellation);
+
+        await using var original = await objects.OpenAsync("manifests/" + originalId + ".json", cancellation);
+        var manifest = (await System.Text.Json.JsonSerializer.DeserializeAsync<BundleManifest>(
+            original, WorkspaceJson.Options, cancellation))!;
+        var impactFile = new BundleFile("impactInput", "division-core", "impact-input.json", impactDigest, impactInputBytes.Length);
+        var allFiles = manifest.Files.Concat(new[] { impactFile }).ToArray();
+        var newManifest = manifest with { Files = allFiles };
+        var newBytes = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(newManifest, WorkspaceJson.Options);
+        var newId = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(newBytes));
+        using var newData = new MemoryStream(newBytes);
+        await objects.PutImmutableAsync("manifests/" + newId + ".json", newData, cancellation);
+
+        var bundle = await new BundleReader(objects).ReadAsync(newId, cancellation);
+        Assert.NotNull(bundle);
+        Assert.True(bundle.Manifest.Files.Any(f => f.Role == "impactInput"));
+    }
+
     private static async Task<(MemoryBundles Objects, string Id)> WithGraphVersion(string state, int? version)
     {
         var cancellation = CancellationToken.None;
