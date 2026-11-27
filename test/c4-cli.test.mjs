@@ -61,7 +61,7 @@ test('assessment renders a cited inspected-code view',async()=>{
   const viewPath=join(f.outputDir,'view-code.json'),view=JSON.parse(readFileSync(viewPath,'utf8'));
   const desc=join(f.divisionRoot,'desc.txt');writeFileSync(desc,'Change');assert.equal(await runC4Cli(['assessment-init',...common,'--request-id','CR-1','--description-file',desc],{cwd:f.divisionRoot}),0);
   const input=join(f.outputDir,'assessment.json'),a=JSON.parse(readFileSync(input,'utf8'));a.architect='Architect';
-  const {viewDigest}=await import('../src/c4/assessment.mjs');a.likelyImpacts=[{key:view.items.find(x=>x.basis==='architect-inspected').key,reason:'Inspected',viewIds:[viewDigest(view)],pathIds:[],evidenceIris:[]}];writeFileSync(input,JSON.stringify(a));
+  const {viewDigest}=await import('./fixtures/c4/digest.mjs');a.likelyImpacts=[{key:view.items.find(x=>x.basis==='architect-inspected').key,reason:'Inspected',viewIds:[viewDigest(view)],pathIds:[],evidenceIris:[]}];writeFileSync(input,JSON.stringify(a));
   assert.equal(await runC4Cli(['assessment-render',...common,'--input',input,'--view-input',viewPath],{cwd:f.divisionRoot}),0);
  });
 });
