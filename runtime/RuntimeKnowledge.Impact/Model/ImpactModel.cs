@@ -31,6 +31,18 @@ public sealed class ImpactModel
 
     public SourceModel? Source(string id) => _byId.TryGetValue(id, out var s) ? s : null;
 
+    // B1, B2: a reviewed mapping wins; otherwise evidence cited by the node or its assertions supports it.
+    public (bool Supported, string Reason) Support(string sourceId, string nodeIri)
+    {
+        if (Registry.MappingFor(sourceId, nodeIri) != null) return (true, "Reviewed mapping");
+        var roles = Source(sourceId)?.CitingRoles(nodeIri) ?? [];
+        return roles.Count > 0
+            ? (true, "Verified evidence: " + string.Join(", ", roles))
+            : (false, "No verified evidence or supported mapping");
+    }
+
+    public bool IsSupported(string sourceId, string nodeIri) => Support(sourceId, nodeIri).Supported;
+
     public static ImpactModel Build(ImpactBundle bundle)
     {
         var inputBytes = bundle.Read("impactInput", "division-core", "impact-input.json");

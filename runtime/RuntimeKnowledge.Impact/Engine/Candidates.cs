@@ -32,23 +32,8 @@ public static class Candidates
             {
                 var nodeIri = node["iri"]!.GetValue<string>();
                 var label = node["label"]!.GetValue<string>();
-                var mapping = model.Registry.MappingFor(source.Id, nodeIri);
-                if (mapping != null)
-                {
-                    Add(source.Id, nodeIri, label, "graph", true, "Reviewed mapping");
-                }
-                else
-                {
-                    var citingRoles = source.CitingRoles(nodeIri);
-                    if (citingRoles.Count > 0)
-                    {
-                        Add(source.Id, nodeIri, label, "graph", true, "Verified evidence: " + string.Join(", ", citingRoles));
-                    }
-                    else
-                    {
-                        Add(source.Id, nodeIri, label, "graph", false, "No verified evidence or supported mapping");
-                    }
-                }
+                var (supported, reason) = model.Support(source.Id, nodeIri);
+                Add(source.Id, nodeIri, label, "graph", supported, reason);
             }
         }
 

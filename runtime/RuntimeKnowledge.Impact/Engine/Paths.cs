@@ -44,15 +44,14 @@ public static class Paths
 
         foreach (var start in sortedStarts)
         {
-            // Check for supported mapping
-            if (model.Registry.MappingFor(start.SourceId, start.NodeIri) == null)
+            if (!model.IsSupported(start.SourceId, start.NodeIri))
             {
                 gaps.Add(new JsonObject
                 {
                     ["code"] = "unsupported-start",
                     ["sourceId"] = start.SourceId,
                     ["nodeIri"] = start.NodeIri,
-                    ["reason"] = "Start lacks a supported mapping"
+                    ["reason"] = "Start lacks verified evidence or a supported mapping"
                 });
                 continue;
             }
