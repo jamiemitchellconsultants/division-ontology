@@ -4,7 +4,7 @@
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
 :_meta a owl:Ontology ;
-    owl:versionInfo "0.5.0" .
+    owl:versionInfo "0.5.1" .
 
 # Scope and source evidence for the following traversal paging concepts:
 # docs/features/traversal-cursor-pagination/01-vision.md, outcomes 1, 4 and 6;
@@ -94,7 +94,7 @@
 
 :ImpactPath a owl:Class ;
     rdfs:label "ImpactPath" ;
-    rdfs:comment "An ordered chain of steps from a confirmed impact lead, each following a source assertion in the impact direction its relationship carries, a reviewed C4 binding, or a reviewed link crossing, and each shown with its evidence. A path never stands as a direct assertion between its endpoints." .
+    rdfs:comment "An ordered chain of steps from a supported impact lead chosen as a start, each following a source assertion in the impact direction its relationship carries, a reviewed C4 binding, or a reviewed link crossing, and each shown with its evidence. A path never stands as a direct assertion between its endpoints." .
 
 :ReviewedLinkCrossing a owl:Class ;
     rdfs:label "ReviewedLinkCrossing" ;
