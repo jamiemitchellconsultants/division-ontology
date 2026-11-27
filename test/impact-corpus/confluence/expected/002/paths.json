@@ -32,7 +32,7 @@
   ],
   "paths": [
     {
-      "id": "186ebd7f0fcd169c740f892a1c495175f6a538981a44019c68c9c2ace62c8aae",
+      "id": "4b31c88bc2b6324e3c539f31c0fba56cccee2aa6d0b1c9c9d48923cb55d1098c",
       "steps": [
         {
           "type": "assertion",
@@ -58,7 +58,15 @@
               "startLine": 6,
               "endLine": 7,
               "blobId": "e771fdce4736c5f2114440a786f3942d12cbc61f",
-              "role": "selected-document"
+              "role": "selected-document",
+              "page": {
+                "title": "Expense policy",
+                "confluenceUrl": "https://confluence.example.test/pages/1001",
+                "lines": [
+                  "Claims over 500 need a manager's approval.",
+                  "The approval process records every claim."
+                ]
+              }
             }
           ],
           "commit": "f3477a0bf5dee574afb7248a6ac3bbe9e31f6326"
@@ -66,7 +74,7 @@
       ]
     },
     {
-      "id": "8387c19ae82bb748ab86342685dddd5e19efb22f40218107adec7951151588aa",
+      "id": "f222e8b2b06da2d177964d79fe6b2873ea2717b56863c7f7c09676e111995e15",
       "steps": [
         {
           "type": "assertion",
@@ -92,7 +100,15 @@
               "startLine": 6,
               "endLine": 7,
               "blobId": "e771fdce4736c5f2114440a786f3942d12cbc61f",
-              "role": "selected-document"
+              "role": "selected-document",
+              "page": {
+                "title": "Expense policy",
+                "confluenceUrl": "https://confluence.example.test/pages/1001",
+                "lines": [
+                  "Claims over 500 need a manager's approval.",
+                  "The approval process records every claim."
+                ]
+              }
             }
           ],
           "commit": "f3477a0bf5dee574afb7248a6ac3bbe9e31f6326"
@@ -121,7 +137,13 @@
               "startLine": 5,
               "endLine": 5,
               "blobId": "fc5d5d54a8e4a4616f714a2656fe70068c5e3024",
-              "role": "selected-document"
+              "role": "selected-document",
+              "page": {
+                "title": "Approval process",
+                "lines": [
+                  "Managers approve claims in the finance system."
+                ]
+              }
             }
           ],
           "commit": "f3477a0bf5dee574afb7248a6ac3bbe9e31f6326"
@@ -133,6 +155,12 @@
     {
       "code": "no-relationship-master-list",
       "reason": "Impact direction is assumed from subject to object; no relationship master list is defined"
+    },
+    {
+      "code": "page-metadata-missing",
+      "sourceId": "fixture/policies",
+      "path": "pages/approval-process.md",
+      "reason": "Exported page has no Confluence address"
     }
   ]
 }

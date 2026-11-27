@@ -41,7 +41,21 @@
       "sourceCommit": "f3477a0bf5dee574afb7248a6ac3bbe9e31f6326",
       "supported": true,
       "reason": "Verified evidence: selected-document",
-      "kind": "graph"
+      "kind": "graph",
+      "pageEvidence": [
+        {
+          "evidenceIri": "https://example.test/policies/graph#ev-policy",
+          "path": "pages/expense-policy.md",
+          "startLine": 6,
+          "endLine": 7,
+          "title": "Expense policy",
+          "confluenceUrl": "https://confluence.example.test/pages/1001",
+          "lines": [
+            "Claims over 500 need a manager's approval.",
+            "The approval process records every claim."
+          ]
+        }
+      ]
     },
     {
       "key": {

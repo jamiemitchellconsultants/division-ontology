@@ -32,7 +32,7 @@
   ],
   "paths": [
     {
-      "id": "beac76d9225b2a23344923d9ffc6ae00b8c066976c575d6a8eb65132c7c8edbc",
+      "id": "f77c7f2f83a9dbc2e9709d18d262472f74cbd631a2e9f50b3bce0fbb05b199cb",
       "steps": [
         {
           "type": "assertion",
@@ -58,7 +58,15 @@
               "startLine": 5,
               "endLine": 6,
               "blobId": "d1478f77285713f547a55590d8cefc32f29b1b3d",
-              "role": "selected-document"
+              "role": "selected-document",
+              "page": {
+                "title": "<script>alert(1)</script> | # Heading",
+                "confluenceUrl": "https://confluence.example.test/pages/1004",
+                "lines": [
+                  "Line with <b>markup</b> and | pipes",
+                  "# Not a heading"
+                ]
+              }
             }
           ],
           "commit": "f3477a0bf5dee574afb7248a6ac3bbe9e31f6326"
@@ -66,7 +74,7 @@
       ]
     },
     {
-      "id": "bd61decfd7b66af81767a0f19ec2122e5b267bb743cd9135efc7b396a798dae3",
+      "id": "15fcf4b0f8345a8d49ec004597e86a68ff45d9962dd4ea7d7bda425aa03ad4ef",
       "steps": [
         {
           "type": "assertion",
@@ -92,7 +100,15 @@
               "startLine": 5,
               "endLine": 6,
               "blobId": "d1478f77285713f547a55590d8cefc32f29b1b3d",
-              "role": "selected-document"
+              "role": "selected-document",
+              "page": {
+                "title": "<script>alert(1)</script> | # Heading",
+                "confluenceUrl": "https://confluence.example.test/pages/1004",
+                "lines": [
+                  "Line with <b>markup</b> and | pipes",
+                  "# Not a heading"
+                ]
+              }
             }
           ],
           "commit": "f3477a0bf5dee574afb7248a6ac3bbe9e31f6326"
@@ -121,7 +137,13 @@
               "startLine": 5,
               "endLine": 5,
               "blobId": "fc5d5d54a8e4a4616f714a2656fe70068c5e3024",
-              "role": "selected-document"
+              "role": "selected-document",
+              "page": {
+                "title": "Approval process",
+                "lines": [
+                  "Managers approve claims in the finance system."
+                ]
+              }
             }
           ],
           "commit": "f3477a0bf5dee574afb7248a6ac3bbe9e31f6326"
@@ -133,6 +155,12 @@
     {
       "code": "no-relationship-master-list",
       "reason": "Impact direction is assumed from subject to object; no relationship master list is defined"
+    },
+    {
+      "code": "page-metadata-missing",
+      "sourceId": "fixture/policies",
+      "path": "pages/approval-process.md",
+      "reason": "Exported page has no Confluence address"
     }
   ]
 }
