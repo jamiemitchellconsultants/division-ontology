@@ -1,0 +1,57 @@
+{
+  "snapshotId": {
+    "catalogCommit": "13c91eac591164b5c6cb8b25c5cf940df293d47e",
+    "catalogSha256": "fc532b8afa036c400067de674d16066446567fe5ee89290faa7e0281b5727abe",
+    "sources": [
+      {
+        "id": "fixture/operations",
+        "commit": "0c986d6944c5abdbf0c45252e280731f2c2f19cd"
+      },
+      {
+        "id": "fixture/policies",
+        "commit": "f3477a0bf5dee574afb7248a6ac3bbe9e31f6326"
+      }
+    ]
+  },
+  "registryCommit": "13c91eac591164b5c6cb8b25c5cf940df293d47e",
+  "registryDigests": {
+    "mappings": "348327c19705e40b1fdb3036c5e5fc033cd278133cc7bbfbdac4961df2f5c2c9",
+    "bindings": "8b9f67aab692f50b53b67407fc6197303537b8018395e13071524d599d7c8724"
+  },
+  "focus": {
+    "sourceId": "fixture/policies",
+    "nodeIri": "https://example.test/policies/graph#expense-policy"
+  },
+  "level": "context",
+  "boundary": {
+    "sourceId": "fixture/policies",
+    "nodeIri": "https://example.test/policies/graph#expense-policy"
+  },
+  "coverage": [
+    {
+      "sourceId": "fixture/operations",
+      "iri": "https://example.test/operations/graph#coverage",
+      "selector": "pages/**",
+      "status": "covered",
+      "priority": 1
+    },
+    {
+      "sourceId": "fixture/policies",
+      "iri": "https://example.test/policies/graph#coverage",
+      "selector": "pages/**",
+      "status": "covered",
+      "priority": 1
+    }
+  ],
+  "items": [],
+  "edges": [],
+  "nextFocus": [],
+  "gaps": [
+    {
+      "code": "unsupported-focus",
+      "sourceId": "fixture/policies",
+      "nodeIri": "https://example.test/policies/graph#expense-policy",
+      "reason": "Focus lacks the required supported mapping"
+    }
+  ]
+}

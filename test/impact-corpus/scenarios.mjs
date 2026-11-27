@@ -1,6 +1,7 @@
 import { writeFileSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { withPilotFixture } from '../fixtures/c4/fixture-repos.mjs';
+import { withConfluenceFixture } from '../fixtures/impact/confluence-repos.mjs';
 import { generateWalkthrough } from '../acceptance/c4-walkthrough.mjs';
 
 const common = f => ['--catalog-commit', f.catalogCommit, '--registry-commit', f.registryCommit,
@@ -49,5 +50,33 @@ export const scenarios = {
   },
   async walkthrough(run, root) {
     await generateWalkthrough(join(root, 'walkthrough'), { run });
+  },
+  async confluence(run) {
+    await withConfluenceFixture(async f => {
+      const c = [...f.common(f), '--output', f.outputDir], o = { cwd: f.divisionRoot };
+      const temp = name => join(f.divisionRoot, '..', name);
+      await run(['search', ...c, '--query', 'expense'], o);                       // 0: B1, B2
+      await run(['search', ...c, '--query', 'approval'], o);                      // 1
+      const traced = { paths: [] };
+      try {
+        await run(['paths', ...c, '--start', f.at(f.keys.policy)], o);            // 2: B3, B25
+        Object.assign(traced, JSON.parse(readFileSync(join(f.outputDir, 'paths.json'), 'utf8')));
+      } catch { /* step 2 fails before B3 lands */ }
+      await run(['paths', ...c, '--start', f.at(f.keys.orphan)], o);              // 3: B3 refused start
+      await run(['paths', ...c, '--start', f.at(f.keys.injected)], o);            // 4: Q4 data
+      await run(['view', ...c, '--level', 'context', '--focus', f.at(f.keys.policy)], o);   // 5: B5
+      const description = temp('description.txt');
+      writeFileSync(description, 'Raise the expense approval threshold\n');
+      await run(['assessment-init', ...c, '--request-id', 'CR-9', '--description-file', description], o);  // 6
+      const record = JSON.parse(readFileSync(join(f.outputDir, 'assessment.json'), 'utf8'));
+      const path = traced.paths.find(p => p.steps.length === 2);
+      Object.assign(record, { architect: 'Analyst A', assessor: 'Analyst A', confirmedLeads: [f.keys.policy],
+        likelyImpacts: path ? [{ key: f.keys.ledger, reason: 'Ledger supports approvals', pathIds: [path.id],
+          evidenceIris: path.steps.flatMap(s => s.evidenceIris) }] : [],
+        unresolved: [{ code: 'threshold-owner', reason: 'Who owns the threshold?' }] });
+      const input = temp('assessment-input.json');
+      writeFileSync(input, JSON.stringify(record));
+      await run(['assessment-render', ...c, '--input', input], o);                // 7: B25, B30, B32
+    });
   }
 };

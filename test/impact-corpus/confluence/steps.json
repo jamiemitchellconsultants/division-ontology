@@ -1,0 +1,191 @@
+[
+  {
+    "argv": [
+      "search",
+      "--catalog-commit",
+      "13c91eac591164b5c6cb8b25c5cf940df293d47e",
+      "--registry-commit",
+      "13c91eac591164b5c6cb8b25c5cf940df293d47e",
+      "--checkout",
+      "$checkout:fixture/policies",
+      "--checkout",
+      "$checkout:fixture/operations",
+      "--output",
+      "$output",
+      "--query",
+      "expense"
+    ],
+    "exit": 0,
+    "stderr": "",
+    "files": [
+      "candidates.json"
+    ],
+    "manifest": "c063d8e577c6343f6971806f35434b76bb9b0b1dbf1abcdc144a1d5c54841d6c"
+  },
+  {
+    "argv": [
+      "search",
+      "--catalog-commit",
+      "13c91eac591164b5c6cb8b25c5cf940df293d47e",
+      "--registry-commit",
+      "13c91eac591164b5c6cb8b25c5cf940df293d47e",
+      "--checkout",
+      "$checkout:fixture/policies",
+      "--checkout",
+      "$checkout:fixture/operations",
+      "--output",
+      "$output",
+      "--query",
+      "approval"
+    ],
+    "exit": 0,
+    "stderr": "",
+    "files": [
+      "candidates.json"
+    ],
+    "manifest": "c063d8e577c6343f6971806f35434b76bb9b0b1dbf1abcdc144a1d5c54841d6c"
+  },
+  {
+    "argv": [
+      "paths",
+      "--catalog-commit",
+      "13c91eac591164b5c6cb8b25c5cf940df293d47e",
+      "--registry-commit",
+      "13c91eac591164b5c6cb8b25c5cf940df293d47e",
+      "--checkout",
+      "$checkout:fixture/policies",
+      "--checkout",
+      "$checkout:fixture/operations",
+      "--output",
+      "$output",
+      "--start",
+      "fixture/policies=https://example.test/policies/graph#expense-policy"
+    ],
+    "exit": 0,
+    "stderr": "",
+    "files": [
+      "paths.json"
+    ],
+    "manifest": "c063d8e577c6343f6971806f35434b76bb9b0b1dbf1abcdc144a1d5c54841d6c"
+  },
+  {
+    "argv": [
+      "paths",
+      "--catalog-commit",
+      "13c91eac591164b5c6cb8b25c5cf940df293d47e",
+      "--registry-commit",
+      "13c91eac591164b5c6cb8b25c5cf940df293d47e",
+      "--checkout",
+      "$checkout:fixture/policies",
+      "--checkout",
+      "$checkout:fixture/operations",
+      "--output",
+      "$output",
+      "--start",
+      "fixture/policies=https://example.test/policies/graph#orphan"
+    ],
+    "exit": 0,
+    "stderr": "",
+    "files": [
+      "paths.json"
+    ],
+    "manifest": "c063d8e577c6343f6971806f35434b76bb9b0b1dbf1abcdc144a1d5c54841d6c"
+  },
+  {
+    "argv": [
+      "paths",
+      "--catalog-commit",
+      "13c91eac591164b5c6cb8b25c5cf940df293d47e",
+      "--registry-commit",
+      "13c91eac591164b5c6cb8b25c5cf940df293d47e",
+      "--checkout",
+      "$checkout:fixture/policies",
+      "--checkout",
+      "$checkout:fixture/operations",
+      "--output",
+      "$output",
+      "--start",
+      "fixture/policies=https://example.test/policies/graph#injected"
+    ],
+    "exit": 0,
+    "stderr": "",
+    "files": [
+      "paths.json"
+    ],
+    "manifest": "c063d8e577c6343f6971806f35434b76bb9b0b1dbf1abcdc144a1d5c54841d6c"
+  },
+  {
+    "argv": [
+      "view",
+      "--catalog-commit",
+      "13c91eac591164b5c6cb8b25c5cf940df293d47e",
+      "--registry-commit",
+      "13c91eac591164b5c6cb8b25c5cf940df293d47e",
+      "--checkout",
+      "$checkout:fixture/policies",
+      "--checkout",
+      "$checkout:fixture/operations",
+      "--output",
+      "$output",
+      "--level",
+      "context",
+      "--focus",
+      "fixture/policies=https://example.test/policies/graph#expense-policy"
+    ],
+    "exit": 0,
+    "stderr": "",
+    "files": [
+      "view-context.json",
+      "view-context.md"
+    ],
+    "manifest": "c063d8e577c6343f6971806f35434b76bb9b0b1dbf1abcdc144a1d5c54841d6c"
+  },
+  {
+    "argv": [
+      "assessment-init",
+      "--catalog-commit",
+      "13c91eac591164b5c6cb8b25c5cf940df293d47e",
+      "--registry-commit",
+      "13c91eac591164b5c6cb8b25c5cf940df293d47e",
+      "--checkout",
+      "$checkout:fixture/policies",
+      "--checkout",
+      "$checkout:fixture/operations",
+      "--output",
+      "$output",
+      "--request-id",
+      "CR-9",
+      "--description-file",
+      "$input/006/description.txt"
+    ],
+    "exit": 0,
+    "stderr": "",
+    "files": [
+      "assessment.json"
+    ],
+    "manifest": "c063d8e577c6343f6971806f35434b76bb9b0b1dbf1abcdc144a1d5c54841d6c"
+  },
+  {
+    "argv": [
+      "assessment-render",
+      "--catalog-commit",
+      "13c91eac591164b5c6cb8b25c5cf940df293d47e",
+      "--registry-commit",
+      "13c91eac591164b5c6cb8b25c5cf940df293d47e",
+      "--checkout",
+      "$checkout:fixture/policies",
+      "--checkout",
+      "$checkout:fixture/operations",
+      "--output",
+      "$output",
+      "--input",
+      "$input/007/assessment-input.json"
+    ],
+    "exit": 0,
+    "stderr": "",
+    "files": [
+      "assessment.md"
+    ],
+    "manifest": "c063d8e577c6343f6971806f35434b76bb9b0b1dbf1abcdc144a1d5c54841d6c"
+  }
+]
