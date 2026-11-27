@@ -80,6 +80,17 @@ internal static class WorkspaceLinks
         $"</api/impact/paths>; rel=\"{Rel("traceImpact")}\""
     ];
 
+    public static readonly IReadOnlyList<string> AssessmentPreview =
+    [
+        $"</api/assessments>; rel=\"{Rel("saveAssessment")}\""
+    ];
+
+    public static IReadOnlyList<string> Assessment(Guid id) =>
+    [
+        $"</api/assessments/{id:D}>; rel=\"{Rel("assessment")}\"",
+        $"</api/assessments/{id:D}/markdown>; rel=\"{Rel("assessmentMarkdown")}\""
+    ];
+
     public static IReadOnlyList<string> NextPage(string path, string? nextCursor, int? limit = null, Guid? contributionId = null)
     {
         if (nextCursor is null) return [];

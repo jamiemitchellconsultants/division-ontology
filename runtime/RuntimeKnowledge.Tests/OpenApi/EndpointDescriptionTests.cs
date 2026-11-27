@@ -30,6 +30,14 @@ public sealed class EndpointDescriptionTests
             ["invalidImpactRequest", "snapshotChanged", "impactUnavailable", "snapshotUnavailable"] },
         { "post", "/api/impact/views", "Project a C4 view of a mapped node", "Impact", Read, "200 C4ViewResult", "ImpactViewRequest",
             ["invalidImpactRequest", "snapshotChanged", "impactUnavailable", "snapshotUnavailable"] },
+        { "post", "/api/assessments/preview", "Preview an assessment draft without saving it", "Assessments", Read, "200 AssessmentPreview", "AssessmentDraftRequest",
+            ["invalidAssessment", "approvalNotSupported", "snapshotChanged", "impactUnavailable", "snapshotUnavailable"] },
+        { "post", "/api/assessments", "Save an assessment", "Assessments", Manage, "201 AssessmentSaved", "AssessmentDraftRequest",
+            ["invalidAssessment", "approvalNotSupported", "assessmentNotFound", "snapshotChanged", "impactUnavailable", "snapshotUnavailable", "writesPaused"] },
+        { "get", "/api/assessments/{id}", "Open a saved assessment", "Assessments", Read, "200 SavedAssessment", null, ["assessmentNotFound"] },
+        { "get", "/api/assessments/{id}/markdown", "Download a saved assessment's Markdown", "Assessments", Read, "200 text/markdown", null, ["assessmentNotFound"] },
+        { "put", "/api/assessments/{id}", "Edit a saved assessment", "Assessments", Manage, "200 AssessmentSaved", "AssessmentEditRequest",
+            ["invalidAssessment", "approvalNotSupported", "assessmentNotFound", "versionConflict", "snapshotMismatch", "snapshotChanged", "impactUnavailable", "snapshotUnavailable", "writesPaused"] },
         { "post", "/api/contributions/annotations", "Create an annotation", "Contributions", Manage, "201 ContributionResult", "CreateAnnotation",
             ["invalidAnnotation", "endpointUnavailable", "snapshotUnavailable", "writesPaused"] },
         { "post", "/api/contributions/relationships", "Create a runtime relationship", "Contributions", Manage, "201 ContributionResult", "CreateRelationship",
@@ -53,7 +61,10 @@ public sealed class EndpointDescriptionTests
         Assert.Equal($"[\"{tag}\"]", op["tags"]!.ToJsonString());
         Assert.Equal(role, (string)op["x-workspace-role"]!);
         var (status, schema) = (success.Split(' ')[0], success.Split(' ')[1]);
-        Assert.Equal($"#/components/schemas/{schema}", (string)op["responses"]![status]!["content"]!["application/json"]!["schema"]!["$ref"]!);
+        if (schema.Contains('/'))
+            Assert.Equal("string", (string)op["responses"]![status]!["content"]![schema]!["schema"]!["type"]!);   // a non-JSON media type
+        else
+            Assert.Equal($"#/components/schemas/{schema}", (string)op["responses"]![status]!["content"]!["application/json"]!["schema"]!["$ref"]!);
         Assert.Equal(request is null ? null : $"#/components/schemas/{request}",
             (string?)op["requestBody"]?["content"]?["application/json"]?["schema"]?["$ref"]);
         var expected = codes.Select(c => ProblemResponses.StatusFor(c).ToString())

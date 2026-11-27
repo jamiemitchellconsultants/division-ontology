@@ -95,6 +95,8 @@ internal sealed class ApiFixture : IAsyncDisposable
 
     public HttpClient CreateClient() => _factory.CreateClient();
 
+    internal Scenario Scenario => _scenario;
+
     public T Service<T>() where T : notnull => _factory.Services.GetRequiredService<T>();
 
     public HttpClient ClientWithToken(string[] roles, bool expired = false, string? issuer = null,

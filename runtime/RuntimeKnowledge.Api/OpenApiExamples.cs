@@ -22,6 +22,28 @@ internal static class OpenApiExamples
     public static readonly ImpactPathsRequest ImpactPaths = new(ExampleSnapshot, [ClaimLead], 4);
     public static readonly ImpactViewRequest ImpactView = new(ExampleSnapshot, ClaimLead, "container");
 
+    private static System.Text.Json.Nodes.JsonObject ExampleRecord() => new()
+    {
+        ["schemaVersion"] = 2,
+        ["requestId"] = "example-CR-1",
+        ["description"] = "Example: raise the claim approval threshold.",
+        ["assessor"] = "Example assessor",
+        ["pins"] = new System.Text.Json.Nodes.JsonObject
+        {
+            ["snapshotId"] = new System.Text.Json.Nodes.JsonObject { ["catalogCommit"] = "example-catalog-commit" },
+            ["masterList"] = new System.Text.Json.Nodes.JsonObject { ["status"] = "none" },
+            ["registry"] = null
+        },
+        ["confirmedLeads"] = new System.Text.Json.Nodes.JsonArray(new System.Text.Json.Nodes.JsonObject
+            { ["sourceId"] = ClaimLead.SourceId, ["nodeIri"] = ClaimLead.NodeIri }),
+        ["rejectedLeads"] = new System.Text.Json.Nodes.JsonArray(),
+        ["likelyImpacts"] = new System.Text.Json.Nodes.JsonArray(),
+        ["unresolved"] = new System.Text.Json.Nodes.JsonArray()
+    };
+    public static readonly AssessmentDraftRequest AssessmentDraft = new(ExampleSnapshot, ExampleRecord());
+    public static readonly AssessmentEditRequest AssessmentEdit = new(ExampleSnapshot, 1, ExampleRecord());
+
     public static IReadOnlyList<object> All { get; } =
-        [CreateAnnotation, CreateRelationship, Search, Traversal, TraversalNextPage, ImpactSearch, ImpactSearchNextPage, ImpactPaths, ImpactView];
+        [CreateAnnotation, CreateRelationship, Search, Traversal, TraversalNextPage, ImpactSearch, ImpactSearchNextPage, ImpactPaths, ImpactView,
+         AssessmentDraft, AssessmentEdit];
 }

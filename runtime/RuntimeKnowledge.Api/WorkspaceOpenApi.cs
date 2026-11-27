@@ -149,6 +149,23 @@ internal static class WorkspaceOpenApi
             ["POST api/impact/views"] = new("viewC4", "workspace_view_c4", "none", true, true,
                 "Read-only C4 view despite POST: projects the context, container, component or code level around a node that has a reviewed C4 mapping, as the C4 pilot's view JSON together with its Markdown. A node without a mapping returns an empty view with a no-c4-mapping gap. A snapshotId that is no longer active fails 409 snapshotChanged.",
                 [Link("traceImpact", "traceImpact", "Trace impact paths from a node in the view; supply the same snapshotId.", FromBody("snapshotId", "$response.body#/snapshotId"))]),
+            ["POST api/assessments/preview"] = new("previewAssessment", "workspace_preview_assessment", "none", true, true,
+                "Read-only despite POST: validates a schema 2 assessment draft against the active snapshot's impact model, freezes it with everything it cites, and returns the frozen content and its Markdown. Nothing is stored. Every likely impact must name a node on a cited path and evidence on that path, or a verified inspected view. A snapshotId that is no longer active fails 409 snapshotChanged: the draft belongs to an earlier snapshot, so start again from a new search. Approval and sign-off fields fail 422 approvalNotSupported; the workspace records impact, it does not approve it.",
+                [Link("saveAssessment", "saveAssessment", "Save the same draft; requires ManageKnowledgeGraph.")]),
+            ["POST api/assessments"] = new("saveAssessment", "workspace_save_assessment", "creates-assessment", false, false,
+                "Validates, freezes and saves a schema 2 assessment draft as version 1, returning its id. Not idempotent: retrying saves another assessment, so read back the returned id instead of retrying blindly. The same refusals as previewAssessment apply.",
+                [Link("assessment", "getAssessment", "Open the saved assessment.", new Dictionary<string, string> { ["id"] = "$response.body#/id" }),
+                 Link("assessmentMarkdown", "getAssessmentMarkdown", "Download its Markdown.", new Dictionary<string, string> { ["id"] = "$response.body#/id" })]),
+            ["GET api/assessments/{id}"] = new("getAssessment", "workspace_get_assessment", "none", true, true,
+                "Returns a saved assessment exactly as it was frozen, with every revision. pinnedToEarlierSnapshot=true means a newer snapshot is active: the assessment still opens unchanged, but it can no longer be edited.",
+                [Link("assessmentMarkdown", "getAssessmentMarkdown", "Download its Markdown.", new Dictionary<string, string> { ["id"] = "$request.path.id" }),
+                 Link("editAssessment", "editAssessment", "Edit it on the same snapshot; supply its version as expectedVersion.", new Dictionary<string, string> { ["id"] = "$request.path.id" })]),
+            ["GET api/assessments/{id}/markdown"] = new("getAssessmentMarkdown", "workspace_get_assessment_markdown", "none", true, true,
+                "Returns the saved assessment's Markdown, byte for byte as it was rendered when saved.",
+                [Link("assessment", "getAssessment", "Open the saved assessment with its frozen content and revisions.", new Dictionary<string, string> { ["id"] = "$request.path.id" })]),
+            ["PUT api/assessments/{id}"] = new("editAssessment", "workspace_edit_assessment", "updates-assessment", false, false,
+                "Revises a saved assessment on the snapshot it was saved on, keeping every earlier version with its editor and time. Optimistic concurrency: expectedVersion must match the current version, or it fails 409 versionConflict; reload and reapply your changes. An assessment saved on an earlier snapshot fails 409 snapshotMismatch: start a new assessment from it instead.",
+                [Link("assessment", "getAssessment", "Read back the edited assessment and its revisions.", new Dictionary<string, string> { ["id"] = "$request.path.id" })]),
             ["GET api/history"] = new("listHistory", "workspace_list_history", "none", true, true,
                 "Cursor-paginated contribution history, ordered oldest first by journal position. Filter with contributionId to follow one contribution's revisions; pass nextCursor for the next page. Entries are historical revisions, so there is deliberately no edit follow-on here: edit only from a current contribution record (for example a create/edit response).",
                 [Link("next", "listHistory", "Fetch the next page using this page's nextCursor, keeping the same contributionId filter and limit.",
@@ -281,6 +298,7 @@ internal static class WorkspaceOpenApi
             new() { Name = "Health", Description = "Anonymous readiness." },
             new() { Name = "Reading", Description = "Read-only queries over the published snapshot and contribution history (ReadKnowledgeGraph)." },
             new() { Name = "Impact", Description = "Read-only impact search, path traces and C4 views over the active snapshot's impact model (ReadKnowledgeGraph)." },
+            new() { Name = "Assessments", Description = "Impact assessments: preview and read (ReadKnowledgeGraph), save and edit (ManageKnowledgeGraph)." },
             new() { Name = "Contributions", Description = "Writes that create, edit, remove or codify runtime contributions (ManageKnowledgeGraph)." }
         };
         document.Extensions ??= new Dictionary<string, IOpenApiExtension>();
@@ -314,7 +332,10 @@ internal static class WorkspaceOpenApi
                 [WorkspaceLinks.RelationBase + "remove"] = "removeContribution",
                 [WorkspaceLinks.RelationBase + "codifications"] = "associateCodification",
                 [WorkspaceLinks.RelationBase + "traceImpact"] = "traceImpact",
-                [WorkspaceLinks.RelationBase + "viewC4"] = "viewC4"
+                [WorkspaceLinks.RelationBase + "viewC4"] = "viewC4",
+                [WorkspaceLinks.RelationBase + "saveAssessment"] = "saveAssessment",
+                [WorkspaceLinks.RelationBase + "assessment"] = "getAssessment",
+                [WorkspaceLinks.RelationBase + "assessmentMarkdown"] = "getAssessmentMarkdown"
             }
         });
         document.Components ??= new OpenApiComponents();

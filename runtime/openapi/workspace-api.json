@@ -6,6 +6,617 @@
     "version": "v1"
   },
   "paths": {
+    "/api/assessments": {
+      "post": {
+        "tags": [
+          "Assessments"
+        ],
+        "summary": "Save an assessment",
+        "description": "Validates, freezes and saves a schema 2 assessment draft as version 1, returning its id. Not idempotent: retrying saves another assessment, so read back the returned id instead of retrying blindly. The same refusals as previewAssessment apply.",
+        "operationId": "saveAssessment",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssessmentDraftRequest"
+              },
+              "example": {
+                "snapshotId": "example-snapshot-id",
+                "record": {
+                  "schemaVersion": 2,
+                  "requestId": "example-CR-1",
+                  "description": "Example: raise the claim approval threshold.",
+                  "assessor": "Example assessor",
+                  "pins": {
+                    "snapshotId": {
+                      "catalogCommit": "example-catalog-commit"
+                    },
+                    "masterList": {
+                      "status": "none"
+                    },
+                    "registry": null
+                  },
+                  "confirmedLeads": [
+                    {
+                      "sourceId": "example-claims",
+                      "nodeIri": "https://example.test/claims/graph#claim"
+                    }
+                  ],
+                  "rejectedLeads": [ ],
+                  "likelyImpacts": [ ],
+                  "unresolved": [ ]
+                },
+                "views": null
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssessmentSaved"
+                }
+              }
+            },
+            "links": {
+              "assessment": {
+                "operationId": "getAssessment",
+                "parameters": {
+                  "id": "$response.body#/id"
+                },
+                "description": "Open the saved assessment."
+              },
+              "assessmentMarkdown": {
+                "operationId": "getAssessmentMarkdown",
+                "parameters": {
+                  "id": "$response.body#/id"
+                },
+                "description": "Download its Markdown."
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/unreadableRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "404": {
+            "description": "Not Found. Codes: assessmentNotFound",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "assessmentNotFound"
+            ]
+          },
+          "409": {
+            "description": "Conflict. Codes: snapshotChanged",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "snapshotChanged"
+            ]
+          },
+          "422": {
+            "description": "Unprocessable Entity. Codes: approvalNotSupported, invalidAssessment",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "approvalNotSupported",
+              "invalidAssessment"
+            ]
+          },
+          "500": {
+            "$ref": "#/components/responses/internalError"
+          },
+          "503": {
+            "description": "Service Unavailable. Codes: impactUnavailable, snapshotUnavailable, writesPaused",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "impactUnavailable",
+              "snapshotUnavailable",
+              "writesPaused"
+            ]
+          }
+        },
+        "security": [
+          {
+            "bearer": [ ]
+          }
+        ],
+        "x-workspace-role": "ManageKnowledgeGraph",
+        "x-agent-tool-name": "workspace_save_assessment",
+        "x-agent-idempotent": false,
+        "x-agent-retryable": false,
+        "x-agent-side-effects": "creates-assessment",
+        "x-agent-input": "AssessmentDraftRequest",
+        "x-agent-output": "AssessmentSaved"
+      }
+    },
+    "/api/assessments/preview": {
+      "post": {
+        "tags": [
+          "Assessments"
+        ],
+        "summary": "Preview an assessment draft without saving it",
+        "description": "Read-only despite POST: validates a schema 2 assessment draft against the active snapshot's impact model, freezes it with everything it cites, and returns the frozen content and its Markdown. Nothing is stored. Every likely impact must name a node on a cited path and evidence on that path, or a verified inspected view. A snapshotId that is no longer active fails 409 snapshotChanged: the draft belongs to an earlier snapshot, so start again from a new search. Approval and sign-off fields fail 422 approvalNotSupported; the workspace records impact, it does not approve it.",
+        "operationId": "previewAssessment",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssessmentDraftRequest"
+              },
+              "example": {
+                "snapshotId": "example-snapshot-id",
+                "record": {
+                  "schemaVersion": 2,
+                  "requestId": "example-CR-1",
+                  "description": "Example: raise the claim approval threshold.",
+                  "assessor": "Example assessor",
+                  "pins": {
+                    "snapshotId": {
+                      "catalogCommit": "example-catalog-commit"
+                    },
+                    "masterList": {
+                      "status": "none"
+                    },
+                    "registry": null
+                  },
+                  "confirmedLeads": [
+                    {
+                      "sourceId": "example-claims",
+                      "nodeIri": "https://example.test/claims/graph#claim"
+                    }
+                  ],
+                  "rejectedLeads": [ ],
+                  "likelyImpacts": [ ],
+                  "unresolved": [ ]
+                },
+                "views": null
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssessmentPreview"
+                }
+              }
+            },
+            "links": {
+              "saveAssessment": {
+                "operationId": "saveAssessment",
+                "description": "Save the same draft; requires ManageKnowledgeGraph."
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/unreadableRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "409": {
+            "description": "Conflict. Codes: snapshotChanged",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "snapshotChanged"
+            ]
+          },
+          "422": {
+            "description": "Unprocessable Entity. Codes: approvalNotSupported, invalidAssessment",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "approvalNotSupported",
+              "invalidAssessment"
+            ]
+          },
+          "500": {
+            "$ref": "#/components/responses/internalError"
+          },
+          "503": {
+            "description": "Service Unavailable. Codes: impactUnavailable, snapshotUnavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "impactUnavailable",
+              "snapshotUnavailable"
+            ]
+          }
+        },
+        "security": [
+          {
+            "bearer": [ ]
+          }
+        ],
+        "x-workspace-role": "ReadKnowledgeGraph",
+        "x-agent-tool-name": "workspace_preview_assessment",
+        "x-agent-idempotent": true,
+        "x-agent-retryable": true,
+        "x-agent-side-effects": "none",
+        "x-agent-input": "AssessmentDraftRequest",
+        "x-agent-output": "AssessmentPreview"
+      }
+    },
+    "/api/assessments/{id}": {
+      "get": {
+        "tags": [
+          "Assessments"
+        ],
+        "summary": "Open a saved assessment",
+        "description": "Returns a saved assessment exactly as it was frozen, with every revision. pinnedToEarlierSnapshot=true means a newer snapshot is active: the assessment still opens unchanged, but it can no longer be edited.",
+        "operationId": "getAssessment",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedAssessment"
+                }
+              }
+            },
+            "links": {
+              "assessmentMarkdown": {
+                "operationId": "getAssessmentMarkdown",
+                "parameters": {
+                  "id": "$request.path.id"
+                },
+                "description": "Download its Markdown."
+              },
+              "editAssessment": {
+                "operationId": "editAssessment",
+                "parameters": {
+                  "id": "$request.path.id"
+                },
+                "description": "Edit it on the same snapshot; supply its version as expectedVersion."
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/unreadableRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "404": {
+            "description": "Not Found. Codes: assessmentNotFound",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "assessmentNotFound"
+            ]
+          },
+          "500": {
+            "$ref": "#/components/responses/internalError"
+          }
+        },
+        "security": [
+          {
+            "bearer": [ ]
+          }
+        ],
+        "x-workspace-role": "ReadKnowledgeGraph",
+        "x-agent-tool-name": "workspace_get_assessment",
+        "x-agent-idempotent": true,
+        "x-agent-retryable": true,
+        "x-agent-side-effects": "none",
+        "x-agent-input": "parameters",
+        "x-agent-output": "SavedAssessment"
+      },
+      "put": {
+        "tags": [
+          "Assessments"
+        ],
+        "summary": "Edit a saved assessment",
+        "description": "Revises a saved assessment on the snapshot it was saved on, keeping every earlier version with its editor and time. Optimistic concurrency: expectedVersion must match the current version, or it fails 409 versionConflict; reload and reapply your changes. An assessment saved on an earlier snapshot fails 409 snapshotMismatch: start a new assessment from it instead.",
+        "operationId": "editAssessment",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssessmentEditRequest"
+              },
+              "example": {
+                "snapshotId": "example-snapshot-id",
+                "expectedVersion": 1,
+                "record": {
+                  "schemaVersion": 2,
+                  "requestId": "example-CR-1",
+                  "description": "Example: raise the claim approval threshold.",
+                  "assessor": "Example assessor",
+                  "pins": {
+                    "snapshotId": {
+                      "catalogCommit": "example-catalog-commit"
+                    },
+                    "masterList": {
+                      "status": "none"
+                    },
+                    "registry": null
+                  },
+                  "confirmedLeads": [
+                    {
+                      "sourceId": "example-claims",
+                      "nodeIri": "https://example.test/claims/graph#claim"
+                    }
+                  ],
+                  "rejectedLeads": [ ],
+                  "likelyImpacts": [ ],
+                  "unresolved": [ ]
+                },
+                "views": null
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssessmentSaved"
+                }
+              }
+            },
+            "links": {
+              "assessment": {
+                "operationId": "getAssessment",
+                "parameters": {
+                  "id": "$request.path.id"
+                },
+                "description": "Read back the edited assessment and its revisions."
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/unreadableRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "404": {
+            "description": "Not Found. Codes: assessmentNotFound",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "assessmentNotFound"
+            ]
+          },
+          "409": {
+            "description": "Conflict. Codes: snapshotChanged, snapshotMismatch, versionConflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceConflictProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "snapshotChanged",
+              "snapshotMismatch",
+              "versionConflict"
+            ]
+          },
+          "422": {
+            "description": "Unprocessable Entity. Codes: approvalNotSupported, invalidAssessment",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "approvalNotSupported",
+              "invalidAssessment"
+            ]
+          },
+          "500": {
+            "$ref": "#/components/responses/internalError"
+          },
+          "503": {
+            "description": "Service Unavailable. Codes: impactUnavailable, snapshotUnavailable, writesPaused",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "impactUnavailable",
+              "snapshotUnavailable",
+              "writesPaused"
+            ]
+          }
+        },
+        "security": [
+          {
+            "bearer": [ ]
+          }
+        ],
+        "x-workspace-role": "ManageKnowledgeGraph",
+        "x-agent-tool-name": "workspace_edit_assessment",
+        "x-agent-idempotent": false,
+        "x-agent-retryable": false,
+        "x-agent-side-effects": "updates-assessment",
+        "x-agent-input": "AssessmentEditRequest",
+        "x-agent-output": "AssessmentSaved"
+      }
+    },
+    "/api/assessments/{id}/markdown": {
+      "get": {
+        "tags": [
+          "Assessments"
+        ],
+        "summary": "Download a saved assessment's Markdown",
+        "description": "Returns the saved assessment's Markdown, byte for byte as it was rendered when saved.",
+        "operationId": "getAssessmentMarkdown",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/markdown": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "links": {
+              "assessment": {
+                "operationId": "getAssessment",
+                "parameters": {
+                  "id": "$request.path.id"
+                },
+                "description": "Open the saved assessment with its frozen content and revisions."
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/unreadableRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "404": {
+            "description": "Not Found. Codes: assessmentNotFound",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "assessmentNotFound"
+            ]
+          },
+          "500": {
+            "$ref": "#/components/responses/internalError"
+          }
+        },
+        "security": [
+          {
+            "bearer": [ ]
+          }
+        ],
+        "x-workspace-role": "ReadKnowledgeGraph",
+        "x-agent-tool-name": "workspace_get_assessment_markdown",
+        "x-agent-idempotent": true,
+        "x-agent-retryable": true,
+        "x-agent-side-effects": "none",
+        "x-agent-input": "parameters",
+        "x-agent-output": "none"
+      }
+    },
     "/api/contributions/annotations": {
       "post": {
         "tags": [
@@ -1834,6 +2445,149 @@
           }
         }
       },
+      "AssessmentDraftRequest": {
+        "required": [
+          "snapshotId",
+          "record"
+        ],
+        "type": "object",
+        "properties": {
+          "snapshotId": {
+            "type": "string"
+          },
+          "record": {
+            "$ref": "#/components/schemas/JsonObject"
+          },
+          "views": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/JsonObject"
+            }
+          }
+        }
+      },
+      "AssessmentEditRequest": {
+        "required": [
+          "snapshotId",
+          "expectedVersion",
+          "record"
+        ],
+        "type": "object",
+        "properties": {
+          "snapshotId": {
+            "type": "string"
+          },
+          "expectedVersion": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "record": {
+            "$ref": "#/components/schemas/JsonObject"
+          },
+          "views": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/JsonObject"
+            }
+          }
+        }
+      },
+      "AssessmentPreview": {
+        "required": [
+          "snapshotId",
+          "digest",
+          "frozen",
+          "markdown"
+        ],
+        "type": "object",
+        "properties": {
+          "snapshotId": {
+            "type": "string"
+          },
+          "digest": {
+            "type": "string"
+          },
+          "frozen": {
+            "$ref": "#/components/schemas/JsonObject"
+          },
+          "markdown": {
+            "type": "string"
+          }
+        }
+      },
+      "AssessmentRevision": {
+        "required": [
+          "version",
+          "editor",
+          "editedAt",
+          "frozen",
+          "markdown"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "editor": {
+            "$ref": "#/components/schemas/Actor"
+          },
+          "editedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "frozen": {
+            "$ref": "#/components/schemas/JsonObject"
+          },
+          "markdown": {
+            "type": "string"
+          }
+        }
+      },
+      "AssessmentSaved": {
+        "required": [
+          "id",
+          "version",
+          "position"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "position": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          }
+        }
+      },
       "C4ViewResult": {
         "required": [
           "snapshotId",
@@ -3493,6 +4247,76 @@
           }
         }
       },
+      "SavedAssessment": {
+        "required": [
+          "id",
+          "version",
+          "snapshotId",
+          "requestId",
+          "author",
+          "savedAt",
+          "updatedAt",
+          "pinnedToEarlierSnapshot",
+          "startedFrom",
+          "frozen",
+          "markdown",
+          "revisions"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "snapshotId": {
+            "type": "string"
+          },
+          "requestId": {
+            "type": "string"
+          },
+          "author": {
+            "$ref": "#/components/schemas/Actor"
+          },
+          "savedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "pinnedToEarlierSnapshot": {
+            "type": "boolean"
+          },
+          "startedFrom": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "frozen": {
+            "$ref": "#/components/schemas/JsonObject"
+          },
+          "markdown": {
+            "type": "string"
+          },
+          "revisions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AssessmentRevision"
+            }
+          }
+        }
+      },
       "SearchHit": {
         "required": [
           "entityKey",
@@ -3974,6 +4798,10 @@
       "description": "Read-only impact search, path traces and C4 views over the active snapshot's impact model (ReadKnowledgeGraph)."
     },
     {
+      "name": "Assessments",
+      "description": "Impact assessments: preview and read (ReadKnowledgeGraph), save and edit (ManageKnowledgeGraph)."
+    },
+    {
       "name": "Contributions",
       "description": "Writes that create, edit, remove or codify runtime contributions (ManageKnowledgeGraph)."
     }
@@ -4005,7 +4833,10 @@
       "https://github.com/jamiemitchellconsultants/division-ontology#link-relations/remove": "removeContribution",
       "https://github.com/jamiemitchellconsultants/division-ontology#link-relations/codifications": "associateCodification",
       "https://github.com/jamiemitchellconsultants/division-ontology#link-relations/traceImpact": "traceImpact",
-      "https://github.com/jamiemitchellconsultants/division-ontology#link-relations/viewC4": "viewC4"
+      "https://github.com/jamiemitchellconsultants/division-ontology#link-relations/viewC4": "viewC4",
+      "https://github.com/jamiemitchellconsultants/division-ontology#link-relations/saveAssessment": "saveAssessment",
+      "https://github.com/jamiemitchellconsultants/division-ontology#link-relations/assessment": "getAssessment",
+      "https://github.com/jamiemitchellconsultants/division-ontology#link-relations/assessmentMarkdown": "getAssessmentMarkdown"
     }
   }
 }
