@@ -587,5 +587,10 @@
       ]
     }
   ],
-  "gaps": []
+  "gaps": [
+    {
+      "code": "no-relationship-master-list",
+      "reason": "Impact direction is assumed from subject to object; no relationship master list is defined"
+    }
+  ]
 }
