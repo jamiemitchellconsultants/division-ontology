@@ -17,7 +17,8 @@ internal static class TestModels
     private const string AlphaId = "fixture/Alpha";
     private const string BetaId = "fixture/Beta";
 
-    public static ImpactModel MakeModel(Action<JsonObject>? change = null, Func<string, byte[]>? blobOverride = null)
+    public static ImpactModel MakeModel(Action<JsonObject>? change = null, Func<string, byte[]>? blobOverride = null,
+        JsonObject? masterList = null)
     {
         var alphaCommit = new string('c', 40);
         var betaCommit = new string('d', 40);
@@ -137,6 +138,11 @@ internal static class TestModels
             }
         };
 
+        var listBytes = masterList == null ? null : Encoding.UTF8.GetBytes(EcmaJson.Stringify(masterList));
+        var listSha256 = listBytes == null ? null : Convert.ToHexStringLower(SHA256.HashData(listBytes));
+        if (listBytes != null)
+            impactInput["masterList"] = new JsonObject { ["status"] = "listed", ["catalogCommit"] = catalogCommit, ["sha256"] = listSha256 };
+
         change?.Invoke(impactInput);
 
         var impactBytes = Encoding.UTF8.GetBytes(EcmaJson.Stringify(impactInput) + "\n");
@@ -156,10 +162,17 @@ internal static class TestModels
                 new JsonObject { ["role"] = "graphEvidence", ["sourceId"] = AlphaId, ["path"] = "src/app.ts", ["sha256"] = appSha256, ["bytes"] = appBytes.Length },
                 new JsonObject { ["role"] = "inspectedSource", ["sourceId"] = AlphaId, ["path"] = "src/app.ts", ["sha256"] = appSha256, ["bytes"] = appBytes.Length })
         };
+        if (listBytes != null)
+            manifest["files"]!.AsArray().Add(new JsonObject
+            {
+                ["role"] = "relationshipMasterList", ["sourceId"] = "division-core", ["path"] = "relationships/master-list.json",
+                ["sha256"] = listSha256, ["bytes"] = listBytes.Length
+            });
 
         var manifestBytes = Encoding.UTF8.GetBytes(EcmaJson.Stringify(manifest) + "\n");
         var manifestId = Convert.ToHexStringLower(SHA256.HashData(manifestBytes));
-        byte[]? Blob(string sha256) => sha256 == appSha256 ? appBytes : sha256 == impactDigest ? impactBytes : null;
+        byte[]? Blob(string sha256) =>
+            sha256 == appSha256 ? appBytes : sha256 == impactDigest ? impactBytes : sha256 == listSha256 ? listBytes : null;
         return ImpactModel.Build(ImpactBundle.FromObjects(manifestId, manifestBytes, Blob));
     }
 }

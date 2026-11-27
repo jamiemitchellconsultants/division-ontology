@@ -6,9 +6,29 @@ using ImpactModel = RuntimeKnowledge.Impact.Model.ImpactModel;
 
 namespace RuntimeKnowledge.Impact.Engine;
 
-/// <summary>Port of readImpactPaths from the Node C4 pilot.</summary>
+/// <summary>Port of readImpactPaths from the Node C4 pilot, extended with the relationship master list (B6–B10).</summary>
 public static class Paths
 {
+    private sealed class Walk
+    {
+        public required ImpactModel Model { get; init; }
+        public required int MaxDepth { get; init; }
+        public List<JsonObject> Gaps { get; } = [];
+        public List<JsonObject> Paths { get; } = [];
+        public SortedDictionary<string, JsonObject> EvidenceGaps { get; } = new(StringComparer.Ordinal);
+        // B7: distinct assertion IRIs per relationship whose impact is none.
+        public SortedDictionary<string, HashSet<string>> NotFollowed { get; } = new(StringComparer.Ordinal);
+        // B8: per unlisted relationship, its distinct assertion IRIs and the nodes they were met at.
+        public SortedDictionary<string, (HashSet<string> Assertions, SortedDictionary<string, (string SourceId, string NodeIri)> Nodes)> Unlisted { get; } =
+            new(StringComparer.Ordinal);
+    }
+
+    private static string Key((string SourceId, string NodeIri) pair) => EcmaJson.Stringify(new JsonObject
+    {
+        ["sourceId"] = pair.SourceId,
+        ["nodeIri"] = pair.NodeIri
+    });
+
     public static JsonObject Read(ImpactModel model, IReadOnlyList<(string SourceId, string NodeIri)> starts, int maxDepth = 4)
     {
         if (!starts.Any())
@@ -16,36 +36,25 @@ public static class Paths
         if (maxDepth < 1 || maxDepth > 6)
             throw new ImpactException("depth must be from 1 to 6");
 
-        var paths = new List<JsonObject>();
-        var gaps = new List<JsonObject>();
+        var walk = new Walk { Model = model, MaxDepth = maxDepth };
+        var gaps = walk.Gaps;
 
-        // Add registry gaps first
         foreach (var g in model.Registry.Gaps)
             gaps.Add(g.DeepClone()!.AsObject());
 
-        // Then no-relationship-master-list gap (B9)
-        gaps.Add(new JsonObject
-        {
-            ["code"] = "no-relationship-master-list",
-            ["reason"] = "Impact direction is assumed from subject to object; no relationship master list is defined"
-        });
+        if (model.MasterList == null)
+            gaps.Add(new JsonObject
+            {
+                ["code"] = "no-relationship-master-list",
+                ["reason"] = "Impact direction is assumed from subject to object; no relationship master list is defined"
+            });
 
         var evidenceGapsAt = gaps.Count;
-        var evidenceGaps = new SortedDictionary<string, JsonObject>(StringComparer.Ordinal);
 
-        // Coverage gaps
         foreach (var gap in Coverage.Gaps(model))
             gaps.Add(gap);
 
-        string Key((string SourceId, string NodeIri) pair) => EcmaJson.Stringify(new JsonObject
-        {
-            ["sourceId"] = pair.SourceId,
-            ["nodeIri"] = pair.NodeIri
-        });
-
-        var sortedStarts = starts.OrderBy(s => Key(s), StringComparer.Ordinal).ToList();
-
-        foreach (var start in sortedStarts)
+        foreach (var start in starts.OrderBy(Key, StringComparer.Ordinal))
         {
             if (!model.IsSupported(start.SourceId, start.NodeIri))
             {
@@ -59,46 +68,60 @@ public static class Paths
                 continue;
             }
 
-            var visited = new HashSet<string> { Key(start) };
-            Walk(start, Array.Empty<JsonObject>(), visited, model, gaps, evidenceGaps, paths, Key, maxDepth);
+            Step(walk, start, [], [Key(start)]);
         }
 
-        gaps.InsertRange(evidenceGapsAt, evidenceGaps.Values);
+        gaps.InsertRange(evidenceGapsAt, walk.EvidenceGaps.Values.Concat(UnlistedGaps(walk)));
 
-        if (!paths.Any())
+        if (!walk.Paths.Any())
             gaps.Add(new JsonObject
             {
                 ["code"] = "unknown-paths",
                 ["reason"] = "No paths found; missing relationships do not prove no impact"
             });
 
-        return new JsonObject
+        var result = new JsonObject
         {
             ["snapshotId"] = model.SnapshotId.DeepClone()!.AsObject(),
-            ["registryCommit"] = model.Registry.Commit,
-            ["coverage"] = new JsonArray(Coverage.Inventory(model).Select(r => r.DeepClone()!).ToArray()),
-            ["paths"] = new JsonArray(paths.Select(p => p.DeepClone()!).ToArray()),
-            ["gaps"] = new JsonArray(gaps.Select(g => g.DeepClone()!).ToArray())
+            ["registryCommit"] = model.Registry.Commit
         };
+        if (model.MasterList != null)
+        {
+            result["masterList"] = model.MasterList.Identity.DeepClone();
+            result["notFollowed"] = new JsonArray(walk.NotFollowed.Select(n => (JsonNode)new JsonObject
+            {
+                ["relationship"] = n.Key,
+                ["assertions"] = n.Value.Count
+            }).ToArray());
+        }
+        result["coverage"] = new JsonArray(Coverage.Inventory(model).Select(r => r.DeepClone()!).ToArray());
+        result["paths"] = new JsonArray(walk.Paths.Select(p => p.DeepClone()!).ToArray());
+        result["gaps"] = new JsonArray(gaps.Select(g => g.DeepClone()!).ToArray());
+        return result;
     }
 
-    private static void Walk(
-        (string SourceId, string NodeIri) current,
-        IReadOnlyList<JsonObject> steps,
-        HashSet<string> visited,
-        ImpactModel model,
-        List<JsonObject> gaps,
-        SortedDictionary<string, JsonObject> evidenceGaps,
-        List<JsonObject> paths,
-        Func<(string SourceId, string NodeIri), string> key,
-        int maxDepth)
+    private static IEnumerable<JsonObject> UnlistedGaps(Walk walk) => walk.Unlisted.Select(u => new JsonObject
     {
-        if (steps.Count >= maxDepth) return;
+        ["code"] = "unlisted-relationship",
+        ["relationship"] = u.Key,
+        ["nodes"] = new JsonArray(u.Value.Nodes.Values.Select(n => (JsonNode)new JsonObject
+        {
+            ["sourceId"] = n.SourceId,
+            ["nodeIri"] = n.NodeIri
+        }).ToArray()),
+        ["assertions"] = u.Value.Assertions.Count,
+        ["reason"] = "The impact of this relationship is unknown: it is not in the relationship master list"
+    });
+
+    private static void Step(Walk walk, (string SourceId, string NodeIri) current, IReadOnlyList<JsonObject> steps, HashSet<string> visited)
+    {
+        if (steps.Count >= walk.MaxDepth) return;
+        var model = walk.Model;
 
         var source = model.Source(current.SourceId);
         if (source == null || source.Status != "available")
         {
-            gaps.Add(new JsonObject
+            walk.Gaps.Add(new JsonObject
             {
                 ["code"] = "graph-unavailable",
                 ["sourceId"] = current.SourceId,
@@ -109,57 +132,41 @@ public static class Paths
 
         var edges = new List<(JsonObject Target, JsonObject Step)>();
 
-        // Assertion edges (outgoing only)
         foreach (var assertion in source.Assertions)
         {
             var subject = assertion["subject"]!.GetValue<string>();
-            if (subject != current.NodeIri) continue;
-
-            var target = new JsonObject
+            var obj = assertion["object"]!.GetValue<string>();
+            if (model.MasterList == null)
             {
-                ["sourceId"] = current.SourceId,
-                ["nodeIri"] = assertion["object"]!.GetValue<string>()
-            };
-
-            var evidenceNodes = new JsonArray();
-            if (assertion["evidenceIris"] is JsonArray eiris)
-            {
-                foreach (var eiri in eiris)
-                {
-                    var eiriStr = eiri!.GetValue<string>();
-                    var enode = source.EvidenceNode(eiriStr);
-                    if (enode == null) continue;
-                    // Only page-role evidence is read, so code and ordinary-document steps keep their path ids.
-                    if (enode["role"]?.GetValue<string>() == EvidenceText.PageRole)
-                    {
-                        var cited = EvidenceText.Read(model, current.SourceId, enode);
-                        if (cited.Page != null) enode["page"] = EvidenceText.StepPage(cited);
-                        if (cited.Gap != null) evidenceGaps.TryAdd(EcmaJson.Stringify(cited.Gap), cited.Gap);
-                    }
-                    evidenceNodes.Add(enode);
-                }
+                if (subject == current.NodeIri) edges.Add(AssertionEdge(walk, source, assertion, obj, "outgoing"));
+                continue;
             }
 
-            edges.Add((target, new JsonObject
+            if (subject != current.NodeIri && obj != current.NodeIri) continue;
+            var relationship = assertion["relationship"]!.GetValue<string>();
+            var iri = assertion["iri"]!.GetValue<string>();
+            switch (model.MasterList.Impact(relationship))
             {
-                ["type"] = "assertion",
-                ["subject"] = new JsonObject
-                {
-                    ["sourceId"] = current.SourceId,
-                    ["nodeIri"] = current.NodeIri
-                },
-                ["object"] = target,
-                ["direction"] = "outgoing",
-                ["assertionIri"] = assertion["iri"]!.GetValue<string>(),
-                ["relationship"] = assertion["relationship"]!.GetValue<string>(),
-                ["basis"] = assertion["basis"]!.GetValue<string>(),
-                ["evidenceIris"] = new JsonArray(assertion["evidenceIris"]!.AsArray().Select(e => e!.DeepClone()!).ToArray()),
-                ["evidence"] = evidenceNodes,
-                ["commit"] = source.Commit
-            }));
+                case null:
+                    if (!walk.Unlisted.TryGetValue(relationship, out var unlisted))
+                        walk.Unlisted[relationship] = unlisted = ([], new SortedDictionary<string, (string, string)>(StringComparer.Ordinal));
+                    unlisted.Assertions.Add(iri);
+                    unlisted.Nodes.TryAdd(Key(current), current);
+                    break;
+                case "none":
+                    if (!walk.NotFollowed.TryGetValue(relationship, out var counted))
+                        walk.NotFollowed[relationship] = counted = new HashSet<string>(StringComparer.Ordinal);
+                    counted.Add(iri);
+                    break;
+                case var impact:
+                    if (subject == current.NodeIri && impact is "subject-to-object" or "both")
+                        edges.Add(AssertionEdge(walk, source, assertion, obj, "subject-to-object"));
+                    if (obj == current.NodeIri && impact is "object-to-subject" or "both")
+                        edges.Add(AssertionEdge(walk, source, assertion, subject, "object-to-subject"));
+                    break;
+            }
         }
 
-        // Binding edges
         var binding = model.Registry.BindingFrom(current.SourceId, current.NodeIri);
         if (binding != null)
         {
@@ -168,50 +175,79 @@ public static class Paths
                 ["sourceId"] = binding["toSourceId"]!.GetValue<string>(),
                 ["nodeIri"] = binding["targetNodeIri"]!.GetValue<string>()
             };
-
             edges.Add((target, new JsonObject
             {
                 ["type"] = "binding",
-                ["from"] = new JsonObject
-                {
-                    ["sourceId"] = current.SourceId,
-                    ["nodeIri"] = current.NodeIri
-                },
+                ["from"] = new JsonObject { ["sourceId"] = current.SourceId, ["nodeIri"] = current.NodeIri },
                 ["to"] = target,
                 ["registryCommit"] = model.Registry.Commit,
                 ["identityEvidence"] = binding["identityEvidence"]!.DeepClone()!.AsObject()
             }));
         }
 
-        // Sort edges: by target key, then assertionIri
+        static string Text(JsonObject step, string name) => step[name]?.GetValue<string>() ?? "";
         edges.StableSort((a, b) =>
         {
-            var cmp = string.CompareOrdinal(key((a.Target["sourceId"]!.GetValue<string>(), a.Target["nodeIri"]!.GetValue<string>())),
-                key((b.Target["sourceId"]!.GetValue<string>(), b.Target["nodeIri"]!.GetValue<string>())));
-            if (cmp != 0) return cmp;
-            var aIri = a.Step["assertionIri"]?.GetValue<string>() ?? "";
-            var bIri = b.Step["assertionIri"]?.GetValue<string>() ?? "";
-            return string.CompareOrdinal(aIri, bIri);
+            var cmp = string.CompareOrdinal(TargetKey(a.Target), TargetKey(b.Target));
+            if (cmp == 0) cmp = string.CompareOrdinal(Text(a.Step, "assertionIri"), Text(b.Step, "assertionIri"));
+            if (cmp == 0) cmp = string.CompareOrdinal(Text(a.Step, "type"), Text(b.Step, "type"));
+            if (cmp == 0) cmp = string.CompareOrdinal(Text(a.Step, "direction"), Text(b.Step, "direction"));
+            return cmp;
         });
 
-        foreach (var edge in edges)
+        foreach (var (target, step) in edges)
         {
-            var target = edge.Target;
-            var step = edge.Step;
-            var targetKey = key((target["sourceId"]!.GetValue<string>(), target["nodeIri"]!.GetValue<string>()));
+            var targetKey = TargetKey(target);
             if (visited.Contains(targetKey)) continue;
 
             var next = new List<JsonObject>(steps) { step };
-            var id = EcmaJson.Sha256Hex(EcmaJson.Stringify(new JsonArray(next.Select(s => s.DeepClone()!).ToArray())));
-            paths.Add(new JsonObject
+            walk.Paths.Add(new JsonObject
             {
-                ["id"] = id,
+                ["id"] = EcmaJson.Sha256Hex(EcmaJson.Stringify(new JsonArray(next.Select(s => s.DeepClone()!).ToArray()))),
                 ["steps"] = new JsonArray(next.Select(s => s.DeepClone()!).ToArray())
             });
 
-            var nextVisited = new HashSet<string>(visited) { targetKey };
-            Walk((target["sourceId"]!.GetValue<string>(), target["nodeIri"]!.GetValue<string>()),
-                next, nextVisited, model, gaps, evidenceGaps, paths, key, maxDepth);
+            Step(walk, (target["sourceId"]!.GetValue<string>(), target["nodeIri"]!.GetValue<string>()),
+                next, new HashSet<string>(visited) { targetKey });
         }
+    }
+
+    private static string TargetKey(JsonObject target) =>
+        Key((target["sourceId"]!.GetValue<string>(), target["nodeIri"]!.GetValue<string>()));
+
+    // subject and object are always the assertion's own; only the direction says which way the step goes (B6).
+    private static (JsonObject Target, JsonObject Step) AssertionEdge(Walk walk, SourceModel source, JsonObject assertion,
+        string targetIri, string direction)
+    {
+        var evidenceNodes = new JsonArray();
+        if (assertion["evidenceIris"] is JsonArray iris)
+            foreach (var iri in iris)
+            {
+                var evidence = source.EvidenceNode(iri!.GetValue<string>());
+                if (evidence == null) continue;
+                // Only page-role evidence is read, so code and ordinary-document steps keep their path ids.
+                if (evidence["role"]?.GetValue<string>() == EvidenceText.PageRole)
+                {
+                    var cited = EvidenceText.Read(walk.Model, source.Id, evidence);
+                    if (cited.Page != null) evidence["page"] = EvidenceText.StepPage(cited);
+                    if (cited.Gap != null) walk.EvidenceGaps.TryAdd(EcmaJson.Stringify(cited.Gap), cited.Gap);
+                }
+                evidenceNodes.Add(evidence);
+            }
+
+        var target = new JsonObject { ["sourceId"] = source.Id, ["nodeIri"] = targetIri };
+        return (target, new JsonObject
+        {
+            ["type"] = "assertion",
+            ["subject"] = new JsonObject { ["sourceId"] = source.Id, ["nodeIri"] = assertion["subject"]!.GetValue<string>() },
+            ["object"] = new JsonObject { ["sourceId"] = source.Id, ["nodeIri"] = assertion["object"]!.GetValue<string>() },
+            ["direction"] = direction,
+            ["assertionIri"] = assertion["iri"]!.GetValue<string>(),
+            ["relationship"] = assertion["relationship"]!.GetValue<string>(),
+            ["basis"] = assertion["basis"]!.GetValue<string>(),
+            ["evidenceIris"] = new JsonArray(assertion["evidenceIris"]!.AsArray().Select(e => e!.DeepClone()!).ToArray()),
+            ["evidence"] = evidenceNodes,
+            ["commit"] = source.Commit
+        });
     }
 }

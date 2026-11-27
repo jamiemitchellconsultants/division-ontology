@@ -13,12 +13,13 @@ public sealed class ImpactModel
     public IReadOnlyList<JsonObject> ReviewedLinks { get; }
     public RegistryModel Registry { get; }
     public ImpactBundle Bundle { get; }
+    public MasterList? MasterList { get; }
 
     private readonly Dictionary<string, SourceModel> _byId = new(StringComparer.Ordinal);
 
     private ImpactModel(JsonObject snapshotId, IReadOnlyList<SourceModel> sources,
         IReadOnlyList<JsonObject> concepts, IReadOnlyList<JsonObject> reviewedLinks,
-        RegistryModel registry, ImpactBundle bundle)
+        RegistryModel registry, ImpactBundle bundle, MasterList? masterList)
     {
         SnapshotId = snapshotId;
         Sources = sources;
@@ -26,6 +27,7 @@ public sealed class ImpactModel
         ReviewedLinks = reviewedLinks;
         Registry = registry;
         Bundle = bundle;
+        MasterList = masterList;
         foreach (var s in sources) _byId[s.Id] = s;
     }
 
@@ -123,7 +125,7 @@ public sealed class ImpactModel
                 mappings, bindings, gaps);
         }
 
-        return new ImpactModel(snapshotId, sources, concepts, reviewedLinks, registry, bundle);
+        return new ImpactModel(snapshotId, sources, concepts, reviewedLinks, registry, bundle, MasterList.Read(input, bundle));
     }
 }
 

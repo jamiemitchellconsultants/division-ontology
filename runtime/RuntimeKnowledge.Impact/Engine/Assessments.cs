@@ -32,7 +32,7 @@ public static class Assessments
     public static JsonObject Pins(ImpactModel model) => new()
     {
         ["snapshotId"] = model.SnapshotId.DeepClone(),
-        ["masterList"] = new JsonObject { ["status"] = "none" },
+        ["masterList"] = model.MasterList?.Identity.DeepClone() ?? new JsonObject { ["status"] = "none" },
         ["registry"] = model.Registry.Commit.Length == 0 ? null : new JsonObject
         {
             ["commit"] = model.Registry.Commit,
