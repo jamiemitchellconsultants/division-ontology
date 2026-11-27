@@ -1,7 +1,7 @@
 {
   "snapshotId": {
-    "catalogCommit": "6dbb53695ef3a724da249a566916933cf1bc3559",
-    "catalogSha256": "1354dcdd1987cd266e280554d5f3041d32cf983608219422a3c38605e0007a20",
+    "catalogCommit": "7442de3a6a7929f51124be38bff0f7709207a9ef",
+    "catalogSha256": "2fc3c39350ea78f61dae69492a4cce25ceedbacbd30e782e0deb17884486cc45",
     "sources": [
       {
         "id": "fixture/accounting",
@@ -17,7 +17,7 @@
       }
     ]
   },
-  "registryCommit": "6dbb53695ef3a724da249a566916933cf1bc3559",
+  "registryCommit": "7442de3a6a7929f51124be38bff0f7709207a9ef",
   "registryDigests": {
     "mappings": "b87d7fdd5be83580e08bd99d4738acd72c86aafd8f154caee8841c7710914ee3",
     "bindings": "a753a44dfc3e2f49aaa8d0ed059a5b82257771a41961a578ccf06fa8521232eb"
@@ -122,7 +122,7 @@
           "path": "docs/acceptance-architecture.md",
           "startLine": 1,
           "endLine": 5,
-          "blobId": "21c826cfa5f5e9d5d3837e4f42e50f491914cb56",
+          "blobId": "c18767a9dc1fb28a12fed1390185f31bd740b30b",
           "role": "implementation"
         }
       ],
@@ -158,7 +158,7 @@
         "sourceId": "fixture/ecommerce",
         "nodeIri": "https://example.test/ecommerce/graph#store"
       },
-      "label": "Order store v2",
+      "label": "Order store",
       "role": "container",
       "insideBoundary": true,
       "supported": true,
@@ -172,7 +172,7 @@
           "path": "docs/acceptance-architecture.md",
           "startLine": 1,
           "endLine": 5,
-          "blobId": "21c826cfa5f5e9d5d3837e4f42e50f491914cb56",
+          "blobId": "c18767a9dc1fb28a12fed1390185f31bd740b30b",
           "role": "implementation"
         }
       ],
@@ -201,7 +201,7 @@
           "path": "docs/acceptance-architecture.md",
           "startLine": 1,
           "endLine": 5,
-          "blobId": "21c826cfa5f5e9d5d3837e4f42e50f491914cb56",
+          "blobId": "c18767a9dc1fb28a12fed1390185f31bd740b30b",
           "role": "implementation"
         }
       ],
@@ -228,7 +228,7 @@
           "path": "docs/acceptance-architecture.md",
           "startLine": 1,
           "endLine": 5,
-          "blobId": "21c826cfa5f5e9d5d3837e4f42e50f491914cb56",
+          "blobId": "c18767a9dc1fb28a12fed1390185f31bd740b30b",
           "role": "implementation"
         }
       ],
@@ -255,7 +255,7 @@
           "path": "docs/acceptance-architecture.md",
           "startLine": 1,
           "endLine": 5,
-          "blobId": "21c826cfa5f5e9d5d3837e4f42e50f491914cb56",
+          "blobId": "c18767a9dc1fb28a12fed1390185f31bd740b30b",
           "role": "implementation"
         }
       ],

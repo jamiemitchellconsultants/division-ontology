@@ -1,7 +1,7 @@
 {
   "snapshotId": {
-    "catalogCommit": "6dbb53695ef3a724da249a566916933cf1bc3559",
-    "catalogSha256": "1354dcdd1987cd266e280554d5f3041d32cf983608219422a3c38605e0007a20",
+    "catalogCommit": "7442de3a6a7929f51124be38bff0f7709207a9ef",
+    "catalogSha256": "2fc3c39350ea78f61dae69492a4cce25ceedbacbd30e782e0deb17884486cc45",
     "sources": [
       {
         "id": "fixture/accounting",
@@ -17,7 +17,7 @@
       }
     ]
   },
-  "registryCommit": "6dbb53695ef3a724da249a566916933cf1bc3559",
+  "registryCommit": "7442de3a6a7929f51124be38bff0f7709207a9ef",
   "registryDigests": {
     "mappings": "b87d7fdd5be83580e08bd99d4738acd72c86aafd8f154caee8841c7710914ee3",
     "bindings": "a753a44dfc3e2f49aaa8d0ed059a5b82257771a41961a578ccf06fa8521232eb"

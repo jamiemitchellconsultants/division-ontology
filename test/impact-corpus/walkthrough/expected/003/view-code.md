@@ -1,8 +1,8 @@
 # C4 code view
 
-Catalog commit: `6dbb53695ef3a724da249a566916933cf1bc3559`
-Registry commit: `6dbb53695ef3a724da249a566916933cf1bc3559`
-View digest: c59db1c156b1e58f7494cb1e456cb7966d8ded7ffa5073c31dd2a32e0b926a86
+Catalog commit: `7442de3a6a7929f51124be38bff0f7709207a9ef`
+Registry commit: `7442de3a6a7929f51124be38bff0f7709207a9ef`
+View digest: 477b73445d061af2b803fed209573058829777cda21684a7b8a105d8fb63fd09
 
 ```mermaid
 flowchart LR

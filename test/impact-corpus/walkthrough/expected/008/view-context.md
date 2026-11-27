@@ -1,8 +1,8 @@
 # C4 context view
 
-Catalog commit: `6dbb53695ef3a724da249a566916933cf1bc3559`
-Registry commit: `6dbb53695ef3a724da249a566916933cf1bc3559`
-View digest: b8dda37109d20392cb531e8599da3ff7db45869247af710e3a8cfd3972953ec8
+Catalog commit: `7442de3a6a7929f51124be38bff0f7709207a9ef`
+Registry commit: `7442de3a6a7929f51124be38bff0f7709207a9ef`
+View digest: 4cc1ea51d21ed437954d9a534571e4e543c10f6aefa777c64defcdd888f3bb81
 
 ```mermaid
 flowchart LR

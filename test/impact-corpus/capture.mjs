@@ -8,7 +8,6 @@ import { runC4Cli } from '../../src/c4/cli.mjs';
 
 const corpus = fileURLToPath(new URL('.', import.meta.url));
 const inputFlags = new Set(['--description-file', '--input', '--assessment-file', '--view-input', '--supplement']);
-const commitFlags = new Set(['--catalog-commit', '--registry-commit']);
 const pad = n => String(n).padStart(3, '0');
 
 export function outputsFor(argv) {
@@ -28,7 +27,6 @@ export async function recordScenario(id, { onStep, copyInputs = true } = {}) {
       const flag = argv[i - 1];
       if (flag === '--output') return '$output';
       if (flag === '--checkout') return `$checkout:${value.slice(0, value.indexOf('='))}`;
-      if (commitFlags.has(flag)) return '$commit';
       if (inputFlags.has(flag)) {
         const target = join(corpus, id, 'inputs', pad(index), basename(value));
         if (copyInputs) { mkdirSync(join(target, '..'), { recursive: true }); copyFileSync(value, target); }

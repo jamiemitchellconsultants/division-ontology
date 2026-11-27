@@ -1,13 +1,15 @@
 # C4 code view
 
-Catalog commit: `placeholder`
-Registry commit: `f8df41df4e41c57c58ea600bb8b52b52b988fb02`
-View digest: fb66e42c4adfc135bb5aa8ffbe847d2120ca50e4be5ce4b4505d145752e6a3b7
+Catalog commit: `e63348017b778e678b0c349160b8ec2bbc659ff5`
+Registry commit: `e63348017b778e678b0c349160b8ec2bbc659ff5`
+View digest: 783e0517739415baadc9d44602727380f91d3b01093185e8797d99514bd3c181
 
 ```mermaid
 flowchart LR
   subgraph boundary["https://alpha.example/#component boundary"]
+    n3c90a62097b91358["handle"]
   end
+  click n3c90a62097b91358 "#evidence-3c90a62097b91358"
 ```
 
 Legend: dashed relationships are inferred and tentative; architect-inspected code is separately identified.
@@ -16,15 +18,17 @@ Legend: dashed relationships are inferred and tentative; architect-inspected cod
 
 | Item | Assertion / basis | Repository | Commit | Source | Blob |
 | --- | --- | --- | --- | --- | --- |
+| <a id="evidence-3c90a62097b91358"></a>handle | https://alpha.example/#contains3 | fixture/Alpha | 980b69eca326c7bc54d4c8e34aa067b6fd509409 | [src/app.ts:1-1](https://github.com/fixture/Alpha/blob/980b69eca326c7bc54d4c8e34aa067b6fd509409/src/app.ts#L1) | 129fbfa125de7a8b2b24c3dbc34ef5d0e0570747 |
 
 ## Coverage
 
 | Source | Scope | Status | Reason |
 | --- | --- | --- | --- |
+| fixture/Alpha | src/** | covered |  |
+| fixture/Beta | src/** | covered |  |
 
 ## Gaps
 
 | Code | Source | Scope | Reason |
 | --- | --- | --- | --- |
-| unsupported-node | fixture/Alpha |  | Mapping support is unavailable |
-| empty-level |  |  | No supported items at this level; coverage is unknown |
+| None recorded | | | Coverage does not establish architectural completeness. |

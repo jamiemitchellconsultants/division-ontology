@@ -1,7 +1,7 @@
 {
   "snapshotId": {
-    "catalogCommit": "placeholder",
-    "catalogSha256": "placeholder",
+    "catalogCommit": "e63348017b778e678b0c349160b8ec2bbc659ff5",
+    "catalogSha256": "c90d3acfa72250b00fc49921e67e37ca60767fc63956931c1f09186fcc920d0d",
     "sources": [
       {
         "id": "fixture/Alpha",
@@ -13,11 +13,26 @@
       }
     ]
   },
-  "registryCommit": "f8df41df4e41c57c58ea600bb8b52b52b988fb02",
-  "coverage": [],
+  "registryCommit": "e63348017b778e678b0c349160b8ec2bbc659ff5",
+  "coverage": [
+    {
+      "sourceId": "fixture/Alpha",
+      "iri": "https://alpha.example/#coverage",
+      "selector": "src/**",
+      "status": "covered",
+      "priority": 1
+    },
+    {
+      "sourceId": "fixture/Beta",
+      "iri": "https://beta.example/#coverage",
+      "selector": "src/**",
+      "status": "covered",
+      "priority": 1
+    }
+  ],
   "paths": [
     {
-      "id": "c82e84265d6ffa91eb0ccced5673408b5771dc4e78af854e4085341767fb8f42",
+      "id": "1bd1d1600d7b33afdf262ccdc107bc865b89a2c4768e1ada87ae0d1dc5d35984",
       "steps": [
         {
           "type": "assertion",
@@ -30,7 +45,7 @@
             "nodeIri": "https://alpha.example/#container"
           },
           "direction": "outgoing",
-          "assertionIri": "https://alpha.example/#one",
+          "assertionIri": "https://alpha.example/#contains1",
           "relationship": "https://ontology-kit.dev/schema#contains",
           "basis": "direct",
           "evidenceIris": [
@@ -51,7 +66,7 @@
       ]
     },
     {
-      "id": "24753874b79ea2e00c9f7604bf175df5a7ef25769191a51d00eb57825e402844",
+      "id": "a5234bba7631801d0ec30c33dc4966f0596e93193c340851eccb033dea5f8c28",
       "steps": [
         {
           "type": "assertion",
@@ -64,7 +79,7 @@
             "nodeIri": "https://alpha.example/#container"
           },
           "direction": "outgoing",
-          "assertionIri": "https://alpha.example/#one",
+          "assertionIri": "https://alpha.example/#contains1",
           "relationship": "https://ontology-kit.dev/schema#contains",
           "basis": "direct",
           "evidenceIris": [
@@ -93,7 +108,7 @@
             "nodeIri": "https://alpha.example/#component"
           },
           "direction": "outgoing",
-          "assertionIri": "https://alpha.example/#two",
+          "assertionIri": "https://alpha.example/#contains2",
           "relationship": "https://ontology-kit.dev/schema#contains",
           "basis": "direct",
           "evidenceIris": [
@@ -114,7 +129,7 @@
       ]
     },
     {
-      "id": "5da6bc4d591216e049fc07a1653b6dd35d1d49fdcf719e88d3de8af27e6e7306",
+      "id": "e1db1705a0c7e3877e7362c3baa4fbbbe89d11baa3473418c1def2f0055b9a58",
       "steps": [
         {
           "type": "assertion",
@@ -127,7 +142,7 @@
             "nodeIri": "https://alpha.example/#container"
           },
           "direction": "outgoing",
-          "assertionIri": "https://alpha.example/#one",
+          "assertionIri": "https://alpha.example/#contains1",
           "relationship": "https://ontology-kit.dev/schema#contains",
           "basis": "direct",
           "evidenceIris": [
@@ -156,7 +171,7 @@
             "nodeIri": "https://alpha.example/#component"
           },
           "direction": "outgoing",
-          "assertionIri": "https://alpha.example/#two",
+          "assertionIri": "https://alpha.example/#contains2",
           "relationship": "https://ontology-kit.dev/schema#contains",
           "basis": "direct",
           "evidenceIris": [
@@ -185,7 +200,7 @@
             "nodeIri": "https://alpha.example/#code"
           },
           "direction": "outgoing",
-          "assertionIri": "https://alpha.example/#three",
+          "assertionIri": "https://alpha.example/#contains3",
           "relationship": "https://ontology-kit.dev/schema#contains",
           "basis": "direct",
           "evidenceIris": [
@@ -206,7 +221,7 @@
       ]
     },
     {
-      "id": "1ae86864979d926d280fedde255daa80aad74a9306181a95fafa05a12dfdf2d3",
+      "id": "21e770fcc7d23e48fcb70666c82e28563dc3f4707dda0a9001c4409b88b910ce",
       "steps": [
         {
           "type": "assertion",
@@ -219,7 +234,7 @@
             "nodeIri": "https://alpha.example/#external"
           },
           "direction": "outgoing",
-          "assertionIri": "https://alpha.example/#four",
+          "assertionIri": "https://alpha.example/#assertion",
           "relationship": "https://ontology-kit.dev/schema#communicates-with",
           "basis": "inferred",
           "evidenceIris": [
@@ -240,7 +255,7 @@
       ]
     },
     {
-      "id": "920aeca8ac2c5d873812fe5c479f174e57d6de54eb72007b6601af2fd921a7f1",
+      "id": "6a3b6d22c4758fa1c70bd620e311afcdfb93ac0afeaefbdfc1721dd6360311ac",
       "steps": [
         {
           "type": "assertion",
@@ -253,7 +268,7 @@
             "nodeIri": "https://alpha.example/#external"
           },
           "direction": "outgoing",
-          "assertionIri": "https://alpha.example/#four",
+          "assertionIri": "https://alpha.example/#assertion",
           "relationship": "https://ontology-kit.dev/schema#communicates-with",
           "basis": "inferred",
           "evidenceIris": [
@@ -281,7 +296,7 @@
             "sourceId": "fixture/Beta",
             "nodeIri": "https://beta.example/#system"
           },
-          "registryCommit": "f8df41df4e41c57c58ea600bb8b52b52b988fb02",
+          "registryCommit": "e63348017b778e678b0c349160b8ec2bbc659ff5",
           "identityEvidence": {
             "sourceId": "fixture/Alpha",
             "path": "src/app.ts",
@@ -294,7 +309,7 @@
       ]
     },
     {
-      "id": "5f962b21f46118cf10987b7074f2da42329f4c8171756bb02afa1e71aeeb567e",
+      "id": "119423a800e69b4be4e220bdacbde959eebaa4c45cae8fedaba3263c3769fe36",
       "steps": [
         {
           "type": "assertion",
@@ -307,7 +322,7 @@
             "nodeIri": "https://alpha.example/#external"
           },
           "direction": "outgoing",
-          "assertionIri": "https://alpha.example/#four",
+          "assertionIri": "https://alpha.example/#assertion",
           "relationship": "https://ontology-kit.dev/schema#communicates-with",
           "basis": "inferred",
           "evidenceIris": [
@@ -335,7 +350,7 @@
             "sourceId": "fixture/Beta",
             "nodeIri": "https://beta.example/#system"
           },
-          "registryCommit": "f8df41df4e41c57c58ea600bb8b52b52b988fb02",
+          "registryCommit": "e63348017b778e678b0c349160b8ec2bbc659ff5",
           "identityEvidence": {
             "sourceId": "fixture/Alpha",
             "path": "src/app.ts",
@@ -356,7 +371,7 @@
             "nodeIri": "https://beta.example/#container"
           },
           "direction": "outgoing",
-          "assertionIri": "https://beta.example/#one",
+          "assertionIri": "https://beta.example/#contains1",
           "relationship": "https://ontology-kit.dev/schema#contains",
           "basis": "direct",
           "evidenceIris": [
@@ -377,7 +392,7 @@
       ]
     },
     {
-      "id": "bfede001f5807430301386326f7590411f707b09226c362f009342bbecf45e35",
+      "id": "c9c1fc55ee5b62a8c888762c22e5a213a7c9e3365371b639de0a5abe25a9a817",
       "steps": [
         {
           "type": "assertion",
@@ -390,7 +405,7 @@
             "nodeIri": "https://alpha.example/#external"
           },
           "direction": "outgoing",
-          "assertionIri": "https://alpha.example/#four",
+          "assertionIri": "https://alpha.example/#assertion",
           "relationship": "https://ontology-kit.dev/schema#communicates-with",
           "basis": "inferred",
           "evidenceIris": [
@@ -418,7 +433,7 @@
             "sourceId": "fixture/Beta",
             "nodeIri": "https://beta.example/#system"
           },
-          "registryCommit": "f8df41df4e41c57c58ea600bb8b52b52b988fb02",
+          "registryCommit": "e63348017b778e678b0c349160b8ec2bbc659ff5",
           "identityEvidence": {
             "sourceId": "fixture/Alpha",
             "path": "src/app.ts",
@@ -439,7 +454,7 @@
             "nodeIri": "https://beta.example/#container"
           },
           "direction": "outgoing",
-          "assertionIri": "https://beta.example/#one",
+          "assertionIri": "https://beta.example/#contains1",
           "relationship": "https://ontology-kit.dev/schema#contains",
           "basis": "direct",
           "evidenceIris": [
@@ -468,7 +483,7 @@
             "nodeIri": "https://beta.example/#component"
           },
           "direction": "outgoing",
-          "assertionIri": "https://beta.example/#two",
+          "assertionIri": "https://beta.example/#contains2",
           "relationship": "https://ontology-kit.dev/schema#contains",
           "basis": "direct",
           "evidenceIris": [
@@ -489,7 +504,7 @@
       ]
     },
     {
-      "id": "13b7c21e99f1e4b659f6e652a68af25c7b7048e5bb3e6332155b1707c14441ea",
+      "id": "8251c414b2fc6a367884ddd52cef06af2753dee967f4f354d8c732d4a9f5fa1f",
       "steps": [
         {
           "type": "assertion",
@@ -502,7 +517,7 @@
             "nodeIri": "https://alpha.example/#external"
           },
           "direction": "outgoing",
-          "assertionIri": "https://alpha.example/#four",
+          "assertionIri": "https://alpha.example/#assertion",
           "relationship": "https://ontology-kit.dev/schema#communicates-with",
           "basis": "inferred",
           "evidenceIris": [
@@ -530,7 +545,7 @@
             "sourceId": "fixture/Beta",
             "nodeIri": "https://beta.example/#system"
           },
-          "registryCommit": "f8df41df4e41c57c58ea600bb8b52b52b988fb02",
+          "registryCommit": "e63348017b778e678b0c349160b8ec2bbc659ff5",
           "identityEvidence": {
             "sourceId": "fixture/Alpha",
             "path": "src/app.ts",
@@ -551,7 +566,7 @@
             "nodeIri": "https://beta.example/#external"
           },
           "direction": "outgoing",
-          "assertionIri": "https://beta.example/#four",
+          "assertionIri": "https://beta.example/#assertion",
           "relationship": "https://ontology-kit.dev/schema#communicates-with",
           "basis": "inferred",
           "evidenceIris": [

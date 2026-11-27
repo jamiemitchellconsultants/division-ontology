@@ -1,8 +1,8 @@
 # C4 context view
 
-Catalog commit: `6dbb53695ef3a724da249a566916933cf1bc3559`
-Registry commit: `6dbb53695ef3a724da249a566916933cf1bc3559`
-View digest: 37a40a762a4d2aa6e2b751d577ae2b88761a1c8a3f8dabca81df4a74091b242f
+Catalog commit: `7442de3a6a7929f51124be38bff0f7709207a9ef`
+Registry commit: `7442de3a6a7929f51124be38bff0f7709207a9ef`
+View digest: c9e9f6bf03c294dd04520a0b5cf111c7c64137312e40bb67e2f07649353414ca
 
 ```mermaid
 flowchart LR
@@ -25,10 +25,10 @@ Legend: dashed relationships are inferred and tentative; architect-inspected cod
 | Item | Assertion / basis | Repository | Commit | Source | Blob |
 | --- | --- | --- | --- | --- | --- |
 | <a id="evidence-82eef6b3764b21e7"></a>Warehouse fulfilment | https://example.test/ecommerce/graph#connects | fixture/ecommerce | 54666d869c335bd01817d5780feed7ea80bb82be | [docs/architecture.md:1-5](https://github.com/fixture/ecommerce/blob/54666d869c335bd01817d5780feed7ea80bb82be/docs/architecture.md#L1-L5) | 6365581ca2babd6f039e1c5b476f0ee8e24a20a0 |
-| <a id="evidence-a926f9020287a4f4"></a>Shopper | https://example.test/ecommerce/graph#uses | fixture/ecommerce | 54666d869c335bd01817d5780feed7ea80bb82be | [docs/acceptance-architecture.md:1-5](https://github.com/fixture/ecommerce/blob/54666d869c335bd01817d5780feed7ea80bb82be/docs/acceptance-architecture.md#L1-L5) | 21c826cfa5f5e9d5d3837e4f42e50f491914cb56 |
+| <a id="evidence-a926f9020287a4f4"></a>Shopper | https://example.test/ecommerce/graph#uses | fixture/ecommerce | 54666d869c335bd01817d5780feed7ea80bb82be | [docs/acceptance-architecture.md:1-5](https://github.com/fixture/ecommerce/blob/54666d869c335bd01817d5780feed7ea80bb82be/docs/acceptance-architecture.md#L1-L5) | c18767a9dc1fb28a12fed1390185f31bd740b30b |
 | <a id="evidence-5b4c533910742e27"></a>Ecommerce | https://example.test/ecommerce/graph#contains-system | fixture/ecommerce | 54666d869c335bd01817d5780feed7ea80bb82be | [docs/architecture.md:1-5](https://github.com/fixture/ecommerce/blob/54666d869c335bd01817d5780feed7ea80bb82be/docs/architecture.md#L1-L5) | 6365581ca2babd6f039e1c5b476f0ee8e24a20a0 |
 | https://ontology-kit.dev/schema#communicates-with | https://example.test/ecommerce/graph#connects / direct | fixture/ecommerce | 54666d869c335bd01817d5780feed7ea80bb82be | [docs/architecture.md:1-5](https://github.com/fixture/ecommerce/blob/54666d869c335bd01817d5780feed7ea80bb82be/docs/architecture.md#L1-L5) | 6365581ca2babd6f039e1c5b476f0ee8e24a20a0 |
-| https://ontology-kit.dev/schema#communicates-with | https://example.test/ecommerce/graph#uses / direct | fixture/ecommerce | 54666d869c335bd01817d5780feed7ea80bb82be | [docs/acceptance-architecture.md:1-5](https://github.com/fixture/ecommerce/blob/54666d869c335bd01817d5780feed7ea80bb82be/docs/acceptance-architecture.md#L1-L5) | 21c826cfa5f5e9d5d3837e4f42e50f491914cb56 |
+| https://ontology-kit.dev/schema#communicates-with | https://example.test/ecommerce/graph#uses / direct | fixture/ecommerce | 54666d869c335bd01817d5780feed7ea80bb82be | [docs/acceptance-architecture.md:1-5](https://github.com/fixture/ecommerce/blob/54666d869c335bd01817d5780feed7ea80bb82be/docs/acceptance-architecture.md#L1-L5) | c18767a9dc1fb28a12fed1390185f31bd740b30b |
 
 ## Coverage
 

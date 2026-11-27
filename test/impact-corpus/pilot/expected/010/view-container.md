@@ -1,8 +1,8 @@
 # C4 container view
 
-Catalog commit: `placeholder`
-Registry commit: `f8df41df4e41c57c58ea600bb8b52b52b988fb02`
-View digest: 0a85a114b29c4c6188504bb99f7b52e2d800b0fbed16e13a71e18f5d180d91d8
+Catalog commit: `e63348017b778e678b0c349160b8ec2bbc659ff5`
+Registry commit: `e63348017b778e678b0c349160b8ec2bbc659ff5`
+View digest: 89d2738a366688eacb735a30e42c25567703a1e833fad62922b317c41448ff9f
 
 ```mermaid
 flowchart LR
@@ -21,6 +21,8 @@ Legend: dashed relationships are inferred and tentative; architect-inspected cod
 
 | Source | Scope | Status | Reason |
 | --- | --- | --- | --- |
+| fixture/Alpha | src/** | covered |  |
+| fixture/Beta | src/** | covered |  |
 
 ## Gaps
 
