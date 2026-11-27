@@ -1,0 +1,46 @@
+{
+  "snapshotId": {
+    "catalogCommit": "e63348017b778e678b0c349160b8ec2bbc659ff5",
+    "catalogSha256": "c90d3acfa72250b00fc49921e67e37ca60767fc63956931c1f09186fcc920d0d",
+    "sources": [
+      {
+        "id": "fixture/Alpha",
+        "commit": "980b69eca326c7bc54d4c8e34aa067b6fd509409"
+      },
+      {
+        "id": "fixture/Beta",
+        "commit": "9c08221fbb185a173313dd0e3317273cc8d0e992"
+      }
+    ]
+  },
+  "registryCommit": "e63348017b778e678b0c349160b8ec2bbc659ff5",
+  "coverage": [
+    {
+      "sourceId": "fixture/Alpha",
+      "iri": "https://alpha.example/#coverage",
+      "selector": "src/**",
+      "status": "covered",
+      "priority": 1
+    },
+    {
+      "sourceId": "fixture/Beta",
+      "iri": "https://beta.example/#coverage",
+      "selector": "src/**",
+      "status": "covered",
+      "priority": 1
+    }
+  ],
+  "paths": [],
+  "gaps": [
+    {
+      "code": "unsupported-start",
+      "sourceId": "fixture/Beta",
+      "nodeIri": "https://beta.example/#system",
+      "reason": "Start lacks a supported mapping"
+    },
+    {
+      "code": "unknown-paths",
+      "reason": "No paths found; missing relationships do not prove no impact"
+    }
+  ]
+}

@@ -16,9 +16,9 @@ const read = file => JSON.parse(readFileSync(file, 'utf8'));
 const write = (file, data) => writeFileSync(file, JSON.stringify(data, null, 2) + '\n');
 const start = focus => focus.sourceId + '=' + focus.nodeIri;
 
-async function c4(fixture, folder, command, args, catalog = fixture.baseline) {
+async function c4(fixture, folder, command, args, catalog = fixture.baseline, run = runC4Cli) {
   const output = join(fixture.root, 'reports', folder);
-  const status = await runC4Cli([
+  const status = await run([
     command, ...args, '--catalog-commit', catalog, '--registry-commit', fixture.baseline,
     ...fixture.flags, '--output', output
   ], { cwd: fixture.divisionRoot, stdout: { write() {} } });
@@ -26,11 +26,11 @@ async function c4(fixture, folder, command, args, catalog = fixture.baseline) {
   return output;
 }
 
-export async function generateWalkthrough(root) {
+export async function generateWalkthrough(root, { run = runC4Cli } = {}) {
   const f = await acceptanceFixture(root);
   try {
     const show = (folder, level, focus, catalog) =>
-      c4(f, folder, 'view', ['--level', level, '--focus', start(focus)], catalog);
+      c4(f, folder, 'view', ['--level', level, '--focus', start(focus)], catalog, run);
     await c4(f, 'B01-description', 'search', ['--query', description]);
     await c4(f, 'B01-unmatched', 'search', ['--query', 'no-match-qzx-901']);
     await c4(f, 'B01-exact', 'search', ['--exact-iri', order.nodeIri]);
@@ -89,13 +89,13 @@ export async function generateWalkthrough(root) {
         '--output', output, '--level', 'code', '--focus', start(alpha.keys.alphaComponent)
       ];
       const options = { cwd: alpha.divisionRoot, stdout: { write() {} } };
-      if (await runC4Cli(['view', ...flags], options)) throw new Error('Graph-backed code view failed');
+      if (await run(['view', ...flags], options)) throw new Error('Graph-backed code view failed');
       const generated = join(output, 'view-code.json');
       writeFileSync(join(output, 'graph-code.json'), readFileSync(generated));
       const evidence = alpha.codeSupplement();
       const supplement = join(root, 'code-supplement.json');
       write(supplement, evidence);
-      if (await runC4Cli(['view', ...flags, '--supplement', supplement], options)) {
+      if (await run(['view', ...flags, '--supplement', supplement], options)) {
         throw new Error('Inspected code view failed');
       }
       const commit = alpha.sourceCommits.alpha;

@@ -1,0 +1,358 @@
+[
+  {
+    "argv": [
+      "search",
+      "--catalog-commit",
+      "e63348017b778e678b0c349160b8ec2bbc659ff5",
+      "--registry-commit",
+      "e63348017b778e678b0c349160b8ec2bbc659ff5",
+      "--checkout",
+      "$checkout:fixture/Alpha",
+      "--checkout",
+      "$checkout:fixture/Beta",
+      "--output",
+      "$output",
+      "--query",
+      "Alpha API"
+    ],
+    "exit": 0,
+    "stderr": "",
+    "files": [
+      "candidates.json"
+    ]
+  },
+  {
+    "argv": [
+      "search",
+      "--catalog-commit",
+      "e63348017b778e678b0c349160b8ec2bbc659ff5",
+      "--registry-commit",
+      "e63348017b778e678b0c349160b8ec2bbc659ff5",
+      "--checkout",
+      "$checkout:fixture/Alpha",
+      "--checkout",
+      "$checkout:fixture/Beta",
+      "--output",
+      "$output",
+      "--exact-iri",
+      "https://alpha.example/#system"
+    ],
+    "exit": 0,
+    "stderr": "",
+    "files": [
+      "candidates.json"
+    ]
+  },
+  {
+    "argv": [
+      "search",
+      "--catalog-commit",
+      "e63348017b778e678b0c349160b8ec2bbc659ff5",
+      "--registry-commit",
+      "e63348017b778e678b0c349160b8ec2bbc659ff5",
+      "--checkout",
+      "$checkout:fixture/Alpha",
+      "--checkout",
+      "$checkout:fixture/Beta",
+      "--output",
+      "$output",
+      "--query",
+      "unmatched phrase"
+    ],
+    "exit": 0,
+    "stderr": "",
+    "files": [
+      "candidates.json"
+    ]
+  },
+  {
+    "argv": [
+      "paths",
+      "--catalog-commit",
+      "e63348017b778e678b0c349160b8ec2bbc659ff5",
+      "--registry-commit",
+      "e63348017b778e678b0c349160b8ec2bbc659ff5",
+      "--checkout",
+      "$checkout:fixture/Alpha",
+      "--checkout",
+      "$checkout:fixture/Beta",
+      "--output",
+      "$output",
+      "--start",
+      "fixture/Alpha=https://alpha.example/#system"
+    ],
+    "exit": 0,
+    "stderr": "",
+    "files": [
+      "paths.json"
+    ]
+  },
+  {
+    "argv": [
+      "paths",
+      "--catalog-commit",
+      "e63348017b778e678b0c349160b8ec2bbc659ff5",
+      "--registry-commit",
+      "e63348017b778e678b0c349160b8ec2bbc659ff5",
+      "--checkout",
+      "$checkout:fixture/Alpha",
+      "--checkout",
+      "$checkout:fixture/Beta",
+      "--output",
+      "$output",
+      "--start",
+      "fixture/Alpha=https://alpha.example/#system",
+      "--max-depth",
+      "1"
+    ],
+    "exit": 0,
+    "stderr": "",
+    "files": [
+      "paths.json"
+    ]
+  },
+  {
+    "argv": [
+      "paths",
+      "--catalog-commit",
+      "e63348017b778e678b0c349160b8ec2bbc659ff5",
+      "--registry-commit",
+      "e63348017b778e678b0c349160b8ec2bbc659ff5",
+      "--checkout",
+      "$checkout:fixture/Alpha",
+      "--checkout",
+      "$checkout:fixture/Beta",
+      "--output",
+      "$output",
+      "--start",
+      "fixture/Beta=https://beta.example/#system"
+    ],
+    "exit": 0,
+    "stderr": "",
+    "files": [
+      "paths.json"
+    ]
+  },
+  {
+    "argv": [
+      "view",
+      "--catalog-commit",
+      "e63348017b778e678b0c349160b8ec2bbc659ff5",
+      "--registry-commit",
+      "e63348017b778e678b0c349160b8ec2bbc659ff5",
+      "--checkout",
+      "$checkout:fixture/Alpha",
+      "--checkout",
+      "$checkout:fixture/Beta",
+      "--output",
+      "$output",
+      "--level",
+      "context",
+      "--focus",
+      "fixture/Alpha=https://alpha.example/#system"
+    ],
+    "exit": 0,
+    "stderr": "",
+    "files": [
+      "view-context.json",
+      "view-context.md"
+    ]
+  },
+  {
+    "argv": [
+      "view",
+      "--catalog-commit",
+      "e63348017b778e678b0c349160b8ec2bbc659ff5",
+      "--registry-commit",
+      "e63348017b778e678b0c349160b8ec2bbc659ff5",
+      "--checkout",
+      "$checkout:fixture/Alpha",
+      "--checkout",
+      "$checkout:fixture/Beta",
+      "--output",
+      "$output",
+      "--level",
+      "container",
+      "--focus",
+      "fixture/Alpha=https://alpha.example/#system"
+    ],
+    "exit": 0,
+    "stderr": "",
+    "files": [
+      "view-container.json",
+      "view-container.md"
+    ]
+  },
+  {
+    "argv": [
+      "view",
+      "--catalog-commit",
+      "e63348017b778e678b0c349160b8ec2bbc659ff5",
+      "--registry-commit",
+      "e63348017b778e678b0c349160b8ec2bbc659ff5",
+      "--checkout",
+      "$checkout:fixture/Alpha",
+      "--checkout",
+      "$checkout:fixture/Beta",
+      "--output",
+      "$output",
+      "--level",
+      "component",
+      "--focus",
+      "fixture/Alpha=https://alpha.example/#container"
+    ],
+    "exit": 0,
+    "stderr": "",
+    "files": [
+      "view-component.json",
+      "view-component.md"
+    ]
+  },
+  {
+    "argv": [
+      "view",
+      "--catalog-commit",
+      "e63348017b778e678b0c349160b8ec2bbc659ff5",
+      "--registry-commit",
+      "e63348017b778e678b0c349160b8ec2bbc659ff5",
+      "--checkout",
+      "$checkout:fixture/Alpha",
+      "--checkout",
+      "$checkout:fixture/Beta",
+      "--output",
+      "$output",
+      "--level",
+      "code",
+      "--focus",
+      "fixture/Alpha=https://alpha.example/#component"
+    ],
+    "exit": 0,
+    "stderr": "",
+    "files": [
+      "view-code.json",
+      "view-code.md"
+    ]
+  },
+  {
+    "argv": [
+      "view",
+      "--catalog-commit",
+      "e63348017b778e678b0c349160b8ec2bbc659ff5",
+      "--registry-commit",
+      "e63348017b778e678b0c349160b8ec2bbc659ff5",
+      "--checkout",
+      "$checkout:fixture/Alpha",
+      "--checkout",
+      "$checkout:fixture/Beta",
+      "--output",
+      "$output",
+      "--level",
+      "container",
+      "--focus",
+      "fixture/Beta=https://beta.example/#system"
+    ],
+    "exit": 0,
+    "stderr": "",
+    "files": [
+      "view-container.json",
+      "view-container.md"
+    ]
+  },
+  {
+    "argv": [
+      "view",
+      "--catalog-commit",
+      "e63348017b778e678b0c349160b8ec2bbc659ff5",
+      "--registry-commit",
+      "e63348017b778e678b0c349160b8ec2bbc659ff5",
+      "--checkout",
+      "$checkout:fixture/Alpha",
+      "--checkout",
+      "$checkout:fixture/Beta",
+      "--output",
+      "$output",
+      "--level",
+      "code",
+      "--focus",
+      "fixture/Alpha=https://alpha.example/#component",
+      "--supplement",
+      "$input/011/supplement.json"
+    ],
+    "exit": 0,
+    "stderr": "",
+    "files": [
+      "view-code.json",
+      "view-code.md"
+    ]
+  },
+  {
+    "argv": [
+      "assessment-init",
+      "--catalog-commit",
+      "e63348017b778e678b0c349160b8ec2bbc659ff5",
+      "--registry-commit",
+      "e63348017b778e678b0c349160b8ec2bbc659ff5",
+      "--checkout",
+      "$checkout:fixture/Alpha",
+      "--checkout",
+      "$checkout:fixture/Beta",
+      "--output",
+      "$output",
+      "--request-id",
+      "CR-1",
+      "--description-file",
+      "$input/012/description.txt"
+    ],
+    "exit": 0,
+    "stderr": "",
+    "files": [
+      "assessment.json"
+    ]
+  },
+  {
+    "argv": [
+      "assessment-render",
+      "--catalog-commit",
+      "e63348017b778e678b0c349160b8ec2bbc659ff5",
+      "--registry-commit",
+      "e63348017b778e678b0c349160b8ec2bbc659ff5",
+      "--checkout",
+      "$checkout:fixture/Alpha",
+      "--checkout",
+      "$checkout:fixture/Beta",
+      "--output",
+      "$output",
+      "--input",
+      "$input/013/assessment-input.json"
+    ],
+    "exit": 0,
+    "stderr": "",
+    "files": [
+      "assessment.md"
+    ]
+  },
+  {
+    "argv": [
+      "feedback-render",
+      "--catalog-commit",
+      "e63348017b778e678b0c349160b8ec2bbc659ff5",
+      "--registry-commit",
+      "e63348017b778e678b0c349160b8ec2bbc659ff5",
+      "--checkout",
+      "$checkout:fixture/Alpha",
+      "--checkout",
+      "$checkout:fixture/Beta",
+      "--output",
+      "$output",
+      "--input",
+      "$input/014/feedback-input.json",
+      "--assessment-file",
+      "$input/014/assessment-input.json"
+    ],
+    "exit": 0,
+    "stderr": "",
+    "files": [
+      "feedback.md"
+    ]
+  }
+]

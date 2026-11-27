@@ -1,0 +1,13 @@
+{
+  "sourceId": "fixture/Alpha",
+  "path": "src/app.ts",
+  "startLine": 1,
+  "endLine": 1,
+  "blobId": "129fbfa125de7a8b2b24c3dbc34ef5d0e0570747",
+  "component": {
+    "sourceId": "fixture/Alpha",
+    "nodeIri": "https://alpha.example/#component"
+  },
+  "reason": "Inspected code",
+  "role": "implementation"
+}

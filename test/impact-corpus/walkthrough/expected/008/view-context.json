@@ -1,0 +1,245 @@
+{
+  "snapshotId": {
+    "catalogCommit": "7442de3a6a7929f51124be38bff0f7709207a9ef",
+    "catalogSha256": "2fc3c39350ea78f61dae69492a4cce25ceedbacbd30e782e0deb17884486cc45",
+    "sources": [
+      {
+        "id": "fixture/accounting",
+        "commit": "83f662d094ed66762c4ed3fcbacb122c88c1b5ea"
+      },
+      {
+        "id": "fixture/ecommerce",
+        "commit": "54666d869c335bd01817d5780feed7ea80bb82be"
+      },
+      {
+        "id": "fixture/warehouse",
+        "commit": "1053675ee875396a970262e130016a983675b914"
+      }
+    ]
+  },
+  "registryCommit": "7442de3a6a7929f51124be38bff0f7709207a9ef",
+  "registryDigests": {
+    "mappings": "b87d7fdd5be83580e08bd99d4738acd72c86aafd8f154caee8841c7710914ee3",
+    "bindings": "a753a44dfc3e2f49aaa8d0ed059a5b82257771a41961a578ccf06fa8521232eb"
+  },
+  "focus": {
+    "sourceId": "fixture/accounting",
+    "nodeIri": "https://example.test/accounting/graph#system"
+  },
+  "level": "context",
+  "boundary": {
+    "sourceId": "fixture/accounting",
+    "nodeIri": "https://example.test/accounting/graph#system"
+  },
+  "coverage": [
+    {
+      "sourceId": "fixture/accounting",
+      "iri": "https://example.test/accounting/graph#code",
+      "selector": "src/**",
+      "status": "unknown",
+      "priority": 1,
+      "reason": "No application code is included in this synthetic fixture."
+    },
+    {
+      "sourceId": "fixture/accounting",
+      "iri": "https://example.test/accounting/graph#docs",
+      "selector": "docs/**",
+      "status": "covered",
+      "priority": 1
+    },
+    {
+      "sourceId": "fixture/accounting",
+      "iri": "https://example.test/accounting/graph#private",
+      "selector": "private/**",
+      "status": "excluded",
+      "priority": 1,
+      "reason": "Private integration details are deliberately omitted."
+    },
+    {
+      "sourceId": "fixture/ecommerce",
+      "iri": "https://example.test/ecommerce/graph#code",
+      "selector": "src/**",
+      "status": "unknown",
+      "priority": 1,
+      "reason": "No application code is included in this synthetic fixture."
+    },
+    {
+      "sourceId": "fixture/ecommerce",
+      "iri": "https://example.test/ecommerce/graph#docs",
+      "selector": "docs/**",
+      "status": "covered",
+      "priority": 1
+    },
+    {
+      "sourceId": "fixture/ecommerce",
+      "iri": "https://example.test/ecommerce/graph#private",
+      "selector": "private/**",
+      "status": "excluded",
+      "priority": 1,
+      "reason": "Private integration details are deliberately omitted."
+    },
+    {
+      "sourceId": "fixture/warehouse",
+      "iri": "https://example.test/warehouse/graph#code",
+      "selector": "src/**",
+      "status": "unknown",
+      "priority": 1,
+      "reason": "No application code is included in this synthetic fixture."
+    },
+    {
+      "sourceId": "fixture/warehouse",
+      "iri": "https://example.test/warehouse/graph#docs",
+      "selector": "docs/**",
+      "status": "covered",
+      "priority": 1
+    },
+    {
+      "sourceId": "fixture/warehouse",
+      "iri": "https://example.test/warehouse/graph#private",
+      "selector": "private/**",
+      "status": "excluded",
+      "priority": 1,
+      "reason": "Private integration details are deliberately omitted."
+    }
+  ],
+  "items": [
+    {
+      "key": {
+        "sourceId": "fixture/accounting",
+        "nodeIri": "https://example.test/accounting/graph#external"
+      },
+      "label": "External bank",
+      "role": "software-system",
+      "insideBoundary": false,
+      "supported": true,
+      "assertionIri": "https://example.test/accounting/graph#connects",
+      "evidenceIris": [
+        "https://example.test/accounting/graph#evidence"
+      ],
+      "evidence": [
+        {
+          "iri": "https://example.test/accounting/graph#evidence",
+          "path": "docs/architecture.md",
+          "startLine": 1,
+          "endLine": 5,
+          "blobId": "e063d41dafaf8efc26289ff508b429029e8b85f9",
+          "role": "implementation"
+        }
+      ],
+      "commit": "83f662d094ed66762c4ed3fcbacb122c88c1b5ea"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/accounting",
+        "nodeIri": "https://example.test/accounting/graph#system"
+      },
+      "label": "Accounting",
+      "role": "software-system",
+      "insideBoundary": true,
+      "supported": true,
+      "assertionIri": "https://example.test/accounting/graph#contains-system",
+      "evidenceIris": [
+        "https://example.test/accounting/graph#evidence"
+      ],
+      "evidence": [
+        {
+          "iri": "https://example.test/accounting/graph#evidence",
+          "path": "docs/architecture.md",
+          "startLine": 1,
+          "endLine": 5,
+          "blobId": "e063d41dafaf8efc26289ff508b429029e8b85f9",
+          "role": "implementation"
+        }
+      ],
+      "commit": "83f662d094ed66762c4ed3fcbacb122c88c1b5ea"
+    }
+  ],
+  "edges": [
+    {
+      "from": {
+        "sourceId": "fixture/accounting",
+        "nodeIri": "https://example.test/accounting/graph#system"
+      },
+      "to": {
+        "sourceId": "fixture/accounting",
+        "nodeIri": "https://example.test/accounting/graph#external"
+      },
+      "assertionIri": "https://example.test/accounting/graph#connects",
+      "relationship": "https://ontology-kit.dev/schema#communicates-with",
+      "basis": "direct",
+      "evidenceIris": [
+        "https://example.test/accounting/graph#evidence"
+      ],
+      "evidence": [
+        {
+          "iri": "https://example.test/accounting/graph#evidence",
+          "path": "docs/architecture.md",
+          "startLine": 1,
+          "endLine": 5,
+          "blobId": "e063d41dafaf8efc26289ff508b429029e8b85f9",
+          "role": "implementation"
+        }
+      ],
+      "commit": "83f662d094ed66762c4ed3fcbacb122c88c1b5ea"
+    }
+  ],
+  "nextFocus": [
+    {
+      "focus": {
+        "sourceId": "fixture/accounting",
+        "nodeIri": "https://example.test/accounting/graph#system"
+      },
+      "level": "container"
+    }
+  ],
+  "gaps": [
+    {
+      "code": "stale-mapping",
+      "sourceId": "fixture/ecommerce",
+      "nodeIri": "https://example.test/ecommerce/graph#unresolved",
+      "reason": "Mapping support is unavailable"
+    },
+    {
+      "code": "coverage-excluded",
+      "sourceId": "fixture/accounting",
+      "coverageIri": "https://example.test/accounting/graph#private",
+      "selector": "private/**",
+      "reason": "Private integration details are deliberately omitted."
+    },
+    {
+      "code": "coverage-excluded",
+      "sourceId": "fixture/ecommerce",
+      "coverageIri": "https://example.test/ecommerce/graph#private",
+      "selector": "private/**",
+      "reason": "Private integration details are deliberately omitted."
+    },
+    {
+      "code": "coverage-excluded",
+      "sourceId": "fixture/warehouse",
+      "coverageIri": "https://example.test/warehouse/graph#private",
+      "selector": "private/**",
+      "reason": "Private integration details are deliberately omitted."
+    },
+    {
+      "code": "coverage-unknown",
+      "sourceId": "fixture/accounting",
+      "coverageIri": "https://example.test/accounting/graph#code",
+      "selector": "src/**",
+      "reason": "No application code is included in this synthetic fixture."
+    },
+    {
+      "code": "coverage-unknown",
+      "sourceId": "fixture/ecommerce",
+      "coverageIri": "https://example.test/ecommerce/graph#code",
+      "selector": "src/**",
+      "reason": "No application code is included in this synthetic fixture."
+    },
+    {
+      "code": "coverage-unknown",
+      "sourceId": "fixture/warehouse",
+      "coverageIri": "https://example.test/warehouse/graph#code",
+      "selector": "src/**",
+      "reason": "No application code is included in this synthetic fixture."
+    }
+  ]
+}

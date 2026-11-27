@@ -1,0 +1,107 @@
+{
+  "snapshotId": {
+    "catalogCommit": "e63348017b778e678b0c349160b8ec2bbc659ff5",
+    "catalogSha256": "c90d3acfa72250b00fc49921e67e37ca60767fc63956931c1f09186fcc920d0d",
+    "sources": [
+      {
+        "id": "fixture/Alpha",
+        "commit": "980b69eca326c7bc54d4c8e34aa067b6fd509409"
+      },
+      {
+        "id": "fixture/Beta",
+        "commit": "9c08221fbb185a173313dd0e3317273cc8d0e992"
+      }
+    ]
+  },
+  "registryCommit": "e63348017b778e678b0c349160b8ec2bbc659ff5",
+  "registryDigests": {
+    "mappings": "17123700fb246c23e5bd212b164935c215763356c9b71d579db6eee160bc926f",
+    "bindings": "449b49e9cae6b1279721b248bad0cdfe2b59527703525a8548e39e9927b09aab"
+  },
+  "focus": {
+    "sourceId": "fixture/Alpha",
+    "nodeIri": "https://alpha.example/#component"
+  },
+  "level": "code",
+  "boundary": {
+    "sourceId": "fixture/Alpha",
+    "nodeIri": "https://alpha.example/#component"
+  },
+  "coverage": [
+    {
+      "sourceId": "fixture/Alpha",
+      "iri": "https://alpha.example/#coverage",
+      "selector": "src/**",
+      "status": "covered",
+      "priority": 1
+    },
+    {
+      "sourceId": "fixture/Beta",
+      "iri": "https://beta.example/#coverage",
+      "selector": "src/**",
+      "status": "covered",
+      "priority": 1
+    }
+  ],
+  "items": [
+    {
+      "key": {
+        "sourceId": "fixture/Alpha",
+        "nodeIri": "https://alpha.example/#code"
+      },
+      "label": "handle",
+      "role": "code",
+      "insideBoundary": true,
+      "supported": true,
+      "assertionIri": "https://alpha.example/#contains3",
+      "evidenceIris": [
+        "https://alpha.example/#evidence"
+      ],
+      "evidence": [
+        {
+          "iri": "https://alpha.example/#evidence",
+          "path": "src/app.ts",
+          "startLine": 1,
+          "endLine": 1,
+          "blobId": "129fbfa125de7a8b2b24c3dbc34ef5d0e0570747",
+          "role": "implementation"
+        }
+      ],
+      "commit": "980b69eca326c7bc54d4c8e34aa067b6fd509409"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/Alpha",
+        "nodeIri": "inspected:129fbfa125de7a8b2b24c3dbc34ef5d0e0570747:1-1"
+      },
+      "label": "src/app.ts",
+      "role": "code",
+      "insideBoundary": true,
+      "supported": true,
+      "basis": "architect-inspected",
+      "path": "src/app.ts",
+      "evidenceIris": [],
+      "evidence": [
+        {
+          "sourceId": "fixture/Alpha",
+          "path": "src/app.ts",
+          "startLine": 1,
+          "endLine": 1,
+          "blobId": "129fbfa125de7a8b2b24c3dbc34ef5d0e0570747",
+          "component": {
+            "sourceId": "fixture/Alpha",
+            "nodeIri": "https://alpha.example/#component"
+          },
+          "reason": "Inspected code",
+          "role": "implementation",
+          "commit": "980b69eca326c7bc54d4c8e34aa067b6fd509409",
+          "basis": "architect-inspected"
+        }
+      ],
+      "commit": "980b69eca326c7bc54d4c8e34aa067b6fd509409"
+    }
+  ],
+  "edges": [],
+  "nextFocus": [],
+  "gaps": []
+}
