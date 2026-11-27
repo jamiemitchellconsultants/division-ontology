@@ -49,6 +49,7 @@ public sealed class ImpactUiTests
         context.JSInterop.Mode = JSRuntimeMode.Loose;
         var handler = new Api(respond);
         context.Services.AddSingleton(new WorkspaceClient(new HttpClient(handler) { BaseAddress = new Uri("https://workspace.test") }));
+        context.Services.AddSingleton<AssessmentDraft>();
         return (context, context.Render<ImpactPage>(), handler);
     }
 

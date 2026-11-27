@@ -19,6 +19,7 @@ builder.Services.AddScoped(services =>
     return new WorkspaceClient(new HttpClient(handler) { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 });
 builder.Services.AddScoped<DraftState>();
+builder.Services.AddSingleton<AssessmentDraft>();
 builder.Services.AddSingleton(new GraphEvidenceRepositories(
     builder.Configuration.GetSection("EvidenceRepositories").Get<Dictionary<string, string>>() ?? []));
 await builder.Build().RunAsync();

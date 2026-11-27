@@ -42,7 +42,9 @@ public sealed record ImpactPath(string Id, IReadOnlyList<ImpactStep> Steps);
 
 public sealed record ImpactSearchResult(string SnapshotId, PinnedSnapshot Pinned, string RegistryCommit,
     MasterListIdentity MasterList, IReadOnlyList<CoverageRecord> Coverage, IReadOnlyList<ImpactLead> Leads,
-    IReadOnlyList<ImpactGap> Gaps, string? NextCursor = null);
+    IReadOnlyList<ImpactGap> Gaps, string? NextCursor = null, RegistryDigests? Registry = null);
+/// <summary>The C4 registry a draft pins, so a browser-built record carries the same pins the engine checks. Null when the bundle has no registry.</summary>
+public sealed record RegistryDigests(string Commit, string Mappings, string Bindings);
 public sealed record ImpactPathsResult(string SnapshotId, PinnedSnapshot Pinned, string RegistryCommit,
     MasterListIdentity MasterList, IReadOnlyList<NotFollowed> NotFollowed, IReadOnlyList<CoverageRecord> Coverage,
     IReadOnlyList<ImpactPath> Paths, IReadOnlyList<ImpactGap> Gaps);

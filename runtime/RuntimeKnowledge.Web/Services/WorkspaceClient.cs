@@ -22,6 +22,11 @@ public sealed class WorkspaceClient(HttpClient http) : IDisposable
     public Task<ImpactSearchResult> ImpactSearch(ImpactSearchRequest request) => Post<ImpactSearchResult>("api/impact/search", request);
     public Task<ImpactPathsResult> ImpactPaths(ImpactPathsRequest request) => Post<ImpactPathsResult>("api/impact/paths", request);
     public Task<C4ViewResult> ImpactView(ImpactViewRequest request) => Post<C4ViewResult>("api/impact/views", request);
+    public Task<AssessmentPreview> PreviewAssessment(AssessmentDraftRequest request) => Post<AssessmentPreview>("api/assessments/preview", request);
+    public Task<AssessmentSaved> SaveAssessment(AssessmentDraftRequest request) => Post<AssessmentSaved>("api/assessments", request);
+    public Task<SavedAssessment> GetAssessment(Guid id) => Get<SavedAssessment>($"api/assessments/{id:D}");
+    public Task<AssessmentSaved> EditAssessment(Guid id, AssessmentEditRequest request) =>
+        Send<AssessmentSaved>(HttpMethod.Put, $"api/assessments/{id:D}", request);
     public Task<HistoryPage> History(Guid? id, string? cursor = null)
     {
         var filters = new List<string>();

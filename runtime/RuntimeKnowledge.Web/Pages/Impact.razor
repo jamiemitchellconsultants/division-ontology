@@ -1,6 +1,8 @@
 @page "/impact"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject WorkspaceClient Api
+@inject AssessmentDraft Draft
+@inject NavigationManager Navigation
 
 <h1>Impact assessment</h1>
 
@@ -22,6 +24,11 @@
             @if (nextCursor is not null) { <button type="button" disabled="@busy" @onclick="LoadMore">Load more</button> }
             <button type="button" disabled="@(busy || selected.Count == 0)" @onclick="Trace">Trace impact</button>
         </div>
+        <form class="start-assessment" @onsubmit="StartAssessment" @onsubmit:preventDefault>
+            <label for="assessment-request-id">Change request id</label>
+            <input id="assessment-request-id" type="text" required @bind="requestId" />
+            <button type="submit" disabled="@(busy || string.IsNullOrWhiteSpace(requestId))">Start assessment</button>
+        </form>
     </section>
 }
 
@@ -58,8 +65,25 @@ else if (searchGaps is not null)
     private Task LoadMore() =>
         Run(async () => Show(await Api.ImpactSearch(new ImpactSearchRequest(searchedQuery, null, snapshotId, nextCursor))));
 
-    private Task Trace() =>
-        Run(async () => paths = await Api.ImpactPaths(new ImpactPathsRequest(snapshotId!, selected.ToList())));
+    [CascadingParameter] private Task<AuthenticationState>? Authentication { get; set; }
+    private string requestId = "";
+    private ImpactSearchResult? firstPage;
+
+    private Task Trace() => Run(async () =>
+    {
+        paths = await Api.ImpactPaths(new ImpactPathsRequest(snapshotId!, selected.ToList()));
+        if (Draft.SnapshotId == snapshotId) Draft.UsePaths(paths.Paths, selected.ToList());
+    });
+
+    private async Task StartAssessment()
+    {
+        if (firstPage is null || string.IsNullOrWhiteSpace(requestId)) return;
+        var user = Authentication is null ? null : (await Authentication).User;
+        var assessor = user?.FindFirst("name")?.Value ?? user?.FindFirst("sub")?.Value ?? "Workspace user";
+        Draft.Start(firstPage.SnapshotId, requestId.Trim(), searchedQuery ?? query, assessor, AssessmentDraft.Pins(firstPage));
+        if (paths is not null) Draft.UsePaths(paths.Paths, selected.ToList());
+        Navigation.NavigateTo("assessments/draft");
+    }
 
     private void Toggle(ImpactKey key)
     {
@@ -68,6 +92,7 @@ else if (searchGaps is not null)
 
     private void Show(ImpactSearchResult page)
     {
+        firstPage ??= page;
         snapshotId ??= page.SnapshotId;
         leads.AddRange(page.Leads);
         nextCursor = page.NextCursor;
@@ -79,6 +104,7 @@ else if (searchGaps is not null)
         leads.Clear();
         selected.Clear();
         snapshotId = nextCursor = message = null;
+        firstPage = null;
         searchGaps = null;
         paths = null;
         error = null;

@@ -69,7 +69,11 @@ internal static class ImpactRoutes
         var page = remaining.Take(PageSize).ToList();
         result["leads"] = new JsonArray(page.Select(l => (JsonNode)l.DeepClone()).ToArray());
 
-        var mapped = Map<ImpactSearchResult>(result, snapshotId);
+        var mapped = Map<ImpactSearchResult>(result, snapshotId) with
+        {
+            Registry = model.Registry.Commit.Length == 0 ? null
+                : new RegistryDigests(model.Registry.Commit, model.Registry.MappingSha256, model.Registry.BindingSha256)
+        };
         return remaining.Count > PageSize
             ? mapped with { NextCursor = EncodeCursor(snapshotId, queryDigest, LeadKey(page[^1])) }
             : mapped;

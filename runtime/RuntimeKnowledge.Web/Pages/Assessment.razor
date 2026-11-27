@@ -1,0 +1,132 @@
+@page "/assessments/{Id:guid}"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@using System.Text
+@using System.Text.Json
+@using System.Text.Json.Nodes
+@inject WorkspaceClient Api
+@inject AssessmentDraft Draft
+@inject NavigationManager Navigation
+
+@* There is no approve, sign-off or status control here: the workspace records impact, it does not approve it (B31). *@
+<ApiError Error="error" ReturnRoute="@($"assessments/{Id:D}")" />
+
+@if (saved is not null)
+{
+    var record = saved.Frozen["record"]!.AsObject();
+    var pins = saved.Frozen["pins"]!.AsObject();
+    <h1>Impact assessment: @saved.RequestId</h1>
+    @if (saved.PinnedToEarlierSnapshot)
+    {
+        <p role="status" class="pinned-banner">Pinned to an earlier snapshot. It opens unchanged, but it can no longer be edited.</p>
+    }
+    <p>@Text(record["description"])</p>
+    <p>Saved by @saved.Author.Subject on @saved.SavedAt.ToString("u") · version @saved.Version</p>
+
+    <section aria-labelledby="assessment-pins">
+        <h2 id="assessment-pins">Pins</h2>
+        <dl>
+            <dt>Catalog commit</dt><dd><code>@Text(pins["snapshotId"]?["catalogCommit"])</code></dd>
+            @foreach (var source in pins["snapshotId"]?["sources"] as JsonArray ?? [])
+            {
+                <dt>Source @Text(source!["id"])</dt><dd><code>@Text(source["commit"])</code></dd>
+            }
+            <dt>Relationship master list</dt>
+            <dd>@(Text(pins["masterList"]?["status"]) == "listed" ? $"{Text(pins["masterList"]!["catalogCommit"])} (sha256 {Text(pins["masterList"]!["sha256"])})" : "none")</dd>
+            <dt>C4 registry</dt><dd><code>@(pins["registry"] is JsonObject registry ? Text(registry["commit"]) : "none")</code></dd>
+        </dl>
+    </section>
+
+    <section aria-labelledby="assessment-leads">
+        <h2 id="assessment-leads">Leads</h2>
+        <h3>Confirmed</h3>
+        <ul>@foreach (var lead in saved.Frozen["leads"]?["confirmed"] as JsonArray ?? []) { <li>@Text(lead!["key"]?["nodeIri"]) — @Text(lead["label"])</li> }</ul>
+        <h3>Not expected to be affected</h3>
+        <ul>@foreach (var lead in saved.Frozen["leads"]?["rejected"] as JsonArray ?? []) { <li>@Text(lead!["key"]?["nodeIri"]) — @Text(lead["reason"])</li> }</ul>
+        <h3>Likely impacts</h3>
+        <ul>@foreach (var impact in record["likelyImpacts"] as JsonArray ?? []) { <li>@Text(impact!["key"]?["nodeIri"]) — @Text(impact["reason"])</li> }</ul>
+    </section>
+
+    <section aria-labelledby="assessment-paths">
+        <h2 id="assessment-paths">Cited paths</h2>
+        <ImpactPathList Paths="paths" />
+    </section>
+
+    <section aria-labelledby="assessment-evidence">
+        <h2 id="assessment-evidence">Evidence</h2>
+        <ul>
+            @foreach (var evidence in saved.Frozen["evidence"] as JsonArray ?? [])
+            {
+                <li>
+                    <span>@Text(evidence!["evidenceIri"]) · @Text(evidence["role"]) in @Text(evidence["sourceId"]) @Text(evidence["path"]):@Text(evidence["startLine"])-@Text(evidence["endLine"])</span>
+                    @if (evidence["page"] is JsonObject page) { <span> · @(Text(page["title"]) is { Length: > 0 } title ? title : "Untitled page")</span> }
+                    @if (evidence["lines"] is JsonArray lines) { <pre class="evidence-lines">@string.Join("\n", lines.Select(Text))</pre> }
+                </li>
+            }
+        </ul>
+    </section>
+
+    <section aria-labelledby="assessment-gaps">
+        <h2 id="assessment-gaps">Gaps</h2>
+        @foreach (var (heading, key) in new[] { ("Unresolved gaps and questions", "unresolved"), ("Snapshot coverage gaps", "snapshot"),
+                                                ("Gaps from cited path traces", "traces"), ("Evidence gaps", "evidence") })
+        {
+            <h3>@heading</h3>
+            <ul>@foreach (var gap in saved.Frozen["gaps"]?[key] as JsonArray ?? []) { <li><code>@Text(gap!["code"])</code> @Text(gap["reason"])</li> }</ul>
+        }
+    </section>
+
+    <div class="actions">
+        <a href="@DownloadHref" download="@($"{saved.RequestId}.md")">Download Markdown</a>
+        @if (canManage && !saved.PinnedToEarlierSnapshot) { <button type="button" @onclick="Edit">Edit</button> }
+    </div>
+
+    <section aria-labelledby="assessment-history">
+        <h2 id="assessment-history">History</h2>
+        <ol>
+            @foreach (var revision in saved.Revisions)
+            {
+                <li>
+                    Version @revision.Version by @revision.Editor.Subject on @revision.EditedAt.ToString("u")
+                    <button type="button" @onclick="() => shown = revision.Version">Show version @revision.Version</button>
+                    @if (shown == revision.Version) { <pre class="assessment-markdown">@revision.Markdown</pre> }
+                </li>
+            }
+        </ol>
+    </section>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private SavedAssessment? saved;
+    private IReadOnlyList<ImpactPath> paths = [];
+    private WorkspaceApiException? error;
+    private bool canManage;
+    private int? shown;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        error = null;
+        try
+        {
+            saved = await Api.GetAssessment(Id);
+            // Saved paths are shown step by step; their evidence is listed with its frozen lines below.
+            paths = (saved.Frozen["paths"]?.Deserialize<IReadOnlyList<ImpactPath>>(WorkspaceJson.Options) ?? [])
+                .Select(p => p with { Steps = p.Steps.Select(s => s with { Evidence = null }).ToList() }).ToList();
+            canManage = (await Api.Session()).CanManage;
+        }
+        catch (WorkspaceApiException problem) { error = problem; }
+    }
+
+    // The saved Markdown, exactly as stored, without a second request (the download needs no bearer token).
+    private string DownloadHref => "data:text/markdown;charset=utf-8;base64," +
+        Convert.ToBase64String(Encoding.UTF8.GetBytes(saved?.Markdown ?? ""));
+
+    private static string Text(JsonNode? node) => node is JsonValue value ? value.ToString() : "";
+
+    private void Edit()
+    {
+        Draft.LoadForEdit(saved!);
+        Navigation.NavigateTo("assessments/draft");
+    }
+}

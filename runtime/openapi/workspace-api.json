@@ -3454,6 +3454,16 @@
               "null",
               "string"
             ]
+          },
+          "registry": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RegistryDigests"
+              }
+            ]
           }
         }
       },
@@ -4004,6 +4014,25 @@
             "type": "string"
           },
           "identifier": {
+            "type": "string"
+          }
+        }
+      },
+      "RegistryDigests": {
+        "required": [
+          "commit",
+          "mappings",
+          "bindings"
+        ],
+        "type": "object",
+        "properties": {
+          "commit": {
+            "type": "string"
+          },
+          "mappings": {
+            "type": "string"
+          },
+          "bindings": {
             "type": "string"
           }
         }

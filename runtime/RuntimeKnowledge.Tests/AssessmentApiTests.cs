@@ -48,6 +48,24 @@ public sealed class AssessmentApiTests
     }
 
     [Fact]
+    public async Task A_draft_built_in_the_browser_from_a_search_has_the_engine_pins()        // B32
+    {
+        var (api, snapshot) = await OpenAsync();
+        await using var _ = api;
+        var reader = api.ClientWithToken(Read);
+        var search = await (await reader.PostAsJsonAsync("api/impact/search", new ImpactSearchRequest("expense", null)))
+            .Content.ReadFromJsonAsync<ImpactSearchResult>(WorkspaceJson.Options);
+        var draft = new RuntimeKnowledge.Web.Services.AssessmentDraft();
+        draft.Start(search!.SnapshotId, "CR-10", "Raise the expense approval threshold\n", "Analyst A",
+            RuntimeKnowledge.Web.Services.AssessmentDraft.Pins(search));
+        draft.Confirm(new ImpactKey("fixture/policies", P + "expense-policy"));
+        var response = await reader.PostAsJsonAsync("api/assessments/preview", new AssessmentDraftRequest(snapshot, draft.Record!));
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var preview = await response.Content.ReadFromJsonAsync<AssessmentPreview>(WorkspaceJson.Options);
+        Assert.Contains("C4 registry: " + search.Registry!.Commit, preview!.Markdown);
+    }
+
+    [Fact]
     public async Task Preview_refuses_an_impact_not_in_a_cited_path()                         // B17
     {
         var (api, snapshot) = await OpenAsync();

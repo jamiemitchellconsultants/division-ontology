@@ -1,0 +1,219 @@
+@using System.Text
+@using System.Text.Json.Nodes
+@implements IDisposable
+@inject AssessmentDraft Draft
+@inject WorkspaceClient Api
+@inject NavigationManager Navigation
+
+@* There is no approve, sign-off or status control here: the workspace records impact, it does not approve it (B31). *@
+@if (message is not null) { <p role="alert">@message</p> }
+<ApiError Error="error" ReturnRoute="assessments/draft" />
+
+@if (Draft.Record is not { } record)
+{
+    <p>No assessment draft is in progress. Start one from an impact search.</p>
+}
+else
+{
+    <p>Request <code>@Draft.RequestId</code> · snapshot <code>@Draft.SnapshotId</code>@(Draft.EditingId is null ? "" : $" · editing version {Draft.ExpectedVersion}")</p>
+
+    <section aria-labelledby="draft-leads">
+        <h2 id="draft-leads">Leads</h2>
+        @if (Draft.Starts.Count == 0) { <p>Trace impact from the leads you chose to confirm or reject them here.</p> }
+        <ul>
+            @foreach (var (lead, index) in Draft.Starts.Select((lead, index) => (lead, index)))
+            {
+                var reasonId = $"reject-reason-{index}";
+                <li @key="lead">
+                    <span>@lead.NodeIri · @lead.SourceId</span> <span>@LeadStatus(record, lead)</span>
+                    <button type="button" @onclick="() => Draft.Confirm(lead)">Confirm</button>
+                    <label for="@reasonId">Reason for rejecting</label>
+                    <input id="@reasonId" type="text" value="@rejectReasons.GetValueOrDefault(index)"
+                           @onchange="e => rejectReasons[index] = e.Value?.ToString() ?? string.Empty" />
+                    <button type="button" @onclick="() => Reject(lead, index)">Reject</button>
+                </li>
+            }
+        </ul>
+    </section>
+
+    <section aria-labelledby="draft-impacts">
+        <h2 id="draft-impacts">Likely impacts</h2>
+        <label for="impact-node">Impacted node</label>
+        <select id="impact-node" @bind="impactNode">
+            <option value="">Choose a node on a traced path</option>
+            @foreach (var node in PathNodes())
+            {
+                <option value="@Encode(node)">@node.NodeIri · @node.SourceId</option>
+            }
+        </select>
+        @if (ChosenNode is { } chosen)
+        {
+            <fieldset>
+                <legend>Paths that reach it</legend>
+                @foreach (var (path, index) in Draft.Paths.Where(p => Touches(p, chosen)).Select((path, index) => (path, index)))
+                {
+                    var id = $"impact-path-{index}";
+                    <div><input type="checkbox" id="@id" checked="@chosenPaths.Contains(path.Id)" @onchange="() => Toggle(chosenPaths, path.Id)" />
+                    <label for="@id">Path @(index + 1): @path.Steps.Count step(s)</label></div>
+                }
+            </fieldset>
+            <fieldset>
+                <legend>Evidence to cite</legend>
+                @foreach (var (iri, index) in OfferedEvidence().Select((iri, index) => (iri, index)))
+                {
+                    var id = $"impact-evidence-{index}";
+                    <div><input type="checkbox" id="@id" checked="@chosenEvidence.Contains(iri)" @onchange="() => Toggle(chosenEvidence, iri)" />
+                    <label for="@id">@iri</label></div>
+                }
+            </fieldset>
+            <label for="impact-reason">Reason</label>
+            <input id="impact-reason" type="text" @bind="impactReason" />
+            <button type="button" disabled="@(string.IsNullOrWhiteSpace(impactReason) || chosenPaths.Count == 0 || chosenEvidence.Count == 0)" @onclick="AddImpact">Add likely impact</button>
+        }
+        <ul>
+            @foreach (var impact in record["likelyImpacts"]!.AsArray())
+            {
+                <li>@impact!["key"]!["nodeIri"] — @impact["reason"]</li>
+            }
+        </ul>
+    </section>
+
+    <section aria-labelledby="draft-gaps">
+        <h2 id="draft-gaps">Unresolved gaps and questions</h2>
+        <label for="gap-code">Gap code</label>
+        <input id="gap-code" type="text" @bind="gapCode" />
+        <label for="gap-reason">Gap reason</label>
+        <input id="gap-reason" type="text" @bind="gapReason" />
+        <button type="button" disabled="@(string.IsNullOrWhiteSpace(gapCode) || string.IsNullOrWhiteSpace(gapReason))" @onclick="AddGap">Add gap</button>
+        <ul>
+            @foreach (var gap in record["unresolved"]!.AsArray())
+            {
+                <li><code>@gap!["code"]</code> @gap["reason"]</li>
+            }
+        </ul>
+    </section>
+
+    <div class="actions">
+        <button type="button" disabled="@busy" @onclick="Preview">Preview</button>
+        @if (canManage) { <button type="button" disabled="@busy" @onclick="Save">Save</button> }
+    </div>
+
+    @if (preview is not null)
+    {
+        <section aria-labelledby="draft-preview">
+            <h2 id="draft-preview">Preview</h2>
+            <a href="@DownloadHref" download="@($"{Draft.RequestId}.md")">Download Markdown</a>
+            <pre class="assessment-markdown">@preview.Markdown</pre>
+        </section>
+    }
+}
+
+@code {
+    private const string ReaderSave = "Only workspace managers can save. Your draft is kept and can still be exported.";
+    private const string Discarded = "The workspace snapshot changed, so this draft can no longer be saved. Exports you downloaded are unaffected.";
+
+    private readonly Dictionary<int, string> rejectReasons = new();
+    private readonly HashSet<string> chosenPaths = [], chosenEvidence = [];
+    private string impactNode = "", impactReason = "", gapCode = "", gapReason = "";
+    private AssessmentPreview? preview;
+    private WorkspaceApiException? error;
+    private string? message;
+    private bool canManage, busy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Draft.Changed += Refresh;
+        try { canManage = (await Api.Session()).CanManage; }
+        catch (WorkspaceApiException) { canManage = false; }
+    }
+
+    public void Dispose() => Draft.Changed -= Refresh;
+
+    private void Refresh() => InvokeAsync(StateHasChanged);
+
+    private static string LeadStatus(JsonObject record, ImpactKey lead)
+    {
+        bool Has(JsonNode? array, bool nested) => (array as JsonArray ?? []).Any(item =>
+        {
+            var key = nested ? item!["key"] : item;
+            return key?["sourceId"]?.GetValue<string>() == lead.SourceId && key?["nodeIri"]?.GetValue<string>() == lead.NodeIri;
+        });
+        return Has(record["confirmedLeads"], false) ? "Confirmed" : Has(record["rejectedLeads"], true) ? "Rejected" : "Not decided";
+    }
+
+    private void Reject(ImpactKey lead, int index)
+    {
+        message = null;
+        try { Draft.Reject(lead, rejectReasons.GetValueOrDefault(index) ?? ""); }
+        catch (ArgumentException) { message = "Give a reason before rejecting a lead."; }
+    }
+
+    private static string Encode(ImpactKey key) => key.SourceId + "\n" + key.NodeIri;
+
+    private ImpactKey? ChosenNode => impactNode.Split('\n') is [var source, var iri] ? new ImpactKey(source, iri) : null;
+
+    private static IEnumerable<ImpactKey?> StepNodes(ImpactStep step) => [step.Subject, step.Object, step.From, step.To];
+
+    private IEnumerable<ImpactKey> PathNodes() =>
+        Draft.Paths.SelectMany(p => p.Steps).SelectMany(StepNodes).OfType<ImpactKey>().Distinct();
+
+    private static bool Touches(ImpactPath path, ImpactKey node) => path.Steps.SelectMany(StepNodes).Contains(node);
+
+    // B17: only evidence on the paths chosen for this impact can be cited.
+    private IEnumerable<string> OfferedEvidence() => Draft.Paths.Where(p => chosenPaths.Contains(p.Id))
+        .SelectMany(p => p.Steps).SelectMany(s => s.EvidenceIris ?? []).Distinct();
+
+    private static void Toggle(HashSet<string> set, string value)
+    {
+        if (!set.Remove(value)) set.Add(value);
+    }
+
+    private void AddImpact()
+    {
+        if (ChosenNode is not { } node) return;
+        var offered = OfferedEvidence().ToHashSet();
+        Draft.AddImpact(node, impactReason, chosenPaths.ToList(), chosenEvidence.Where(offered.Contains).ToList());
+        impactNode = impactReason = "";
+        chosenPaths.Clear();
+        chosenEvidence.Clear();
+    }
+
+    private void AddGap()
+    {
+        Draft.AddGap(gapCode.Trim(), gapReason.Trim());
+        gapCode = gapReason = "";
+    }
+
+    private string DownloadHref => "data:text/markdown;charset=utf-8;base64," +
+        Convert.ToBase64String(Encoding.UTF8.GetBytes(preview?.Markdown ?? ""));
+
+    private Task Preview() => Run(async () =>
+        preview = await Api.PreviewAssessment(new AssessmentDraftRequest(Draft.SnapshotId!, Draft.Record!)));
+
+    private Task Save() => Run(async () =>
+    {
+        var saved = Draft.EditingId is { } id
+            ? await Api.EditAssessment(id, new AssessmentEditRequest(Draft.SnapshotId!, Draft.ExpectedVersion!.Value, Draft.Record!))
+            : await Api.SaveAssessment(new AssessmentDraftRequest(Draft.SnapshotId!, Draft.Record!));
+        Draft.Discard();
+        Navigation.NavigateTo($"assessments/{saved.Id:D}");
+    });
+
+    private async Task Run(Func<Task> call)
+    {
+        if (busy) return;
+        busy = true;
+        error = null;
+        message = null;
+        try { await call(); }
+        catch (WorkspaceApiException problem) when (problem.Code == "snapshotChanged")
+        {
+            Draft.Discard();
+            preview = null;
+            message = Discarded;
+        }
+        catch (WorkspaceApiException problem) when (problem.Status == System.Net.HttpStatusCode.Forbidden) { message = ReaderSave; }
+        catch (WorkspaceApiException problem) { error = problem; }
+        finally { busy = false; }
+    }
+}
