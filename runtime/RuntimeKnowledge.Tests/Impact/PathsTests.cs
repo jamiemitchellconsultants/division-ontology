@@ -15,6 +15,16 @@ public sealed class PathsTests
     private static JsonArray Gaps(JsonObject r) => r["gaps"]!.AsArray();
 
     [Fact]
+    public void Starts_are_taken_in_ordinal_key_order()
+    {
+        // Ordinal order puts "fixture/C" before "fixture/b"; culture-sensitive order reverses them.
+        var r = Paths.Read(TestModels.MakeModel(), [("fixture/b", "https://b.example/#x"), ("fixture/C", "https://c.example/#x")]);
+        var refused = Gaps(r).Where(g => g!["code"]!.GetValue<string>() == "unsupported-start")
+            .Select(g => g!["sourceId"]!.GetValue<string>());
+        Assert.Equal(["fixture/C", "fixture/b"], refused);
+    }
+
+    [Fact]
     public void Cross_source_path_has_distinct_inferred_assertion_and_binding()
     {
         var r = Paths.Read(TestModels.MakeModel(), [AlphaSystem], 5);

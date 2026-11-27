@@ -43,8 +43,7 @@ public static class Paths
             ["nodeIri"] = pair.NodeIri
         });
 
-        // Sort starts by key
-        var sortedStarts = starts.OrderBy(s => Key(s)).ToList();
+        var sortedStarts = starts.OrderBy(s => Key(s), StringComparer.Ordinal).ToList();
 
         foreach (var start in sortedStarts)
         {
