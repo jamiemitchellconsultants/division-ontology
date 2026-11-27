@@ -237,14 +237,38 @@ public sealed class SourceModel
 
         if (_nodes.TryGetValue(nodeIri, out var node)) Collect(node["evidenceIris"]);
 
-        foreach (var a in Assertions)
-        {
-            var subj = a["subject"]!.GetValue<string>();
-            var obj = a["object"]!.GetValue<string>();
-            if (subj == nodeIri || obj == nodeIri) Collect(a["evidenceIris"]);
-        }
+        foreach (var a in AssertionsTouching(nodeIri))
+            Collect(a["evidenceIris"]);
 
         return cited.Values.ToList();
+    }
+
+    private Dictionary<string, List<JsonObject>>? _touching;
+
+    /// <summary>The assertions where a node is subject or object, in Map order. Built once, so lead support and
+    /// path walks do not scan every assertion for every node (Q1).</summary>
+    public IReadOnlyList<JsonObject> AssertionsTouching(string nodeIri)
+    {
+        var index = _touching;
+        if (index is null)
+        {
+            index = new Dictionary<string, List<JsonObject>>(StringComparer.Ordinal);
+            foreach (var a in Assertions)
+            {
+                var subject = a["subject"]!.GetValue<string>();
+                var obj = a["object"]!.GetValue<string>();
+                Append(subject, a);
+                if (obj != subject) Append(obj, a);
+            }
+            _touching = index;
+        }
+        return index.TryGetValue(nodeIri, out var found) ? found : [];
+
+        void Append(string key, JsonObject assertion)
+        {
+            if (!index.TryGetValue(key, out var list)) index[key] = list = [];
+            list.Add(assertion);
+        }
     }
 
     /// <summary>Returns the de-duplicated, sorted roles of the evidence that cites a node (B1).</summary>

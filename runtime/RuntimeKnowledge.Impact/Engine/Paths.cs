@@ -210,7 +210,7 @@ public static class Paths
 
         var edges = new List<(JsonObject Target, JsonObject Step)>();
 
-        foreach (var assertion in source.Assertions)
+        foreach (var assertion in source.AssertionsTouching(current.NodeIri))
         {
             var subject = assertion["subject"]!.GetValue<string>();
             var obj = assertion["object"]!.GetValue<string>();
