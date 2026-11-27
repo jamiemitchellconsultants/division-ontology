@@ -11,19 +11,26 @@ sources: [01-vision.md, 02-behaviours.md]
 
 **Accepted by the user on 26 November 2026.** The phase completes when its pull request is reviewed and merged. This design serves the [accepted behaviours](02-behaviours.md) and the [product vision](01-vision.md). ADRs 0028 to 0034 record the decisions. ADR 0028 supersedes ADR 0001, the local C4 pilot.
 
+**Amended** on 27 November 2026, in answer to the developer's pushback on #201 that followed the behaviours amendment (PR #213):
+- traceability now covers B37, in place of the retired B4, and B38;
+- `unlinked-term` is reported once for each source and term;
+- `no-c4-mapping` applies only to a focus with no mapping at all;
+- page metadata is read only for exported pages (ADR 0031, amended);
+- the successor route needs the manage role.
+
 The shape in one line: **Node verifies and packages, .NET assesses and renders.** The existing Node loaders keep checking checkouts, graphs, evidence and registries, and they package what they verified into the snapshot bundle. A single .NET impact engine reads that bundle. The command-line tool and the workspace both run it, so both produce the same output.
 
 ## Components
 
 | Component | Responsibility | Behaviours |
 | --- | --- | --- |
-| **Pinned input packager** (Node: `src/c4/snapshot.mjs`, `graph.mjs`, `registry.mjs`, `git.mjs`, `src/workspace/bundle.mjs`) | Verifies checkouts, source graphs, evidence and C4 registries at their pinned commits, as today. Reads the relationship master list and the catalog's reviewed links at the catalog commit. Writes the verified facts into the bundle as two new file roles, `impactInput` and `relationshipMasterList`, next to the cited evidence bytes the bundle already holds. It makes no impact decisions. | B1, B4, B10, B11–B14, B24, B25, B32, Q3 |
-| **Impact engine** (new `runtime/RuntimeKnowledge.Impact` library, with no database or network dependencies) | Builds an immutable **impact model** from a verified bundle. Runs candidate search, support rules, impact paths with master-list directions, reviewed-link crossings and C4 bindings, and C4 views. Raises every AssessmentGap. Validates, freezes and renders assessment records to Markdown. Extracts evidence excerpts and page metadata. It is the only implementation of these rules. | B1–B14, B17, B23, B25–B28, B30–B33, B35, Q3, Q4 |
-| **Impact command line** (new `runtime/RuntimeKnowledge.Impact.Cli`, run through `npm run c4`) | Keeps today's commands, flags, output file names and safety checks. The Node front end parses the arguments and verifies the checkouts. It builds the bundle into a private temporary directory outside every repository, runs the .NET tool against it, and removes the bundle afterwards. The tool writes the output files. | B4, B5, B23, B24, B33 |
+| **Pinned input packager** (Node: `src/c4/snapshot.mjs`, `graph.mjs`, `registry.mjs`, `git.mjs`, `src/workspace/bundle.mjs`) | Verifies checkouts, source graphs, evidence and C4 registries at their pinned commits, as today. Reads the relationship master list and the catalog's reviewed links at the catalog commit. Writes the verified facts into the bundle as two new file roles, `impactInput` and `relationshipMasterList`, next to the cited evidence bytes the bundle already holds. It makes no impact decisions. | B1, B37, B10, B11–B14, B24, B25, B32, Q3 |
+| **Impact engine** (new `runtime/RuntimeKnowledge.Impact` library, with no database or network dependencies) | Builds an immutable **impact model** from a verified bundle. Runs candidate search, support rules, impact paths with master-list directions, reviewed-link crossings and C4 bindings, and C4 views. Raises every AssessmentGap. Validates, freezes and renders assessment records to Markdown. Extracts evidence excerpts and page metadata. It is the only implementation of these rules. | B1–B14, B17, B23, B25–B28, B30–B33, B35, B37, B38, Q3, Q4 |
+| **Impact command line** (new `runtime/RuntimeKnowledge.Impact.Cli`, run through `npm run c4`) | Keeps today's commands, flags, output file names and safety checks. The Node front end parses the arguments and verifies the checkouts. It builds the bundle into a private temporary directory outside every repository, runs the .NET tool against it, and removes the bundle afterwards. The tool writes the output files. | B37, B5, B23, B24, B33 |
 | **Snapshot impact import** (`RuntimeKnowledge.Worker` `BundleImport`, and replay) | When a candidate snapshot is projected, builds the impact model from the bundle with the engine. Stores the model, compressed, together with its evidence excerpts in `workspace_projection.impact_models`, in the same transaction as the rest of the candidate. Replay rebuilds it from the bundle. A bundle without `impactInput` has no model, and impact routes report `impactUnavailable` for it. | B15, B16, B25–B29, Q1, Q5, Q7 |
 | **Impact and assessment API** (`RuntimeKnowledge.Api`, new `/api/impact/*` and `/api/assessments/*` routes) | Serves search, paths, C4 views, draft validation, preview and Markdown export to readers, and save and edit to managers. Every request names the snapshot it expects, and any other snapshot is refused with `snapshotChanged`. Keeps one impact model per process in memory, keyed by snapshot id. Pages search and saved-assessment lists with cursors. | B15–B22, B31, B33, B35, B36, Q1, Q2, Q7 |
 | **Assessment store** (`RuntimeKnowledge.Store`: journal events, plus the `assessments` and `assessment_revisions` projections) | Appends `assessmentSaved` and `assessmentRevised` events, each carrying the frozen assessment and its rendered Markdown. Updates the current and revision views in the same transaction. Checks the active snapshot and the expected version inside that transaction. Replay copies frozen content verbatim. | B18–B22, B32–B35, Q5 |
-| **Assessment pages** (`RuntimeKnowledge.Web`: new search, paths, draft, saved-list and saved-assessment pages) | Hold the draft in browser memory, bound to its snapshot. Render leads, step-by-step paths, evidence with excerpts and page metadata, and gaps. Offer Markdown export of a draft or a saved assessment. Show save and edit controls only to managers, and never show an approve or sign-off control. | B15–B22, B25–B28, B30, B31, B34–B36, Q6 |
+| **Assessment pages** (`RuntimeKnowledge.Web`: new search, paths, draft, saved-list and saved-assessment pages) | Hold the draft in browser memory, bound to its snapshot. Render leads, step-by-step paths, evidence with excerpts and page metadata, and gaps. Offer Markdown export of a draft or a saved assessment. Show save and edit controls only to managers, and never show an approve or sign-off control. | B15–B22, B25–B28, B30, B31, B34–B36, B38, Q6 |
 | **Publication guard** (catalog build tests and API contract tests) | Proves that no cited text reaches `dist/`, unauthenticated responses or the OpenAPI examples. The catalog builder itself is unchanged. | B29, Q7 |
 
 ## Structure
@@ -81,19 +88,19 @@ All ordering uses ordinal string comparison, as the Node code does today.
   - a C4 binding step, as today (B14);
   - reviewed-link crossing steps.
 
-  With no master list, every assertion is followed from subject to object, and the result carries one `no-relationship-master-list` gap. Relationships listed as `none` are counted for each relationship IRI and are not followed. An unlisted relationship produces one `unlisted-relationship` gap, with the nodes it was met at and a skip count. Candidate ordering, the visited-set rule and path ids stay as today. A path id is the SHA-256 of the steps serialised exactly as ECMAScript `JSON.stringify` does. This keeps the ids of today's C4 paths stable (B4).
+  With no master list, every assertion is followed from subject to object, and the result carries one `no-relationship-master-list` gap. Relationships listed as `none` are counted for each relationship IRI and are not followed. An unlisted relationship produces one `unlisted-relationship` gap, with the nodes it was met at and a skip count. Candidate ordering, the visited-set rule and path ids stay as today. A path id is the SHA-256 of the steps serialised exactly as ECMAScript `JSON.stringify` does. This keeps the ids of today's C4 paths stable (B37).
 - **Crossings (B11–B13).** For a node whose denoted term T has reviewed links, the engine finds each shared term S that T links to. A node that denotes S directly counts as linked `exact`.
   - If T's link to S is `exact`, the path crosses to every node in another source whose term links to S, whether `exact` or `specializes`.
   - If T's link is `specializes`, the path does not cross, and the result reports `specialization-boundary` for T and S.
-  - A node on a path whose denoted term has no reviewed link reports `unlinked-term`.
+  - A node on a path whose denoted term has no reviewed link adds that node to the result's single `unlinked-term` gap for that source and term. The gap lists the nodes in sorted order. A node that denotes no term adds nothing.
 
   A crossing is one step towards the depth limit, and it cites both links and the catalog commit. The engine never compares labels.
-- **C4 views (B5).** These use today's projection rules, unchanged. A focus with no mapping is refused with `no-c4-mapping` and the node's identity.
-- **Evidence display (B25–B28).** Each evidence record carries its cited lines, decoded as UTF-8 from the bundle blob. A blob that is missing or cannot be decoded gives `evidence-text-unavailable`. Page metadata comes from ADR 0031. Code evidence keeps today's fields. Its excerpt is shown in the workspace pages but not written into Markdown, so the command line's Markdown keeps today's code-evidence shape.
+- **C4 views (B5).** These use today's projection rules, unchanged. A focus with no mapping at all is refused with `no-c4-mapping` and the node's identity. A focus mapped at a level other than the one the view needs keeps today's `unsupported-focus`.
+- **Evidence display (B25–B28).** Each evidence record carries its cited lines, decoded as UTF-8 from the bundle blob. A blob that is missing or cannot be decoded gives `evidence-text-unavailable`. Page metadata comes from ADR 0031, and only for exported pages: cited files that open with a front-matter block. Code evidence and ordinary documents (B38) keep today's fields. Its excerpt is shown in the workspace pages but not written into Markdown, so the command line's Markdown keeps today's code-evidence shape.
 
 ### Assessment records, freezing and rendering
 
-- **Record schema 2** replaces `architect` with `assessor`. It pins the snapshot id, the master-list identity (catalog commit and SHA-256, or `none`) and the C4 registry commit and digests. It can carry `startedFrom`, the id of an earlier saved assessment (B35). Schema 1 records are still read and rendered, so the C4 fixtures render as before (B4). Fields named `approved`, `approvalStatus` or anything with `signOff` in it are refused at the JSON boundary and by the engine (B31).
+- **Record schema 2** replaces `architect` with `assessor`. It pins the snapshot id, the master-list identity (catalog commit and SHA-256, or `none`) and the C4 registry commit and digests. It can carry `startedFrom`, the id of an earlier saved assessment (B35). Schema 1 records are still read and rendered, so the C4 fixtures render as before (B37). Fields named `approved`, `approvalStatus` or anything with `signOff` in it are refused at the JSON boundary and by the engine (B31).
 - **Freezing (B34).** Before an assessment is saved or rendered, the engine resolves the record against the model into a **frozen assessment**. That holds the record, the details of the confirmed and rejected leads, every cited path with its steps, every cited evidence record with its excerpt and page metadata, the snapshot's coverage gaps, the search and path gaps, and the unresolved gaps (B30). The Markdown is rendered from the frozen assessment alone, through one renderer with today's escaping, extended to page text (Q4). Page excerpts are written as indented, escaped lines, so injected markup stays inert.
 - **Digest.** The assessment digest is the SHA-256 of the canonical frozen assessment, which keeps outputs deterministic (Q3).
 
@@ -112,7 +119,7 @@ Every route sits under the existing authenticated `/api` group. Writes also need
 | `GET /api/assessments` | read | Saved assessments, newest first, at most 50 a page. The cursor is (saved time, id). |
 | `GET /api/assessments/{id}` | read | The frozen content, the revision history and whether the assessment is pinned to an earlier snapshot. |
 | `GET /api/assessments/{id}/markdown` | read | The stored Markdown bytes, as saved. |
-| `POST /api/assessments/{id}/successor` | read | A new draft record on the active snapshot, holding the same request id and description and `startedFrom`. Nothing is stored. |
+| `POST /api/assessments/{id}/successor` | manage | A new draft record on the active snapshot, holding the same request id and description and `startedFrom`. Nothing is stored. |
 
 `WorkspaceOpenApi` documents every route, and the build-time spec (ADR 0013) and its completeness checks (ADR 0016) cover them. The spec's examples use the synthetic fixture text only.
 
@@ -141,7 +148,7 @@ New migration `006_impact.sql`:
 | B1 | Packager (verified evidence in `impactInput`); engine support rule |
 | B2 | Engine support rule; concept leads unchanged |
 | B3 | Engine path starts |
-| B4 | Engine, with ids serialised as `JSON.stringify` does; a conformance corpus captured from today's Node outputs on the C4 fixtures before the Node engine is removed; schema 1 record rendering |
+| B37 | Engine, with ids serialised as `JSON.stringify` does; a conformance corpus captured from today's Node outputs on the C4 fixtures before the Node engine is removed; schema 1 record rendering; the corpus comparison fails on any difference outside B37's list |
 | B5 | Engine C4 views (`no-c4-mapping`) |
 | B6 | Engine step rules; master list (ADR 0032) |
 | B7 | Engine step rules (counts for `none`) |
@@ -163,7 +170,7 @@ New migration `006_impact.sql`:
 | B23 | One engine and renderer (ADR 0028); byte-identical bundles from one packager (ADR 0029) |
 | B24 | Impact command line through `npm run c4` |
 | B25 | Engine excerpts; page metadata from front matter (ADR 0031); evidence held in the model (ADR 0030) |
-| B26 | Page metadata reader (`page-metadata-missing`) |
+| B26 | Page metadata reader, for exported pages only (`page-metadata-missing`) |
 | B27 | Engine excerpt extraction (`evidence-text-unavailable`) |
 | B28 | Engine evidence fields; assessment pages show code excerpts |
 | B29 | Model and excerpts only behind authenticated `/api` (ADR 0030); publication guard |
@@ -172,8 +179,9 @@ New migration `006_impact.sql`:
 | B32 | Record schema 2 pins; frozen assessment display |
 | B33 | API snapshot check in the write transaction (`snapshotChanged`); command-line mismatch errors, as today |
 | B34 | Frozen content and stored Markdown, copied verbatim on replay (ADR 0033) |
-| B35 | Successor route; `startedFrom` |
+| B35 | Successor route, under `ManagePolicy`; `startedFrom` |
 | B36 | `snapshotId` on every request; the page discards its draft on `snapshotChanged` (ADR 0034) |
+| B38 | Engine evidence display: ordinary documents get no front-matter reading, no page-metadata gap and no Markdown excerpt; assessment pages show their cited lines |
 | Q1 | In-memory impact model for each snapshot in each process; adjacency index; measured on the reference container, with the cold-load time recorded |
 | Q2 | Authenticated `/api` group; `ManagePolicy` on save and edit; API tests for every route |
 | Q3 | One engine; canonical serialisation; ordinal ordering; deterministic bundles |
