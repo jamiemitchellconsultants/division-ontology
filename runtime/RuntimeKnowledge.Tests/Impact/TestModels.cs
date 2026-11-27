@@ -91,7 +91,7 @@ internal static class TestModels
                     }
                 }
             ),
-            ["catalog"] = new JsonObject { ["concepts"] = new JsonArray() },
+            ["catalog"] = new JsonObject { ["concepts"] = new JsonArray(new JsonObject { ["iri"] = "https://alpha.example/concept", ["source"] = "fixture/Alpha", ["label"] = "Catalog concept", ["definition"] = "Only in catalog" }) },
             ["reviewedLinks"] = new JsonArray(),
             ["registry"] = new JsonObject {
                 ["commit"] = registryCommit,
