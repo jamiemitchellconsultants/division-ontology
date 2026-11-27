@@ -1,0 +1,36 @@
+@* Every path keeps all of its steps; it is never collapsed to its endpoints (B16). *@
+@if (Paths.Count == 0)
+{
+    <p>No paths were found. That does not prove there is no impact.</p>
+}
+@foreach (var path in Paths)
+{
+    <section class="impact-path" @key="path.Id" aria-label="Impact path">
+        <ol>
+            @foreach (var step in path.Steps)
+            {
+                <li>
+                    <span class="impact-step">@StepText(step)</span>
+                    @foreach (var evidence in step.Evidence ?? [])
+                    {
+                        <EvidenceCitation Evidence="evidence" Commit="step.Commit" />
+                    }
+                </li>
+            }
+        </ol>
+    </section>
+}
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<ImpactPath> Paths { get; set; } = [];
+
+    private static string Node(ImpactKey? key) => key?.NodeIri ?? "";
+
+    private static string StepText(ImpactStep step) => step.Type switch
+    {
+        "assertion" => $"{Node(step.Subject)} —{step.Relationship} ({step.Direction})→ {Node(step.Object)}",
+        "binding" => $"Reviewed C4 binding: {Node(step.From)} → {Node(step.To)}",
+        "reviewedLinkCrossing" => $"Reviewed link crossing through {step.SharedTerm}: {Node(step.From)} → {Node(step.To)}",
+        _ => step.Type
+    };
+}

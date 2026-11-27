@@ -1,0 +1,20 @@
+<section aria-labelledby="impact-gaps">
+    <h2 id="impact-gaps">Limits of this result</h2>
+    @if (Gaps.Count == 0)
+    {
+        <p>No gaps were reported.</p>
+    }
+    else
+    {
+        <ul>
+            @foreach (var gap in Gaps)
+            {
+                <li><code>@gap.Code</code> @gap.Reason</li>
+            }
+        </ul>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<ImpactGap> Gaps { get; set; } = [];
+}

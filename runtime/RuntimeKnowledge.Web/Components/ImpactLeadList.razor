@@ -1,0 +1,20 @@
+<ul class="impact-leads">
+    @foreach (var (lead, index) in Leads.Select((lead, index) => (lead, index)))
+    {
+        var id = $"impact-lead-{index}";
+        <li @key="lead.Key">
+            <input type="checkbox" id="@id" checked="@Selected.Contains(lead.Key)" disabled="@(!lead.Supported)"
+                   @onchange="() => OnToggle.InvokeAsync(lead.Key)" />
+            <label for="@id">@lead.MatchedText · @lead.Key.SourceId</label>
+            <span>@(lead.Supported ? "Supported" : "Not supported")</span>
+            <span>@lead.Reason</span>
+            <span>@lead.MatchKind</span>
+        </li>
+    }
+</ul>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<ImpactLead> Leads { get; set; } = [];
+    [Parameter, EditorRequired] public IReadOnlySet<ImpactKey> Selected { get; set; } = new HashSet<ImpactKey>();
+    [Parameter] public EventCallback<ImpactKey> OnToggle { get; set; }
+}

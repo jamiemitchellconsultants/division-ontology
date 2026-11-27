@@ -19,6 +19,9 @@ public sealed class WorkspaceClient(HttpClient http) : IDisposable
     public Task<TraversalResult> Traverse(TraversalRequest request, CancellationToken cancellationToken = default) =>
         Post<TraversalResult>("api/traverse", request, cancellationToken);
     public Task<SearchResult> Search(string query) => Post<SearchResult>("api/search", new SearchRequest(query));
+    public Task<ImpactSearchResult> ImpactSearch(ImpactSearchRequest request) => Post<ImpactSearchResult>("api/impact/search", request);
+    public Task<ImpactPathsResult> ImpactPaths(ImpactPathsRequest request) => Post<ImpactPathsResult>("api/impact/paths", request);
+    public Task<C4ViewResult> ImpactView(ImpactViewRequest request) => Post<C4ViewResult>("api/impact/views", request);
     public Task<HistoryPage> History(Guid? id, string? cursor = null)
     {
         var filters = new List<string>();
