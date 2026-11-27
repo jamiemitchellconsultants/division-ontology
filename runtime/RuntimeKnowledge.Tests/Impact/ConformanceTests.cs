@@ -9,7 +9,7 @@ public sealed class ConformanceTests
     public static TheoryData<string, int> EngineSteps()
     {
         var data = new TheoryData<string, int>();
-        foreach (var scenario in new[] { "pilot", "walkthrough" })
+        foreach (var scenario in new[] { "pilot", "walkthrough", "confluence", "meaning" })
         {
             var steps = CorpusPaths.Steps(scenario);
             for (var i = 0; i < steps.Count; i++)
