@@ -19,7 +19,7 @@ test('assessment and feedback render against the pinned snapshot',async()=>{
   const common=['--catalog-commit',f.catalogCommit,'--registry-commit',f.registryCommit,...[...f.checkouts].flatMap(([id,path])=>['--checkout',`${id}=${path}`]),'--output',f.outputDir];
   const description=join(f.divisionRoot,'description.txt');writeFileSync(description,'Change Alpha API');
   assert.equal(await runC4Cli(['assessment-init',...common,'--request-id','CR-1','--description-file',description],{cwd:f.divisionRoot}),0);
-  const input=join(f.outputDir,'assessment.json'),record=JSON.parse(readFileSync(input,'utf8'));record.architect='Architect';record.confirmedLeads=[f.keys.alphaSystem];writeFileSync(input,JSON.stringify(record));
+  const input=join(f.outputDir,'assessment.json'),record=JSON.parse(readFileSync(input,'utf8'));record.assessor='Architect';record.confirmedLeads=[f.keys.alphaSystem];writeFileSync(input,JSON.stringify(record));
   assert.equal(await runC4Cli(['assessment-render',...common,'--input',input],{cwd:f.divisionRoot}),0);
   const markdown=readFileSync(join(f.outputDir,'assessment.md'),'utf8'),digest=markdown.match(/Assessment digest: ([a-f0-9]{64})/)[1];
   const feedback=join(f.outputDir,'feedback-input.json');writeFileSync(feedback,JSON.stringify({schemaVersion:1,assessmentDigest:digest,architect:'Architect',reviewer:'Reviewer',perceivedAccuracy:'good',perceivedCompleteness:'partial',confidence:'medium',usefulDiscoveries:[],suspectedMisses:[],falseLeads:[],examples:[],openQuestions:[]}));
@@ -60,7 +60,7 @@ test('assessment renders a cited inspected-code view',async()=>{
   assert.equal(await runC4Cli(['view',...common,'--level','code','--focus',`${f.keys.alphaComponent.sourceId}=${f.keys.alphaComponent.nodeIri}`,'--supplement',supplement],{cwd:f.divisionRoot}),0);
   const viewPath=join(f.outputDir,'view-code.json'),view=JSON.parse(readFileSync(viewPath,'utf8'));
   const desc=join(f.divisionRoot,'desc.txt');writeFileSync(desc,'Change');assert.equal(await runC4Cli(['assessment-init',...common,'--request-id','CR-1','--description-file',desc],{cwd:f.divisionRoot}),0);
-  const input=join(f.outputDir,'assessment.json'),a=JSON.parse(readFileSync(input,'utf8'));a.architect='Architect';
+  const input=join(f.outputDir,'assessment.json'),a=JSON.parse(readFileSync(input,'utf8'));a.assessor='Architect';
   const {viewDigest}=await import('./fixtures/c4/digest.mjs');a.likelyImpacts=[{key:view.items.find(x=>x.basis==='architect-inspected').key,reason:'Inspected',viewIds:[viewDigest(view)],pathIds:[],evidenceIris:[]}];writeFileSync(input,JSON.stringify(a));
   assert.equal(await runC4Cli(['assessment-render',...common,'--input',input,'--view-input',viewPath],{cwd:f.divisionRoot}),0);
  });
@@ -69,7 +69,7 @@ test('assessment rendering never overwrites its input file',async()=>{
  await withPilotFixture(async f=>{
   const common=['--catalog-commit',f.catalogCommit,'--registry-commit',f.registryCommit,...[...f.checkouts].flatMap(([id,path])=>['--checkout',`${id}=${path}`]),'--output',f.outputDir];
   const desc=join(f.divisionRoot,'desc.txt');writeFileSync(desc,'Change');await runC4Cli(['assessment-init',...common,'--request-id','CR-1','--description-file',desc],{cwd:f.divisionRoot});
-  const a=JSON.parse(readFileSync(join(f.outputDir,'assessment.json'),'utf8'));a.architect='Architect';const input=join(f.outputDir,'assessment.md'),raw=JSON.stringify(a);writeFileSync(input,raw);
+  const a=JSON.parse(readFileSync(join(f.outputDir,'assessment.json'),'utf8'));a.assessor='Architect';const input=join(f.outputDir,'assessment.md'),raw=JSON.stringify(a);writeFileSync(input,raw);
   assert.notEqual(await runC4Cli(['assessment-render',...common,'--input',input],{cwd:f.divisionRoot}),0);assert.equal(readFileSync(input,'utf8'),raw);
  });
 });
