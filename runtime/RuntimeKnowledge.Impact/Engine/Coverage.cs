@@ -38,7 +38,7 @@ public static class Coverage
                 }
             }
         }
-        gaps.Sort((a, b) => string.CompareOrdinal(EcmaJson.Stringify(a), EcmaJson.Stringify(b)));
+        gaps.StableSort((a, b) => string.CompareOrdinal(EcmaJson.Stringify(a), EcmaJson.Stringify(b)));
         return gaps;
     }
 
@@ -54,7 +54,7 @@ public static class Coverage
                         record[key] = value!.DeepClone();
                 records.Add(record);
             }
-        records.Sort((a, b) => string.CompareOrdinal(EcmaJson.Stringify(a), EcmaJson.Stringify(b)));
+        records.StableSort((a, b) => string.CompareOrdinal(EcmaJson.Stringify(a), EcmaJson.Stringify(b)));
         return records;
     }
 }

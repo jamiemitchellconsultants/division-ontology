@@ -52,7 +52,7 @@ public static class Candidates
         }
 
         // Sort by rank, then sourceId, then nodeIri, then kind
-        leads.Sort((a, b) =>
+        leads.StableSort((a, b) =>
         {
             var rankA = a["_rank"]!.GetValue<int>();
             var rankB = b["_rank"]!.GetValue<int>();

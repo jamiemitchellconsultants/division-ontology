@@ -184,7 +184,7 @@ public static class Paths
         }
 
         // Sort edges: by target key, then assertionIri
-        edges.Sort((a, b) =>
+        edges.StableSort((a, b) =>
         {
             var cmp = string.CompareOrdinal(key((a.Target["sourceId"]!.GetValue<string>(), a.Target["nodeIri"]!.GetValue<string>())),
                 key((b.Target["sourceId"]!.GetValue<string>(), b.Target["nodeIri"]!.GetValue<string>())));

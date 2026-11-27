@@ -280,7 +280,7 @@ public static class Views
             }
 
         // Sort items and edges
-        items.Sort((a, b) => string.CompareOrdinal(Key(a["key"]!.AsObject()["sourceId"]!.GetValue<string>(),
+        items.StableSort((a, b) => string.CompareOrdinal(Key(a["key"]!.AsObject()["sourceId"]!.GetValue<string>(),
             a["key"]!.AsObject()["nodeIri"]!.GetValue<string>()),
             Key(b["key"]!.AsObject()["sourceId"]!.GetValue<string>(),
             b["key"]!.AsObject()["nodeIri"]!.GetValue<string>())));
@@ -288,7 +288,7 @@ public static class Views
         var edges = view["edges"]!.AsArray();
         var edgeList = new List<JsonObject>();
         foreach (var e in edges) edgeList.Add(e!.AsObject());
-        edgeList.Sort((a, b) => string.CompareOrdinal(a["assertionIri"]!.GetValue<string>(), b["assertionIri"]!.GetValue<string>()));
+        edgeList.StableSort((a, b) => string.CompareOrdinal(a["assertionIri"]!.GetValue<string>(), b["assertionIri"]!.GetValue<string>()));
         view["edges"] = new JsonArray(edgeList.Select(e => e.DeepClone()!).ToArray());
 
         view["items"] = new JsonArray(items.Select(i => i.DeepClone()!).ToArray());
