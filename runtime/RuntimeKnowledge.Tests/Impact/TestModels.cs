@@ -9,14 +9,14 @@ namespace RuntimeKnowledge.Tests.Impact;
 
 internal static class TestModels
 {
-    public static ImpactModel MakeModel(Action<JsonObject>? change = null)
+    public static ImpactModel MakeModel(Action<JsonObject>? change = null, Func<string, byte[]>? blobOverride = null)
     {
         var alphaCommit = new string('1', 40);
         var betaCommit = new string('2', 40);
         var catalogCommit = new string('3', 40);
         var registryCommit = new string('e', 40);
         var appContent = "export const api = 1;\n";
-        var appBytes = Encoding.UTF8.GetBytes(appContent);
+        var appBytes = blobOverride?.Invoke("src/app.ts") ?? Encoding.UTF8.GetBytes(appContent);
         var appSha256 = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(appBytes));
 
         var nodes = new JsonArray(

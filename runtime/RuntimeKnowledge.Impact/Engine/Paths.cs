@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
 using RuntimeKnowledge.Impact;
 using RuntimeKnowledge.Impact.Json;
+using RuntimeKnowledge.Impact.Model;
 using ImpactModel = RuntimeKnowledge.Impact.Model.ImpactModel;
 
 namespace RuntimeKnowledge.Impact.Engine;
@@ -28,6 +29,9 @@ public static class Paths
             ["code"] = "no-relationship-master-list",
             ["reason"] = "Impact direction is assumed from subject to object; no relationship master list is defined"
         });
+
+        var evidenceGapsAt = gaps.Count;
+        var evidenceGaps = new SortedDictionary<string, JsonObject>(StringComparer.Ordinal);
 
         // Coverage gaps
         foreach (var gap in Coverage.Gaps(model))
@@ -57,8 +61,10 @@ public static class Paths
             }
 
             var visited = new HashSet<string> { Key(start) };
-            Walk(start, Array.Empty<JsonObject>(), visited, model, gaps, paths, Key, maxDepth);
+            Walk(start, Array.Empty<JsonObject>(), visited, model, gaps, evidenceGaps, paths, Key, maxDepth);
         }
+
+        gaps.InsertRange(evidenceGapsAt, evidenceGaps.Values);
 
         if (!paths.Any())
             gaps.Add(new JsonObject
@@ -83,6 +89,7 @@ public static class Paths
         HashSet<string> visited,
         ImpactModel model,
         List<JsonObject> gaps,
+        SortedDictionary<string, JsonObject> evidenceGaps,
         List<JsonObject> paths,
         Func<(string SourceId, string NodeIri), string> key,
         int maxDepth)
@@ -122,7 +129,15 @@ public static class Paths
                 {
                     var eiriStr = eiri!.GetValue<string>();
                     var enode = source.EvidenceNode(eiriStr);
-                    if (enode != null) evidenceNodes.Add(enode.DeepClone()!);
+                    if (enode == null) continue;
+                    // Only page-role evidence is read, so code and ordinary-document steps keep their path ids.
+                    if (enode["role"]?.GetValue<string>() == EvidenceText.PageRole)
+                    {
+                        var cited = EvidenceText.Read(model, current.SourceId, enode);
+                        if (cited.Page != null) enode["page"] = EvidenceText.StepPage(cited);
+                        if (cited.Gap != null) evidenceGaps.TryAdd(EcmaJson.Stringify(cited.Gap), cited.Gap);
+                    }
+                    evidenceNodes.Add(enode);
                 }
             }
 
@@ -197,7 +212,7 @@ public static class Paths
 
             var nextVisited = new HashSet<string>(visited) { targetKey };
             Walk((target["sourceId"]!.GetValue<string>(), target["nodeIri"]!.GetValue<string>()),
-                next, nextVisited, model, gaps, paths, key, maxDepth);
+                next, nextVisited, model, gaps, evidenceGaps, paths, key, maxDepth);
         }
     }
 }

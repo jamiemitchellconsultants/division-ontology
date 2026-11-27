@@ -180,38 +180,43 @@ public sealed class SourceModel
         return result;
     }
 
-    /// <summary>Returns the de-duplicated, sorted citing roles for a node.
-    /// Roles come from the node's own evidence (design records only) and from every assertion where it is subject or object.</summary>
-    public IReadOnlyList<string> CitingRoles(string nodeIri)
+    /// <summary>The evidence records that cite a node: its own evidenceIris (design records) and those of
+    /// every assertion where it is subject or object. De-duplicated and sorted by evidence IRI.</summary>
+    public IReadOnlyList<JsonObject> CitingEvidence(string nodeIri)
     {
-        var roles = new HashSet<string>(StringComparer.Ordinal);
+        var cited = new SortedDictionary<string, JsonObject>(StringComparer.Ordinal);
 
-        void AddRoles(JsonNode? evidenceIris)
+        void Collect(JsonNode? evidenceIris)
         {
             if (evidenceIris is not JsonArray iris) return;
             foreach (var ei in iris)
             {
                 var evIri = ei?.GetValue<string>();
-                if (evIri != null && _evidence.TryGetValue(evIri, out var evNode))
-                {
-                    var role = evNode["role"]?.GetValue<string>();
-                    if (!string.IsNullOrEmpty(role)) roles.Add(role);
-                }
+                if (evIri != null && _evidence.TryGetValue(evIri, out var evNode)) cited.TryAdd(evIri, evNode);
             }
         }
 
-        if (_nodes.TryGetValue(nodeIri, out var node)) AddRoles(node["evidenceIris"]);
+        if (_nodes.TryGetValue(nodeIri, out var node)) Collect(node["evidenceIris"]);
 
         foreach (var a in Assertions)
         {
             var subj = a["subject"]!.GetValue<string>();
             var obj = a["object"]!.GetValue<string>();
-            if (subj == nodeIri || obj == nodeIri) AddRoles(a["evidenceIris"]);
+            if (subj == nodeIri || obj == nodeIri) Collect(a["evidenceIris"]);
         }
 
-        var sorted = roles.OrderBy(r => r, StringComparer.Ordinal).ToList();
-        return sorted;
+        return cited.Values.ToList();
     }
+
+    /// <summary>Returns the de-duplicated, sorted roles of the evidence that cites a node (B1).</summary>
+    public IReadOnlyList<string> CitingRoles(string nodeIri) =>
+        CitingEvidence(nodeIri)
+            .Select(e => e["role"]?.GetValue<string>())
+            .Where(r => !string.IsNullOrEmpty(r))
+            .Select(r => r!)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(r => r, StringComparer.Ordinal)
+            .ToList();
 }
 
 public sealed class RegistryModel

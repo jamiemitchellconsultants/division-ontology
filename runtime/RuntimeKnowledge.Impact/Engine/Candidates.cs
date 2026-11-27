@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using System.Text.Json.Nodes;
 using RuntimeKnowledge.Impact;
 using RuntimeKnowledge.Impact.Json;
+using RuntimeKnowledge.Impact.Model;
 using ImpactModel = RuntimeKnowledge.Impact.Model.ImpactModel;
 
 namespace RuntimeKnowledge.Impact.Engine;
@@ -24,6 +25,7 @@ public static class Candidates
             .ToList();
 
         var leads = new List<JsonObject>();
+        var evidenceGaps = new SortedDictionary<string, JsonObject>(StringComparer.Ordinal);
 
         // Graph nodes
         foreach (var source in model.Sources)
@@ -71,6 +73,7 @@ public static class Candidates
         var gaps = new List<JsonObject>();
         foreach (var gap in model.Registry.Gaps) gaps.Add(gap.DeepClone()!.AsObject());
         gaps.AddRange(Coverage.Gaps(model));
+        gaps.AddRange(evidenceGaps.Values);
 
         if (!leads.Any())
             gaps.Add(new JsonObject { ["code"] = "unknown-search", ["reason"] = "No matching lead; coverage does not prove no impact" });
@@ -111,7 +114,7 @@ public static class Candidates
             }
 
             var source = model.Source(sourceId);
-            leads.Add(new JsonObject
+            var lead = new JsonObject
             {
                 ["key"] = new JsonObject { ["sourceId"] = sourceId, ["nodeIri"] = nodeIri },
                 ["matchedText"] = text,
@@ -121,7 +124,20 @@ public static class Candidates
                 ["reason"] = reason,
                 ["_rank"] = rank,
                 ["kind"] = kind
-            });
+            };
+            if (kind == "graph" && supported && source != null)
+            {
+                var pages = new JsonArray();
+                foreach (var evidence in source.CitingEvidence(nodeIri))
+                {
+                    if (evidence["role"]?.GetValue<string>() != EvidenceText.PageRole) continue;
+                    var cited = EvidenceText.Read(model, sourceId, evidence);
+                    if (cited.Gap != null) evidenceGaps.TryAdd(EcmaJson.Stringify(cited.Gap), cited.Gap);
+                    if (cited.Page != null) pages.Add(EvidenceText.LeadPage(cited));
+                }
+                if (pages.Count > 0) lead["pageEvidence"] = pages;
+            }
+            leads.Add(lead);
         }
     }
 }
