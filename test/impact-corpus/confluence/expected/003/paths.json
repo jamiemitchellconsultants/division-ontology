@@ -40,7 +40,7 @@
       "code": "unsupported-start",
       "sourceId": "fixture/policies",
       "nodeIri": "https://example.test/policies/graph#orphan",
-      "reason": "Start lacks a supported mapping"
+      "reason": "Start lacks verified evidence or a supported mapping"
     },
     {
       "code": "unknown-paths",
