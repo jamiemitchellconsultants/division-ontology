@@ -48,3 +48,11 @@ public sealed record ImpactPathsResult(string SnapshotId, PinnedSnapshot Pinned,
     IReadOnlyList<ImpactPath> Paths, IReadOnlyList<ImpactGap> Gaps);
 /// <param name="View">The engine's C4 view, in the C4 pilot's view format.</param>
 public sealed record C4ViewResult(string SnapshotId, JsonObject View, string Markdown);
+public sealed record AssessmentDraftRequest(string SnapshotId, JsonObject Record, IReadOnlyList<JsonObject>? Views = null);
+public sealed record AssessmentEditRequest(string SnapshotId, int ExpectedVersion, JsonObject Record, IReadOnlyList<JsonObject>? Views = null);
+public sealed record AssessmentPreview(string SnapshotId, string Digest, JsonObject Frozen, string Markdown);
+public sealed record AssessmentSaved(Guid Id, int Version, long Position);
+public sealed record AssessmentRevision(int Version, Actor Editor, DateTimeOffset EditedAt, JsonObject Frozen, string Markdown);
+public sealed record SavedAssessment(Guid Id, int Version, string SnapshotId, string RequestId, Actor Author,
+    DateTimeOffset SavedAt, DateTimeOffset UpdatedAt, bool PinnedToEarlierSnapshot, Guid? StartedFrom,
+    JsonObject Frozen, string Markdown, IReadOnlyList<AssessmentRevision> Revisions);

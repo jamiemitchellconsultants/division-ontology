@@ -45,7 +45,7 @@ internal static class ProblemResponses
     public static int StatusFor(string code) => code switch
     {
         "entityNotFound" or "relationshipNotFound" or "contributionNotFound" or "assessmentNotFound" => StatusCodes.Status404NotFound,
-        "versionConflict" or "staleCursor" or "snapshotChanged" => StatusCodes.Status409Conflict,
+        "versionConflict" or "staleCursor" or "snapshotChanged" or "snapshotMismatch" => StatusCodes.Status409Conflict,
         "snapshotUnavailable" or "writesPaused" or "searchUnavailable" or "impactUnavailable" => StatusCodes.Status503ServiceUnavailable,
         _ => StatusCodes.Status422UnprocessableEntity
     };
