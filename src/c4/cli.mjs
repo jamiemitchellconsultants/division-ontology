@@ -5,9 +5,10 @@ import {tmpdir} from 'node:os';
 import {pathToFileURL} from 'node:url';
 import {loadSnapshot} from './snapshot.mjs';
 import {loadRegistries} from './registry.mjs';
-import {buildImpactInput,impactInputBytes} from './impact-input.mjs';
+import {buildImpactBundle,writeImpactBundle} from './impact-bundle.mjs';
+import {pinnedBytes} from '../workspace/bundle.mjs';
 import {buildImpactCli,runImpactCli} from './engine.mjs';
-const allowed={search:['query','exact-iri'],paths:['start','max-depth'],view:['focus','level','supplement'], 'assessment-init':['request-id','description-file'],'assessment-render':['input','view-input'],'feedback-render':['input','assessment-file','view-input']};
+const allowed={search:['query','exact-iri'],paths:['start','max-depth'],view:['focus','level','supplement'],'assessment-init':['request-id','description-file'],'assessment-render':['input','view-input'],'feedback-render':['input','assessment-file','view-input']};
 const common=['catalog-commit','registry-commit','checkout','output'];
 function parse(argv) {
  const [command,...args]=argv;if(!allowed[command]) throw new Error('unknown command');const values={};
@@ -18,20 +19,6 @@ function parse(argv) {
 function pair(value) {const index=value?.indexOf('=')??-1;if(index<1 || index===value.length-1) throw new Error('expected source ID=value');return [value.slice(0,index),value.slice(index+1)];}
 const sourceKey=x=>{const [sourceId,nodeIri]=pair(x);return {sourceId,nodeIri};};
 function canonicalPath(path) {const abs=resolve(path);return existsSync(abs)?realpathSync(abs):join(canonicalPath(dirname(abs)),basename(abs));}
-function buildBundleFromBytes(stagingDir, impactBytes) {
- const bundleDir=join(stagingDir,'bundle');
- const manifestDir=join(bundleDir,'manifests');
- const blobDir=join(bundleDir,'blobs');
- mkdirSync(manifestDir,{recursive:true});
- mkdirSync(blobDir,{recursive:true});
- const sha256=createHash('sha256').update(impactBytes).digest('hex');
- writeFileSync(join(blobDir,sha256),impactBytes);
- const manifest={schemaVersion:1,files:[{role:'impactInput',sourceId:'division-core',path:'impact-input.json',sha256,bytes:impactBytes.length}]};
- const manifestJson=JSON.stringify(manifest)+'\n';
- const manifestSha256=createHash('sha256').update(manifestJson).digest('hex');
- writeFileSync(join(manifestDir,manifestSha256+'.json'),manifestJson);
- return manifestSha256;
-}
 export async function runC4Cli(argv,{cwd=process.cwd(),stdout=process.stdout,stderr=process.stderr}={}) {
  try {
   const {command,values:v}=parse(argv),checkouts=new Map();
@@ -51,67 +38,48 @@ export async function runC4Cli(argv,{cwd=process.cwd(),stdout=process.stdout,std
    for(const p of (v['view-input']??[])) JSON.parse(readFileSync(resolve(cwd,p),'utf8'));
   }
 
+  // Collect extraFiles: supplement and view-input items with basis 'architect-inspected'
+  const extraFiles=[];
+  if(v.supplement) {
+   const supplement=JSON.parse(readFileSync(resolve(cwd,v.supplement),'utf8'));
+   if(supplement.sourceId && supplement.path) extraFiles.push({sourceId:supplement.sourceId,path:supplement.path});
+  }
+  for(const vi of (v['view-input']??[])) {
+   const parsed=JSON.parse(readFileSync(resolve(cwd,vi),'utf8'));
+   for(const item of (parsed.items??[])) {
+    if(item.basis==='architect-inspected' && item.path) extraFiles.push({sourceId:item.key.sourceId,path:item.path});
+   }
+  }
+
   // Create staging directory
   const staging=mkdtempSync(join(tmpdir(),'division-impact-'));
   chmodSync(staging, 0o700);
   const outDir=join(staging,'out');
   mkdirSync(outDir);
 
-  // Build impact bundle from in-memory impact input (not from disk)
-  const impactInput=buildImpactInput({snapshot,registry});
-  const impactBytes=impactInputBytes(impactInput);
-  const manifestId=buildBundleFromBytes(staging,impactBytes);
+  // Build and write impact bundle
+  const catalogBytes=pinnedBytes(cwd,v['catalog-commit'],'dist/catalog.json');
+  const bundle=buildImpactBundle({snapshot,registry,catalogBytes,extraFiles});
+  writeImpactBundle(bundle,join(staging,'bundle'));
 
-  // Build tool flags
-  const toolArgs=[command,'--bundle',join(staging,'bundle'),'--manifest',manifestId,'--staging',outDir];
-
-  // Add command-specific flags (skip Node-only flags)
-  const skipFlags=new Set([...common.filter(f=>f!=='checkout')]);
+  // Build tool flags: command-specific flags with absolute paths, no Node-only flags
   const pathFlags=new Set(['supplement','input','assessment-file','view-input']);
+  const toolArgs=[command];
   for(let i=0;i<argv.length;i++) {
    const flag=argv[i];
-   if(flag?.startsWith('--') && !skipFlags.has(flag.slice(2))) {
-    toolArgs.push(flag);
+   if(flag?.startsWith('--')) {
+    const name=flag.slice(2);
+    if(common.includes(name)) continue; // skip Node-only flags
     if(i+1<argv.length && !argv[i+1]?.startsWith('--')) {
      const val=argv[i+1];
-     // Resolve $checkout and $output references
-     if(val.startsWith('$checkout:')) {
-      const id=val.slice('$checkout:'.length);
-      const checkoutPath=checkouts.get(id);
-      if(!checkoutPath) throw new Error(`unknown checkout ${id}`);
-      toolArgs.push(checkoutPath);
-      i++;
-      continue;
-     }
-     if(val.startsWith('$output')) {
-      // Skip output references
-      i++;
-      continue;
-     }
-     if(val.startsWith('$input/')) {
-      // For conformance tests, resolve to corpus input path
-      const relPath=val.slice('$input/'.length);
-      // This is handled by the conformance test wrapper
-      toolArgs.push(val);
-      i++;
-      continue;
-     }
-     // Resolve checkout flags to --checkout sourceId=path
-     if(flag.slice(2)==='checkout' && val.includes('=')) {
-      toolArgs.push(val);
-      i++;
-      continue;
-     }
-     // Only resolve path-type flags to absolute paths
-     const flagName=flag.slice(2);
-     if(pathFlags.has(flagName) && !isAbsolute(val)) toolArgs.push(resolve(cwd,val));
-     else toolArgs.push(val);
+     if(pathFlags.has(name) && !isAbsolute(val)) toolArgs.push(flag,resolve(cwd,val));
+     else toolArgs.push(flag,val);
      i++;
-    }
+    } else toolArgs.push(flag);
    }
   }
 
-  runImpactCli(toolArgs);
+  runImpactCli([...toolArgs,'--bundle',join(staging,'bundle'),'--manifest',bundle.id,'--staging',outDir]);
 
   // Read output files
   const files=new Map();

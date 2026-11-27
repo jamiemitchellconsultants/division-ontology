@@ -9,6 +9,8 @@
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",
+    "impact:build": "node -e \"import('./src/c4/engine.mjs').then(m => m.buildImpactCli())\"",
+    "pretest": "npm run impact:build",
     "acceptance:c4": "node test/acceptance/rerun.mjs",
     "acceptance:onboarding": "node test/acceptance/rerun.mjs onboarding",
     "build": "node src/cli.mjs build",

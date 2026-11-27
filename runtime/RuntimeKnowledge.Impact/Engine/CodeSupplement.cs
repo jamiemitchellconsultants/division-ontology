@@ -36,8 +36,6 @@ public static class CodeSupplement
         var path = s["path"]!.GetValue<string>();
         var bytes = model.Bundle.Read("inspectedSource", sourceId, path);
         if (bytes == null)
-            bytes = model.Bundle.ReadFileFromCheckout(sourceId, path);
-        if (bytes == null)
             throw new ImpactException("source path missing");
 
         // Verify blob

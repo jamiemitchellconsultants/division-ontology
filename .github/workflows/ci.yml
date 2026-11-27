@@ -14,6 +14,10 @@ jobs:
         with:
           node-version: 20
           cache: npm
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: runtime/global.json
+      - run: dotnet restore runtime/RuntimeKnowledge.Impact.Cli --locked-mode
       - run: npm ci --ignore-scripts
       - run: npm test
   api-contract:
