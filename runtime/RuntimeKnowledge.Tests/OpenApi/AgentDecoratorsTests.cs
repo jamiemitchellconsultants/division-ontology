@@ -24,6 +24,7 @@ public sealed class AgentDecoratorsTests
         { "post", "/api/impact/views", "viewC4", "workspace_view_c4", "none", true, true, "ImpactViewRequest", "C4ViewResult" },
         { "post", "/api/assessments/preview", "previewAssessment", "workspace_preview_assessment", "none", true, true, "AssessmentDraftRequest", "AssessmentPreview" },
         { "post", "/api/assessments", "saveAssessment", "workspace_save_assessment", "creates-assessment", false, false, "AssessmentDraftRequest", "AssessmentSaved" },
+        { "get", "/api/assessments", "assessmentList", "workspace_list_assessments", "none", true, true, "parameters", "AssessmentPage" },
         { "get", "/api/assessments/{id}", "getAssessment", "workspace_get_assessment", "none", true, true, "parameters", "SavedAssessment" },
         { "get", "/api/assessments/{id}/markdown", "getAssessmentMarkdown", "workspace_get_assessment_markdown", "none", true, true, "parameters", "none" },
         { "put", "/api/assessments/{id}", "editAssessment", "workspace_edit_assessment", "updates-assessment", false, false, "AssessmentEditRequest", "AssessmentSaved" },

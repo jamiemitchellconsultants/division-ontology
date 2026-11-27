@@ -58,3 +58,5 @@ public sealed record AssessmentRevision(int Version, Actor Editor, DateTimeOffse
 public sealed record SavedAssessment(Guid Id, int Version, string SnapshotId, string RequestId, Actor Author,
     DateTimeOffset SavedAt, DateTimeOffset UpdatedAt, bool PinnedToEarlierSnapshot, Guid? StartedFrom,
     JsonObject Frozen, string Markdown, IReadOnlyList<AssessmentRevision> Revisions);
+public sealed record AssessmentSummary(Guid Id, string RequestId, Actor Author, DateTimeOffset SavedAt, string SnapshotId, bool PinnedToEarlierSnapshot);
+public sealed record AssessmentPage(IReadOnlyList<AssessmentSummary> Assessments, string? NextCursor);

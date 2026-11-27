@@ -159,6 +159,112 @@
         "x-agent-side-effects": "creates-assessment",
         "x-agent-input": "AssessmentDraftRequest",
         "x-agent-output": "AssessmentSaved"
+      },
+      "get": {
+        "tags": [
+          "Assessments"
+        ],
+        "summary": "List saved assessments, newest first",
+        "description": "Cursor-paginated list of saved assessments, newest first, at most 50 per page. Pass the previous page's nextCursor as cursor with the same limit; never invent a cursor. Treat nextCursor=null as the end. pinnedToEarlierSnapshot=true marks an assessment saved on an earlier snapshot.",
+        "operationId": "assessmentList",
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssessmentPage"
+                }
+              }
+            },
+            "links": {
+              "next": {
+                "operationId": "assessmentList",
+                "parameters": {
+                  "cursor": "$response.body#/nextCursor",
+                  "limit": "$request.query.limit"
+                },
+                "description": "Fetch the next page using this page's nextCursor, keeping the same limit."
+              },
+              "assessment": {
+                "operationId": "getAssessment",
+                "description": "Open a listed assessment; supply its id."
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/unreadableRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "422": {
+            "description": "Unprocessable Entity. Codes: invalidCursor, invalidLimit",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "invalidCursor",
+              "invalidLimit"
+            ]
+          },
+          "500": {
+            "$ref": "#/components/responses/internalError"
+          },
+          "503": {
+            "description": "Service Unavailable. Codes: snapshotUnavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "snapshotUnavailable"
+            ]
+          }
+        },
+        "security": [
+          {
+            "bearer": [ ]
+          }
+        ],
+        "x-workspace-role": "ReadKnowledgeGraph",
+        "x-agent-tool-name": "workspace_list_assessments",
+        "x-agent-idempotent": true,
+        "x-agent-retryable": true,
+        "x-agent-side-effects": "none",
+        "x-agent-input": "parameters",
+        "x-agent-output": "AssessmentPage"
       }
     },
     "/api/assessments/preview": {
@@ -2502,6 +2608,27 @@
           }
         }
       },
+      "AssessmentPage": {
+        "required": [
+          "assessments",
+          "nextCursor"
+        ],
+        "type": "object",
+        "properties": {
+          "assessments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AssessmentSummary"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "AssessmentPreview": {
         "required": [
           "snapshotId",
@@ -2585,6 +2712,39 @@
               "string"
             ],
             "format": "int64"
+          }
+        }
+      },
+      "AssessmentSummary": {
+        "required": [
+          "id",
+          "requestId",
+          "author",
+          "savedAt",
+          "snapshotId",
+          "pinnedToEarlierSnapshot"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "requestId": {
+            "type": "string"
+          },
+          "author": {
+            "$ref": "#/components/schemas/Actor"
+          },
+          "savedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "snapshotId": {
+            "type": "string"
+          },
+          "pinnedToEarlierSnapshot": {
+            "type": "boolean"
           }
         }
       },
@@ -4847,7 +5007,7 @@
     "errors": "application/problem+json with a stable code per operation's x-workspace-codes",
     "hateoas": "follow each success response's links and the runtime Link response headers",
     "linkRelations": {
-      "next": "listInventory, listHistory, traverseGraph or searchImpact: the next page of the same listing, walk or search (registered relation)",
+      "next": "listInventory, listHistory, assessmentList, traverseGraph or searchImpact: the next page of the same listing, walk or search (registered relation)",
       "service-desc": "this OpenAPI document at /api/openapi/v1.json (registered relation)",
       "service-doc": "the interactive docs at /api/docs (registered relation)",
       "https://github.com/jamiemitchellconsultants/division-ontology#link-relations/session": "getSession",

@@ -48,6 +48,16 @@ internal static class AssessmentRoutes
                 "impactUnavailable", "snapshotUnavailable", "writesPaused")
             .WithMetadata(new RequestExample(OpenApiExamples.AssessmentDraft));
 
+        app.MapGet("/api/assessments", async (string? cursor, int? limit, AssessmentStore store, HttpContext context, CancellationToken token) =>
+            {
+                var page = await store.ListAsync(cursor, limit ?? 50, token);
+                WorkspaceLinks.Append(context, WorkspaceLinks.NextPage("/api/assessments", page.NextCursor, limit: limit));
+                return page;
+            })
+            .RequireAuthorization(Identity.ReadPolicy)
+            .WithSummary("List saved assessments, newest first").WithTags(Assessments)
+            .ProducesWorkspaceErrors("invalidLimit", "invalidCursor", "snapshotUnavailable");
+
         read.MapGet("/{id:guid}", async (Guid id, AssessmentStore store, HttpContext context, CancellationToken token) =>
             {
                 var saved = await store.GetAsync(id, token) ?? throw NotFound();

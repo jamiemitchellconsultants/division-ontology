@@ -117,6 +117,66 @@ public sealed class AssessmentStore(Db db, TimeProvider? clock = null)
         return found with { Revisions = revisions };
     }
 
+    /// <summary>Saved assessments, newest first, in keyset pages (B21). Equal save times are ordered by id.</summary>
+    public async Task<AssessmentPage> ListAsync(string? cursor, int limit, CancellationToken token)
+    {
+        if (limit is < 1 or > 50) throw new WorkspaceException("invalidLimit", "Assessment list limit must be from 1 to 50.");
+        var after = ReadListCursor(cursor);
+        await using var connection = await db.OpenAsync(token);
+        await using var tx = await connection.BeginTransactionAsync(IsolationLevel.RepeatableRead, token);
+        var state = await ReadStateAsync(tx, token);
+        var active = state.RequireSnapshot();
+        await using var command = Command(tx, """
+            SELECT assessment_id, request_id, author_issuer, author_subject, saved_at, snapshot_id
+              FROM workspace_projection.assessments
+             WHERE generation = $1 AND ($2::timestamptz IS NULL OR (saved_at, assessment_id) < ($2, $3))
+             ORDER BY saved_at DESC, assessment_id DESC LIMIT $4
+            """, state.Generation, after?.SavedAt, after?.Id ?? Guid.Empty, limit + 1);
+        var rows = new List<AssessmentSummary>();
+        await using (var reader = await command.ExecuteReaderAsync(token))
+            while (await reader.ReadAsync(token))
+            {
+                var snapshot = reader.GetString(5);
+                rows.Add(new AssessmentSummary(reader.GetGuid(0), reader.GetString(1), new Actor(reader.GetString(2), reader.GetString(3)),
+                    reader.GetFieldValue<DateTimeOffset>(4), snapshot, snapshot != active));
+            }
+        var more = rows.Count > limit;
+        if (more) rows.RemoveAt(rows.Count - 1);
+        return new AssessmentPage(rows, more ? WriteListCursor(rows[^1]) : null);
+    }
+
+    private sealed record ListCursor(DateTimeOffset SavedAt, Guid Id);
+
+    private static string WriteListCursor(AssessmentSummary last)
+    {
+        var body = new System.Text.Json.Nodes.JsonObject
+        {
+            ["v"] = 1,
+            ["t"] = last.SavedAt.ToUniversalTime().ToString("O", System.Globalization.CultureInfo.InvariantCulture),
+            ["id"] = last.Id.ToString("D")
+        }.ToJsonString();
+        return Convert.ToBase64String(Encoding.UTF8.GetBytes(body)).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+    }
+
+    private static ListCursor? ReadListCursor(string? cursor)
+    {
+        if (cursor is null) return null;
+        try
+        {
+            var base64 = cursor.Replace('-', '+').Replace('_', '/');
+            base64 = base64.PadRight(base64.Length + (4 - base64.Length % 4) % 4, '=');
+            var body = JsonNode.Parse(Convert.FromBase64String(base64))!.AsObject();
+            if (body["v"]!.GetValue<int>() != 1) throw new FormatException();
+            return new ListCursor(DateTimeOffset.Parse(body["t"]!.GetValue<string>(), System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.RoundtripKind), Guid.Parse(body["id"]!.GetValue<string>()));
+        }
+        catch (Exception ex) when (ex is FormatException or System.Text.Json.JsonException or InvalidOperationException
+                                       or NullReferenceException or ArgumentException)
+        {
+            throw new WorkspaceException("invalidCursor", "The cursor is not valid for this list. Start again from the first page.");
+        }
+    }
+
     public async Task<byte[]?> MarkdownAsync(Guid id, CancellationToken token)
     {
         await using var connection = await db.OpenAsync(token);

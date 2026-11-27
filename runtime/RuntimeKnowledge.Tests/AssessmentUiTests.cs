@@ -7,7 +7,7 @@ using RuntimeKnowledge.Contracts;
 using RuntimeKnowledge.Web.Pages;
 using RuntimeKnowledge.Web.Services;
 using Xunit;
-using AssessmentPage = RuntimeKnowledge.Web.Pages.Assessment;
+using SavedAssessmentView = RuntimeKnowledge.Web.Pages.Assessment;
 
 namespace RuntimeKnowledge.Tests;
 
@@ -29,7 +29,7 @@ public sealed class AssessmentUiTests
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
         {
-            var path = request.RequestUri!.AbsolutePath.TrimStart('/');
+            var path = request.RequestUri!.PathAndQuery.TrimStart('/');
             var body = request.Content is null ? new JsonObject() : JsonNode.Parse(await request.Content.ReadAsStringAsync(token))!.AsObject();
             Requests.Add((request.Method.Method, path, body));
             var (status, response) = respond(request.Method.Method, path, body);
@@ -186,7 +186,7 @@ public sealed class AssessmentUiTests
     {
         var (context, _, _) = Context(canManage: true, (_, _, _) => (HttpStatusCode.OK, Saved(pinned: true)));
         using var _ = context;
-        var page = context.Render<AssessmentPage>(p => p.Add(c => c.Id, Guid.Parse("11111111-1111-1111-1111-111111111111")));
+        var page = context.Render<SavedAssessmentView>(p => p.Add(c => c.Id, Guid.Parse("11111111-1111-1111-1111-111111111111")));
         page.WaitForAssertion(() => Assert.Contains("Pinned to an earlier snapshot", page.Markup));
         Assert.Contains(new string('a', 40), page.Markup);
         Assert.Contains(new string('e', 40), page.Markup);
@@ -205,10 +205,31 @@ public sealed class AssessmentUiTests
         {
             var (context, _, _) = Context(canManage: true, (_, _, _) => (HttpStatusCode.OK, Saved(pinned)));
             using var _ = context;
-            var page = context.Render<AssessmentPage>(p => p.Add(c => c.Id, Guid.Parse("11111111-1111-1111-1111-111111111111")));
+            var page = context.Render<SavedAssessmentView>(p => p.Add(c => c.Id, Guid.Parse("11111111-1111-1111-1111-111111111111")));
             page.WaitForAssertion(() => Assert.Contains("History", page.Markup));
             Assert.Equal(!pinned, page.FindAll("button").Any(b => b.TextContent == "Edit"));
         }
+    }
+
+    private static AssessmentSummary Summary(int n, bool pinned = false) =>
+        new(Guid.Parse($"00000000-0000-0000-0000-{n:000000000000}"), $"CR-{n}", new Actor("https://issuer.test", "manager"),
+            DateTimeOffset.UnixEpoch.AddDays(n), new string('f', 64), pinned);
+
+    [Fact]
+    public void The_list_renders_rows_and_load_more_sends_the_cursor()                         // B21
+    {
+        var (context, _, api) = Context(canManage: false, (_, path, _) => (HttpStatusCode.OK, path == "api/assessments?cursor=next-1"
+            ? new AssessmentPage([Summary(0)], null)
+            : new AssessmentPage([Summary(2), Summary(1, pinned: true)], "next-1")));
+        using var _ = context;
+        var page = context.Render<Assessments>();
+        page.WaitForAssertion(() => Assert.Equal(2, page.FindAll("tbody tr").Count));
+        Assert.Equal("assessments/00000000-0000-0000-0000-000000000002", page.Find("tbody tr a").GetAttribute("href"));
+        Assert.Contains("Pinned to an earlier snapshot", page.FindAll("tbody tr")[1].TextContent);
+        page.FindAll("button").Single(b => b.TextContent == "Load more").Click();
+        page.WaitForAssertion(() => Assert.Equal(3, page.FindAll("tbody tr").Count));
+        Assert.Equal(["api/assessments", "api/assessments?cursor=next-1"], api.Requests.Select(r => r.Path));
+        Assert.Empty(page.FindAll("button").Where(b => b.TextContent == "Load more"));
     }
 
     [Fact]

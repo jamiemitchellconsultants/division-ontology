@@ -156,6 +156,11 @@ internal static class WorkspaceOpenApi
                 "Validates, freezes and saves a schema 2 assessment draft as version 1, returning its id. Not idempotent: retrying saves another assessment, so read back the returned id instead of retrying blindly. The same refusals as previewAssessment apply.",
                 [Link("assessment", "getAssessment", "Open the saved assessment.", new Dictionary<string, string> { ["id"] = "$response.body#/id" }),
                  Link("assessmentMarkdown", "getAssessmentMarkdown", "Download its Markdown.", new Dictionary<string, string> { ["id"] = "$response.body#/id" })]),
+            ["GET api/assessments"] = new("assessmentList", "workspace_list_assessments", "none", true, true,
+                "Cursor-paginated list of saved assessments, newest first, at most 50 per page. Pass the previous page's nextCursor as cursor with the same limit; never invent a cursor. Treat nextCursor=null as the end. pinnedToEarlierSnapshot=true marks an assessment saved on an earlier snapshot.",
+                [Link("next", "assessmentList", "Fetch the next page using this page's nextCursor, keeping the same limit.",
+                    new Dictionary<string, string> { ["cursor"] = "$response.body#/nextCursor", ["limit"] = "$request.query.limit" }),
+                 Link("assessment", "getAssessment", "Open a listed assessment; supply its id.")]),
             ["GET api/assessments/{id}"] = new("getAssessment", "workspace_get_assessment", "none", true, true,
                 "Returns a saved assessment exactly as it was frozen, with every revision. pinnedToEarlierSnapshot=true means a newer snapshot is active: the assessment still opens unchanged, but it can no longer be edited.",
                 [Link("assessmentMarkdown", "getAssessmentMarkdown", "Download its Markdown.", new Dictionary<string, string> { ["id"] = "$request.path.id" }),
@@ -317,7 +322,7 @@ internal static class WorkspaceOpenApi
             ["hateoas"] = "follow each success response's links and the runtime Link response headers",
             ["linkRelations"] = new JsonObject
             {
-                ["next"] = "listInventory, listHistory, traverseGraph or searchImpact: the next page of the same listing, walk or search (registered relation)",
+                ["next"] = "listInventory, listHistory, assessmentList, traverseGraph or searchImpact: the next page of the same listing, walk or search (registered relation)",
                 ["service-desc"] = "this OpenAPI document at /api/openapi/v1.json (registered relation)",
                 ["service-doc"] = "the interactive docs at /api/docs (registered relation)",
                 [WorkspaceLinks.RelationBase + "session"] = "getSession",
