@@ -7,6 +7,7 @@ export function readImpactPaths({snapshot,registry,starts,maxDepth=4}) {
  if(!Number.isInteger(maxDepth)||maxDepth<1||maxDepth>6) throw new Error('depth must be from 1 to 6');
  if(!Array.isArray(starts)||!starts.length) throw new Error('at least one start is required');
  const paths=[],gaps=[...(registry.gaps??[]),...coverageGaps(snapshot)];
+  gaps.push({code:'no-relationship-master-list',reason:'Impact direction is assumed from subject to object; no relationship master list is defined'});
  function walk(current,steps,visited) {
   if(steps.length>=maxDepth) return;
   const source=snapshot.sources.get(current.sourceId), graph=source?.graphState;

@@ -22,6 +22,13 @@ public static class Paths
         foreach (var g in model.Registry.Gaps)
             gaps.Add(g.DeepClone()!.AsObject());
 
+        // Then no-relationship-master-list gap (B9)
+        gaps.Add(new JsonObject
+        {
+            ["code"] = "no-relationship-master-list",
+            ["reason"] = "Impact direction is assumed from subject to object; no relationship master list is defined"
+        });
+
         // Coverage gaps
         foreach (var gap in Coverage.Gaps(model))
             gaps.Add(gap);
