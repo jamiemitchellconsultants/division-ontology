@@ -26,6 +26,9 @@
       },
       "runtimeknowledge.contracts": {
         "type": "Project"
+      },
+      "runtimeknowledge.impact": {
+        "type": "Project"
       }
     }
   }

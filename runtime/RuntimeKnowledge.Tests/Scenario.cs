@@ -196,6 +196,32 @@ internal sealed class MemoryBundles : IBundleObjects
         return id;
     }
 
+    /// <summary>Adds a corpus scenario's first impact bundle as a workspace bundle. Corpus bundles carry only the
+    /// engine's roles, so minimal catalog, nquads, source inventory and projection objects are added, and the
+    /// manifest is rewritten.</summary>
+    public string AddCorpusBundle(string scenario)
+    {
+        var steps = Impact.CorpusPaths.Steps(scenario);
+        var corpusId = steps.First(s => s!["manifest"] is not null)!["manifest"]!.GetValue<string>();
+        var corpus = JsonSerializer.Deserialize<BundleManifest>(
+            File.ReadAllBytes(Path.Combine(Impact.CorpusPaths.Objects, "manifests", corpusId + ".json")), WorkspaceJson.Options)!;
+        foreach (var file in corpus.Files)
+            _objects[$"blobs/{file.Sha256}"] = File.ReadAllBytes(Path.Combine(Impact.CorpusPaths.Objects, "blobs", file.Sha256));
+        var workspace = new[]
+        {
+            AddFile("catalog", "dist/catalog.json", JsonSerializer.SerializeToUtf8Bytes(new { schemaVersion = 1 })),
+            AddFile("nquads", "dist/combined.nq", []),
+            AddFile("sourceInventory", "sources.json", JsonSerializer.SerializeToUtf8Bytes(new { sources = Array.Empty<string>() })),
+            AddFile("projection", "projection.json", JsonSerializer.SerializeToUtf8Bytes(
+                new PublishedProjection([], [], [], []), WorkspaceJson.Options))
+        };
+        var manifest = corpus with { CatalogSha256 = workspace[0].Sha256, Files = [.. corpus.Files, .. workspace] };
+        var body = JsonSerializer.SerializeToUtf8Bytes(manifest, WorkspaceJson.Options);
+        var id = Digest(body);
+        _objects[$"manifests/{id}.json"] = body;
+        return id;
+    }
+
     private BundleFile AddFile(string role, string path, byte[] bytes)
     {
         var digest = Digest(bytes);

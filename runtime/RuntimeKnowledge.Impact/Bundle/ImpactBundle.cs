@@ -76,9 +76,11 @@ public sealed class ImpactBundle
         return new ImpactBundle(manifestId, manifest, files, blob);
     }
 
+    /// <summary>Verifies the digest and length of every file the engine reads. A workspace manifest also lists
+    /// catalog and projection objects, which a model package does not carry and the engine never reads.</summary>
     public void VerifyBlobs()
     {
-        foreach (var file in Files)
+        foreach (var file in Files.Where(f => ModelPackage.Roles.Contains(f.Role)))
         {
             var bytes = _blobFn(file.Sha256);
             if (bytes == null)

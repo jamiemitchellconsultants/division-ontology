@@ -86,6 +86,7 @@ public sealed class SnapshotStore(Db db, IBundleObjects objects, TimeProvider? c
             await AgeGraph.AddEdgeAsync(tx, state.GraphName, edge.Key.StorageKey, edge.From.StorageKey,
                 edge.To.StorageKey, snapshotId, token);
         }
+        await ImpactModels.StageAsync(tx, state, bundle, token);
     }
 
     private static Task<int> AddRecordAsync<T>(NpgsqlTransaction tx, ProjectionState state, string snapshotId,

@@ -33,7 +33,10 @@ public sealed record SourceRevision(string Id, string Commit, int? GraphSchemaVe
 public sealed record BundleFile(string Role, string SourceId, string Path, string Sha256, long Bytes);
 public sealed record BundleManifest(int SchemaVersion, string DivisionCommit, string CatalogSha256,
     IReadOnlyList<SourceRevision> Sources, string? RegistryCommit, IReadOnlyList<BundleFile> Files);
-public sealed record VerifiedBundle(string SnapshotId, BundleManifest Manifest, PublishedProjection Projection);
+/// <param name="ManifestBytes">The manifest exactly as stored, so an impact model package can re-verify its id.</param>
+/// <param name="ImpactObjects">The bytes of the files the impact engine reads, keyed by SHA-256.</param>
+public sealed record VerifiedBundle(string SnapshotId, BundleManifest Manifest, PublishedProjection Projection,
+    byte[] ManifestBytes, IReadOnlyDictionary<string, byte[]> ImpactObjects);
 
 public sealed record PageRequest(string? Cursor = null, int Limit = 50);
 public sealed record SnapshotCandidate(string SnapshotId, string State);

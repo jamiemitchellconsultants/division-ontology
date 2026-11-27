@@ -11,6 +11,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../RuntimeKnowledge.Contracts/RuntimeKnowledge.Contracts.csproj" />
+    <ProjectReference Include="../RuntimeKnowledge.Impact/RuntimeKnowledge.Impact.csproj" />
     <InternalsVisibleTo Include="RuntimeKnowledge.Tests" />
   </ItemGroup>
 </Project>
