@@ -53,6 +53,12 @@ If two of these disagree, stop and report (section 9). Do not pick one.
   failing test;
 - edit anything under `test/impact-corpus/*/expected/` except in a commit of its own whose message
   names the B37 item that allows the change, and only when the detailed plan tells you to;
+- run `node test/impact-corpus/capture.mjs` after Task 1. It overwrites `expected/` and
+  `steps.json` with whatever the code does now, so it turns a bug into the baseline. The only
+  exceptions are steps of the detailed plan that name it: I2's baseline update procedure (Tasks 13,
+  14, 15 and 17), and Tasks 12, 16 and 21, which capture one named scenario. Run it with exactly the
+  arguments the step gives. When a test fails against `expected/`, fix the code, never the
+  baseline; if the code looks right, stop and report (section 9);
 - edit `docs/features/`, `docs/adr/`, `docs/superpowers/`, `docs/detailed-implementations/`,
   `core/ontology.ttl`, `dist/`, `Narrative.md` or `narrative/`;
 - tick checkboxes in the plan files (progress is tracked by commits, see section 5);
