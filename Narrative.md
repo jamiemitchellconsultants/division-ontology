@@ -77,6 +77,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [67](#entry-docs-feature-amend-impact-assessment-behaviours-for-pushback-200) | 2026-11-27 | docs(feature): amend impact assessment behaviours for pushback (#200) | product | - B4 is retired. B37 lists every allowed difference, including B30's gap sections for every assessment, schema 1 records included. The user chose this over exempting schema 1 records. |
 | [68](#entry-docs-feature-amend-impact-assessment-architecture-for-pushback-201) | 2026-11-27 | docs(feature): amend impact assessment architecture for pushback (#201) | product | - The traceability table now covers B37 and B38. Comparing against the C4 baseline fails on any difference outside B37's list. - The engine reports one `unlinked-term` gap for each source and term, listing the nodes in sorted order. |
 | [69](#entry-docs-feature-plan-generalised-impact-assessment-build-202) | 2026-11-27 | docs(feature): plan generalised impact assessment build (#202) | product | - **The walking skeleton is a fixed baseline.** I1 first captures today's Node outputs on every C4 fixture scenario, with Git dates and identities pinned so the capture is deterministic, under `test/impact-corpus/`. |
+| [70](#entry-docs-feature-hand-the-198-build-to-opencode-with-a-local-model) | 2026-11-27 | docs(feature): hand the #198 build to opencode with a local model | product | The build is run by opencode with the local model Qwen 3.6 27B (Q6), from [build-handover-opencode.md](docs/detailed-implementations/generalise-impact-assessment/build-handover-opencode.md). |
 
 ---
 
@@ -1892,3 +1893,29 @@ The architecture (#211, #215) settled on a single .NET engine that reads verifie
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
 AI-Fingerprint: sha256:be35fe70e880
+
+---
+
+<a id="entry-docs-feature-hand-the-198-build-to-opencode-with-a-local-model"></a>
+
+## Entry 70 — 2026-11-27 — docs(feature): hand the #198 build to opencode with a local model
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The #198 plan (PR #218) left open who would execute the build: Claude through feature-dev, or another agent working from the detailed plans.
+
+## Decision
+
+The build is run by opencode with the local model Qwen 3.6 27B (Q6), from [build-handover-opencode.md](docs/detailed-implementations/generalise-impact-assessment/build-handover-opencode.md). The prompt keeps it to the plan: one task per commit, test first, one increment per session, a fixed BLOCKED report instead of improvising, and no merging. The developer role only verifies the result (feature-dev build step 3).
+
+## Consequences
+
+- Build sessions start from this prompt. Its hard rules bind the executor alongside AGENTS.md.
+- The executor opens a draft build PR on its first push so CI runs, posts each increment handoff on #198, and ticks #203 at the end.
+- Blocked tasks come back to a person to decide, rather than becoming pushback raised by the executor.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+AI-Fingerprint: sha256:478639c32762
