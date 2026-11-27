@@ -46,6 +46,7 @@ public static class AssessmentMarkdownV1
             var evidenceIris = x["evidenceIris"]!.AsArray();
             var viewIds = x["viewIds"]?.AsArray() ?? new JsonArray();
             lines.Add("- " + escaped(x["key"]!.AsObject()["sourceId"]!.GetValue<string>()) + ": " +
+                      escaped(x["key"]!.AsObject()["nodeIri"]!.GetValue<string>()) + " — " +
                       escaped(x["reason"]!.GetValue<string>()) + "; paths " +
                       string.Join(", ", pathIds.Select(p => escaped(p!.GetValue<string>()))) +
                       "; evidence " + string.Join(", ", evidenceIris.Select(e => escaped(e!.GetValue<string>()))) +
