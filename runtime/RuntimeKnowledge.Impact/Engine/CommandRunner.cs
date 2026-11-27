@@ -63,7 +63,7 @@ public static class CommandRunner
                         var supplementPath = GetFlag(args, "--supplement");
                         if (supplementPath != null)
                         {
-                            var supplementContent = File.ReadAllText(supplementPath);
+                            var supplementContent = ReadText(supplementPath);
                             supplement = JsonNode.Parse(supplementContent)!.AsObject();
                         }
 
@@ -81,7 +81,7 @@ public static class CommandRunner
                         if (requestId == null || descriptionFile == null)
                             return (1, Array.Empty<(string, string)>(), "request ID and description file required");
 
-                        var description = File.ReadAllText(descriptionFile);
+                        var description = ReadText(descriptionFile);
                         var record = Assessments.New(model, requestId, description);
                         files.Add(("assessment.json", EcmaJson.File(record)));
                     }
@@ -93,11 +93,11 @@ public static class CommandRunner
                         if (inputFile == null)
                             return (1, Array.Empty<(string, string)>(), "input is required");
 
-                        var inputContent = File.ReadAllText(inputFile);
+                        var inputContent = ReadText(inputFile);
                         var record = JsonNode.Parse(inputContent)!.AsObject();
                         var viewInputs = GetMultiFlag(args, "--view-input");
                         var views = viewInputs.Select(vi =>
-                            JsonNode.Parse(File.ReadAllText(vi))!.AsObject()).ToList();
+                            JsonNode.Parse(ReadText(vi))!.AsObject()).ToList();
 
                         var confirmedLeads = record["confirmedLeads"]?.AsArray();
                         var starts = confirmedLeads != null && confirmedLeads.Count > 0
@@ -123,14 +123,14 @@ public static class CommandRunner
                         if (inputFile == null)
                             return (1, Array.Empty<(string, string)>(), "input is required");
 
-                        var inputContent = File.ReadAllText(inputFile);
+                        var inputContent = ReadText(inputFile);
                         var feedback = JsonNode.Parse(inputContent)!.AsObject();
 
                         // Load the assessment to compute the digest via validation
                         JsonObject assessment;
                         if (assessmentFile != null)
                         {
-                            var assessmentContent = File.ReadAllText(assessmentFile);
+                            var assessmentContent = ReadText(assessmentFile);
                             var record = JsonNode.Parse(assessmentContent)!.AsObject();
 
                             var confirmedLeads = record["confirmedLeads"]?.AsArray();
@@ -182,6 +182,9 @@ public static class CommandRunner
             return (2, Array.Empty<(string, string)>(), ex.ToString());
         }
     }
+
+    // Decodes as Node's readFileSync(path, 'utf8') does: a leading byte order mark is kept, not stripped.
+    private static string ReadText(string path) => System.Text.Encoding.UTF8.GetString(File.ReadAllBytes(path));
 
     private static string? GetFlag(string[] args, string name)
     {
