@@ -14,6 +14,22 @@ public sealed class AssessmentsV1Tests
     private static readonly (string, string) ExternalBeta = ("fixture/Alpha", "https://alpha.example/#external");
     private static readonly (string, string) BetaSystem = ("fixture/Beta", "https://beta.example/#system");
 
+    // assessment-init now writes schema 2; these tests pin schema 1, so they build its record as the pilot did.
+    private static JsonObject NewV1(RuntimeKnowledge.Impact.Model.ImpactModel model, string requestId, string description) => new()
+    {
+        ["schemaVersion"] = 1,
+        ["requestId"] = requestId,
+        ["description"] = description,
+        ["snapshotId"] = model.SnapshotId.DeepClone(),
+        ["registryCommit"] = model.Registry.Commit,
+        ["registryDigests"] = new JsonObject { ["mappings"] = model.Registry.MappingSha256, ["bindings"] = model.Registry.BindingSha256 },
+        ["architect"] = "",
+        ["confirmedLeads"] = new JsonArray(),
+        ["rejectedLeads"] = new JsonArray(),
+        ["likelyImpacts"] = new JsonArray(),
+        ["unresolved"] = new JsonArray()
+    };
+
     private static readonly JsonArray PathsFixture = new JsonArray(
         new JsonObject
         {
@@ -43,7 +59,7 @@ public sealed class AssessmentsV1Tests
     public void Architect_findings_render_with_evidence_and_gaps()
     {
         var model = TestModels.MakeModel();
-        var a = Assessments.New(model, "CR-1", "Change Alpha API");
+        var a = NewV1(model, "CR-1", "Change Alpha API");
         a["architect"] = "Architect A";
         a["confirmedLeads"] = new JsonArray(
             new JsonObject { ["sourceId"] = "fixture/Alpha", ["nodeIri"] = "https://alpha.example/#system" });
@@ -75,12 +91,12 @@ public sealed class AssessmentsV1Tests
     public void Stale_snapshot_paths_and_evidence_fail_validation()
     {
         var model = TestModels.MakeModel();
-        var a = Assessments.New(model, "CR-1", "Change");
+        var a = NewV1(model, "CR-1", "Change");
         a["snapshotId"]!["catalogCommit"] = new string('0', 40);
         Assert.Throws<ImpactException>(() => Assessments.Validate(a, model, PathsFixture, Array.Empty<JsonObject>()))
             .Message.Contains("snapshot");
 
-        var b = Assessments.New(model, "CR-1", "Change");
+        var b = NewV1(model, "CR-1", "Change");
         b["likelyImpacts"] = new JsonArray(
             new JsonObject
             {
@@ -97,7 +113,7 @@ public sealed class AssessmentsV1Tests
     public void Rendering_requires_an_identified_architect()
     {
         var model = TestModels.MakeModel();
-        var a = Assessments.New(model, "CR-1", "Change");
+        var a = NewV1(model, "CR-1", "Change");
         Assert.Throws<ImpactException>(() => AssessmentMarkdownV1.Render(a, model, PathsFixture, Array.Empty<JsonObject>()))
             .Message.Contains("architect");
     }
@@ -106,7 +122,7 @@ public sealed class AssessmentsV1Tests
     public void Unrelated_paths_cannot_support_an_impacted_element()
     {
         var model = TestModels.MakeModel();
-        var a = Assessments.New(model, "CR-1", "Change");
+        var a = NewV1(model, "CR-1", "Change");
         a["likelyImpacts"] = new JsonArray(
             new JsonObject
             {
@@ -123,7 +139,7 @@ public sealed class AssessmentsV1Tests
     public void Approval_fields_are_refused()
     {
         var model = TestModels.MakeModel();
-        var record = Assessments.New(model, "CR-1", "Change");
+        var record = NewV1(model, "CR-1", "Change");
         record["approved"] = true;
         Assert.Equal("approval is not supported",
             Assert.Throws<ImpactException>(() => Assessments.Validate(record, model, new JsonArray(), Array.Empty<JsonObject>())).Message);

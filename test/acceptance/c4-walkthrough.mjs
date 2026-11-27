@@ -47,7 +47,7 @@ export async function generateWalkthrough(root, { run = runC4Cli } = {}) {
     const assessmentPath = join(assessmentDir, 'assessment.json');
     const assessment = read(assessmentPath);
     Object.assign(assessment, {
-      architect: 'Sample architect',
+      assessor: 'Sample architect',
       confirmedLeads: [shop],
       rejectedLeads: [{ key: bank, reason: rejectionReason }],
       likelyImpacts: [{

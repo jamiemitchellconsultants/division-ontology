@@ -16,17 +16,11 @@ public static class Assessments
 
         return new JsonObject
         {
-            ["schemaVersion"] = 1,
+            ["schemaVersion"] = 2,
             ["requestId"] = requestId,
             ["description"] = description,
-            ["snapshotId"] = model.SnapshotId.DeepClone()!,
-            ["registryCommit"] = model.Registry.Commit,
-            ["registryDigests"] = new JsonObject
-            {
-                ["mappings"] = model.Registry.MappingSha256,
-                ["bindings"] = model.Registry.BindingSha256
-            },
-            ["architect"] = "",
+            ["assessor"] = "",
+            ["pins"] = Pins(model),
             ["confirmedLeads"] = new JsonArray(),
             ["rejectedLeads"] = new JsonArray(),
             ["likelyImpacts"] = new JsonArray(),
@@ -34,21 +28,88 @@ public static class Assessments
         };
     }
 
-    public static string Validate(JsonObject record, ImpactModel model, JsonArray paths, IReadOnlyList<JsonObject> views)
+    /// <summary>The model's pins, as a schema 2 record carries them. The registry pin is null when the bundle has no registry.</summary>
+    public static JsonObject Pins(ImpactModel model) => new()
     {
-        if (record["schemaVersion"]?.GetValue<int>() != 1 ||
-            !Text(record["requestId"]?.GetValue<string>()) ||
-            !Text(record["description"]?.GetValue<string>()))
+        ["snapshotId"] = model.SnapshotId.DeepClone(),
+        ["masterList"] = new JsonObject { ["status"] = "none" },
+        ["registry"] = model.Registry.Commit.Length == 0 ? null : new JsonObject
+        {
+            ["commit"] = model.Registry.Commit,
+            ["digests"] = new JsonObject
+            {
+                ["mappings"] = model.Registry.MappingSha256,
+                ["bindings"] = model.Registry.BindingSha256
+            }
+        }
+    };
+
+    /// <summary>Validates the record and returns the digest of its frozen form.</summary>
+    public static string Validate(JsonObject record, ImpactModel model, JsonArray paths, IReadOnlyList<JsonObject> views) =>
+        Freeze(record, model, paths, views)["digest"]!.GetValue<string>();
+
+    /// <summary>Validates the record and freezes it with everything it cites.</summary>
+    public static JsonObject Freeze(JsonObject record, ImpactModel model, JsonArray paths, IReadOnlyList<JsonObject> views)
+    {
+        if (!Text(record["requestId"]?.GetValue<string>()) || !Text(record["description"]?.GetValue<string>()))
             throw new ImpactException("invalid assessment");
 
-        if (EcmaJson.Stringify(EcmaJson.Canonical(record["snapshotId"])) !=
-            EcmaJson.Stringify(EcmaJson.Canonical(model.SnapshotId)))
+        var schema = record["schemaVersion"] is JsonValue v && v.TryGetValue<int>(out var n) ? n : 0;
+        switch (schema)
+        {
+            case 1: CheckSchema1Pins(record, model); break;
+            case 2: CheckSchema2Pins(record, model); break;
+            default: throw new ImpactException("invalid assessment");
+        }
+
+        CheckContent(record, model, paths, views);
+
+        if (schema == 1 ? record.ContainsKey("approved") || record.ContainsKey("approvalStatus") : ClaimsApproval(record))
+            throw new ImpactException("approval is not supported");
+
+        return Freezing.Freeze(record, model, paths, views);
+    }
+
+    private static bool Same(JsonNode? a, JsonNode? b) =>
+        EcmaJson.Stringify(EcmaJson.Canonical(a)) == EcmaJson.Stringify(EcmaJson.Canonical(b));
+
+    private static void CheckSchema1Pins(JsonObject record, ImpactModel model)
+    {
+        if (!Same(record["snapshotId"], model.SnapshotId))
             throw new ImpactException("snapshot mismatch");
 
         if (record["registryCommit"]?.GetValue<string>() != model.Registry.Commit ||
             record["registryDigests"]?["mappings"]?.GetValue<string>() != model.Registry.MappingSha256 ||
             record["registryDigests"]?["bindings"]?.GetValue<string>() != model.Registry.BindingSha256)
             throw new ImpactException("registry mismatch");
+    }
+
+    private static void CheckSchema2Pins(JsonObject record, ImpactModel model)
+    {
+        var expected = Pins(model);
+        var pins = record["pins"] as JsonObject;
+        if (pins == null || !Same(pins["snapshotId"], expected["snapshotId"]))
+            throw new ImpactException("snapshot mismatch");
+        if (!Same(pins["masterList"], expected["masterList"]))
+            throw new ImpactException("master list mismatch");
+        if (!Same(pins["registry"], expected["registry"]))
+            throw new ImpactException("registry mismatch");
+    }
+
+    // B31: no approval or sign-off field, at the top level or in any likely impact.
+    private static bool ClaimsApproval(JsonObject record)
+    {
+        static bool Claims(JsonObject o) => o.Select(p => p.Key).Any(k =>
+        {
+            var lower = k.ToLowerInvariant();
+            return k is "approved" or "approvalStatus" || lower.Contains("signoff") || lower.Contains("sign-off");
+        });
+        return Claims(record) ||
+               (record["likelyImpacts"] as JsonArray ?? []).OfType<JsonObject>().Any(Claims);
+    }
+
+    private static void CheckContent(JsonObject record, ImpactModel model, JsonArray paths, IReadOnlyList<JsonObject> views)
+    {
 
         foreach (var field in new[] { "confirmedLeads", "rejectedLeads", "likelyImpacts", "unresolved" })
         {
@@ -190,11 +251,6 @@ public static class Assessments
             if (!Text(gap!["reason"]?.GetValue<string>()))
                 throw new ImpactException("unresolved gap requires reason");
         }
-
-        if (record.ContainsKey("approved") || record.ContainsKey("approvalStatus"))
-            throw new ImpactException("approval is not supported");
-
-        return EcmaJson.CanonicalDigest(record);
     }
 
     private static bool Text(string? x) => x is { } s && s.Trim().Length > 0;

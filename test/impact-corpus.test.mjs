@@ -8,7 +8,7 @@ import { scenarios } from './impact-corpus/scenarios.mjs';
 
 const corpus = fileURLToPath(new URL('./impact-corpus/', import.meta.url));
 // Scenarios added in I2 and I3 are listed here until their behaviour lands.
-const pending = new Set(['confluence']);
+const pending = new Set();
 
 for (const id of Object.keys(scenarios)) {
   test(`B37 baseline: ${id} matches its expected bytes`, { skip: pending.has(id) }, async () => {

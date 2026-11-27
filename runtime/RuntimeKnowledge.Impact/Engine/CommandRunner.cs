@@ -107,10 +107,11 @@ public static class CommandRunner
                             ? Paths.Read(model, starts, 4)
                             : new JsonObject();
 
-                        var digest = Assessments.Validate(record, model,
-                            (paths["paths"] as JsonArray ?? new JsonArray()), views);
-                        var markdown = AssessmentMarkdownV1.Render(record, model,
-                            (paths["paths"] as JsonArray ?? new JsonArray()), views);
+                        var cited = paths["paths"] as JsonArray ?? new JsonArray();
+                        var frozen = Assessments.Freeze(record, model, cited, views);
+                        var markdown = record["schemaVersion"]?.GetValue<int>() == 2
+                            ? AssessmentMarkdown.Render(frozen)
+                            : AssessmentMarkdownV1.Render(record, model, cited, views);
                         files.Add(("assessment.md", markdown));
                     }
                     break;

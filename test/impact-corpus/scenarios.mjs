@@ -1,5 +1,6 @@
 import { writeFileSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { withPilotFixture } from '../fixtures/c4/fixture-repos.mjs';
 import { withConfluenceFixture } from '../fixtures/impact/confluence-repos.mjs';
 import { generateWalkthrough } from '../acceptance/c4-walkthrough.mjs';
@@ -7,6 +8,8 @@ import { generateWalkthrough } from '../acceptance/c4-walkthrough.mjs';
 const common = f => ['--catalog-commit', f.catalogCommit, '--registry-commit', f.registryCommit,
   ...[...f.checkouts].flatMap(([id, path]) => ['--checkout', `${id}=${path}`])];
 const at = key => `${key.sourceId}=${key.nodeIri}`;
+// The pilot's schema 1 record from before assessment-init wrote schema 2.
+const schema1Record = fileURLToPath(new URL('./pilot/fixtures/assessment-v1.json', import.meta.url));
 
 export const scenarios = {
   async pilot(run) {
@@ -31,7 +34,7 @@ export const scenarios = {
       await run(['assessment-init', ...c, '--request-id', 'CR-1', '--description-file', description], o);              // 12
       const record = JSON.parse(readFileSync(join(f.outputDir, 'assessment.json'), 'utf8'));
       const path = traced.paths.find(p => p.steps.length === 2);
-      Object.assign(record, { architect: 'Architect A', confirmedLeads: [f.keys.alphaSystem],
+      Object.assign(record, { assessor: 'Architect A', confirmedLeads: [f.keys.alphaSystem],
         rejectedLeads: [{ key: f.keys.externalBeta, reason: 'Out | <b>scope</b>\nnext' }],
         likelyImpacts: [{ key: path.steps[1].object, reason: 'Call path', pathIds: [path.id],
           evidenceIris: [path.steps[0].evidenceIris[0]] }],
@@ -46,6 +49,7 @@ export const scenarios = {
         perceivedCompleteness: 'partial', confidence: 'medium', usefulDiscoveries: ['Beta dependency'],
         suspectedMisses: ['data store'], falseLeads: [], examples: ['CR-1 path'], openQuestions: ['Who owns it?'] }));
       await run(['feedback-render', ...c, '--input', feedback, '--assessment-file', input], o);  // 14
+      await run(['assessment-render', ...c, '--input', schema1Record], o);                       // 15: schema 1 still renders
     });
   },
   async walkthrough(run, root) {

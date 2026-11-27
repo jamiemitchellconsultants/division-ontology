@@ -13,7 +13,8 @@ public static class AssessmentMarkdownV1
         if (!Text(record["architect"]?.GetValue<string>()))
             throw new ImpactException("architect is required");
 
-        var digest = Assessments.Validate(record, model, paths, views);
+        var frozen = Assessments.Freeze(record, model, paths, views);
+        var digest = frozen["digest"]!.GetValue<string>();
         var escaped = Escape;
 
         var lines = new List<string>
@@ -58,12 +59,13 @@ public static class AssessmentMarkdownV1
         foreach (var x in record["unresolved"]!.AsArray())
             lines.Add("- " + escaped(x["code"]!.GetValue<string>()) + ": " + escaped(x["reason"]!.GetValue<string>()));
 
+        lines.AddRange(AssessmentMarkdown.GapSections(frozen, Escape));
         return string.Join("\n", lines) + "\n";
     }
 
     private static bool Text(string? x) => x is { } s && s.Trim().Length > 0;
 
-    private static string Escape(string? x)
+    internal static string Escape(string? x)
     {
         if (x == null) return "";
         var s = x.Replace("\r", "").Replace("\n", " ")
