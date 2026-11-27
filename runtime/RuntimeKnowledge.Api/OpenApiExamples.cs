@@ -15,5 +15,13 @@ internal static class OpenApiExamples
     public static readonly TraversalRequest Traversal = new(Order, "outgoing", 2);
     public static readonly TraversalRequest TraversalNextPage = new(Order, "outgoing", 2, Cursor: "opaque-continuation-cursor");
 
-    public static IReadOnlyList<object> All { get; } = [CreateAnnotation, CreateRelationship, Search, Traversal, TraversalNextPage];
+    public static readonly ImpactKey ClaimLead = new("example-claims", "https://example.test/claims/graph#claim");
+    public const string ExampleSnapshot = "example-snapshot-id";
+    public static readonly ImpactSearchRequest ImpactSearch = new("example claim approval", null);
+    public static readonly ImpactSearchRequest ImpactSearchNextPage = new("example claim approval", null, Cursor: "opaque-continuation-cursor");
+    public static readonly ImpactPathsRequest ImpactPaths = new(ExampleSnapshot, [ClaimLead], 4);
+    public static readonly ImpactViewRequest ImpactView = new(ExampleSnapshot, ClaimLead, "container");
+
+    public static IReadOnlyList<object> All { get; } =
+        [CreateAnnotation, CreateRelationship, Search, Traversal, TraversalNextPage, ImpactSearch, ImpactSearchNextPage, ImpactPaths, ImpactView];
 }

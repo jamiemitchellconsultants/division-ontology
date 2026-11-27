@@ -59,6 +59,27 @@ internal static class WorkspaceLinks
         "</api/traverse>; rel=\"next\""
     ];
 
+    public static readonly IReadOnlyList<string> ImpactSearch =
+    [
+        $"</api/impact/paths>; rel=\"{Rel("traceImpact")}\"",
+        $"</api/impact/views>; rel=\"{Rel("viewC4")}\""
+    ];
+
+    public static readonly IReadOnlyList<string> ImpactSearchNext =
+    [
+        "</api/impact/search>; rel=\"next\""
+    ];
+
+    public static readonly IReadOnlyList<string> ImpactPaths =
+    [
+        $"</api/impact/views>; rel=\"{Rel("viewC4")}\""
+    ];
+
+    public static readonly IReadOnlyList<string> ImpactViews =
+    [
+        $"</api/impact/paths>; rel=\"{Rel("traceImpact")}\""
+    ];
+
     public static IReadOnlyList<string> NextPage(string path, string? nextCursor, int? limit = null, Guid? contributionId = null)
     {
         if (nextCursor is null) return [];

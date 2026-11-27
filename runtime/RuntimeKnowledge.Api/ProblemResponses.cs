@@ -44,9 +44,9 @@ internal static class ProblemResponses
     /// <summary>The single map from a workspace error code to its status. The spec derives its statuses from it.</summary>
     public static int StatusFor(string code) => code switch
     {
-        "entityNotFound" or "relationshipNotFound" or "contributionNotFound" => StatusCodes.Status404NotFound,
-        "versionConflict" or "staleCursor" => StatusCodes.Status409Conflict,
-        "snapshotUnavailable" or "writesPaused" or "searchUnavailable" => StatusCodes.Status503ServiceUnavailable,
+        "entityNotFound" or "relationshipNotFound" or "contributionNotFound" or "assessmentNotFound" => StatusCodes.Status404NotFound,
+        "versionConflict" or "staleCursor" or "snapshotChanged" => StatusCodes.Status409Conflict,
+        "snapshotUnavailable" or "writesPaused" or "searchUnavailable" or "impactUnavailable" => StatusCodes.Status503ServiceUnavailable,
         _ => StatusCodes.Status422UnprocessableEntity
     };
 }

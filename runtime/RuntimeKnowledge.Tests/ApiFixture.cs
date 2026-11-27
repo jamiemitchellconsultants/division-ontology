@@ -77,6 +77,22 @@ internal sealed class ApiFixture : IAsyncDisposable
         }
     }
 
+    /// <summary>As <see cref="OpenAsync(string)"/>, but runs <paramref name="arrange"/> in place of activating "initial".</summary>
+    public static async Task<ApiFixture> OpenAsync(string provider, Func<Scenario, Task> arrange)
+    {
+        var scenario = await Scenario.OpenAsync();
+        try
+        {
+            await arrange(scenario);
+            return new ApiFixture(scenario, provider);
+        }
+        catch
+        {
+            await scenario.DisposeAsync();
+            throw;
+        }
+    }
+
     public HttpClient CreateClient() => _factory.CreateClient();
 
     public HttpClient ClientWithToken(string[] roles, bool expired = false, string? issuer = null,

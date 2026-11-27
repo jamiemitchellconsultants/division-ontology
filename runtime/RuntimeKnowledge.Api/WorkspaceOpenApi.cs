@@ -138,6 +138,17 @@ internal static class WorkspaceOpenApi
                 [Link("next", "traverseGraph", "Continue the walk: submit this response's nextCursor as cursor with the original start, direction, maxDepth and includeUnavailable.", FromBody("cursor", "$response.body#/nextCursor")),
                  Link("entityDetail", "getEntityDetail", "Inspect an entity on a returned path; supply its key in an EntityDetailRequest body."),
                  Link("relationshipDetail", "getRelationshipDetail", "Inspect a traversed relationship in detail.")]),
+            ["POST api/impact/search"] = new("searchImpact", "workspace_search_impact", "none", true, true,
+                "Read-only impact lead search despite POST, paged at 100 leads. Matches node labels and catalog concepts in the active snapshot's impact model; each lead says whether it is supported (by a reviewed C4 mapping or verified evidence) and why, so only supported leads can start a trace. The response's snapshotId pins every later call. When nextCursor is set, submit it as cursor with the same query and exactIri; a cursor for another query fails 422 invalidCursor, and a cursor or snapshotId from an earlier snapshot fails 409 snapshotChanged, which means start again from a new search. 503 impactUnavailable means the active snapshot was published without an impact model.",
+                [Link("next", "searchImpact", "Fetch the next page: submit this response's nextCursor as cursor with the same query and exactIri.", FromBody("cursor", "$response.body#/nextCursor")),
+                 Link("traceImpact", "traceImpact", "Trace impact paths from supported leads; supply this response's snapshotId and the leads' keys as starts.", FromBody("snapshotId", "$response.body#/snapshotId")),
+                 Link("viewC4", "viewC4", "Show a C4 view of a mapped lead; supply this response's snapshotId.", FromBody("snapshotId", "$response.body#/snapshotId"))]),
+            ["POST api/impact/paths"] = new("traceImpact", "workspace_trace_impact", "none", true, true,
+                "Read-only impact trace despite POST. Starts are lead keys from searchImpact on the same snapshotId; unsupported starts are skipped and reported as gaps. Each path lists its steps in order with the cited evidence and lines, so a later step is never shown as a direct relationship of the start. Gaps say what could not be followed: missing relationship meaning, unlinked terms, unreadable evidence text and coverage gaps; an empty result does not prove no impact. A snapshotId that is no longer active fails 409 snapshotChanged.",
+                [Link("viewC4", "viewC4", "Show a C4 view of a node on a path; supply the same snapshotId.", FromBody("snapshotId", "$response.body#/snapshotId"))]),
+            ["POST api/impact/views"] = new("viewC4", "workspace_view_c4", "none", true, true,
+                "Read-only C4 view despite POST: projects the context, container, component or code level around a node that has a reviewed C4 mapping, as the C4 pilot's view JSON together with its Markdown. A node without a mapping returns an empty view with a no-c4-mapping gap. A snapshotId that is no longer active fails 409 snapshotChanged.",
+                [Link("traceImpact", "traceImpact", "Trace impact paths from a node in the view; supply the same snapshotId.", FromBody("snapshotId", "$response.body#/snapshotId"))]),
             ["GET api/history"] = new("listHistory", "workspace_list_history", "none", true, true,
                 "Cursor-paginated contribution history, ordered oldest first by journal position. Filter with contributionId to follow one contribution's revisions; pass nextCursor for the next page. Entries are historical revisions, so there is deliberately no edit follow-on here: edit only from a current contribution record (for example a create/edit response).",
                 [Link("next", "listHistory", "Fetch the next page using this page's nextCursor, keeping the same contributionId filter and limit.",
@@ -269,6 +280,7 @@ internal static class WorkspaceOpenApi
         {
             new() { Name = "Health", Description = "Anonymous readiness." },
             new() { Name = "Reading", Description = "Read-only queries over the published snapshot and contribution history (ReadKnowledgeGraph)." },
+            new() { Name = "Impact", Description = "Read-only impact search, path traces and C4 views over the active snapshot's impact model (ReadKnowledgeGraph)." },
             new() { Name = "Contributions", Description = "Writes that create, edit, remove or codify runtime contributions (ManageKnowledgeGraph)." }
         };
         document.Extensions ??= new Dictionary<string, IOpenApiExtension>();
@@ -287,7 +299,7 @@ internal static class WorkspaceOpenApi
             ["hateoas"] = "follow each success response's links and the runtime Link response headers",
             ["linkRelations"] = new JsonObject
             {
-                ["next"] = "listInventory, listHistory or traverseGraph: the next page of the same listing or walk (registered relation)",
+                ["next"] = "listInventory, listHistory, traverseGraph or searchImpact: the next page of the same listing, walk or search (registered relation)",
                 ["service-desc"] = "this OpenAPI document at /api/openapi/v1.json (registered relation)",
                 ["service-doc"] = "the interactive docs at /api/docs (registered relation)",
                 [WorkspaceLinks.RelationBase + "session"] = "getSession",
@@ -300,7 +312,9 @@ internal static class WorkspaceOpenApi
                 [WorkspaceLinks.RelationBase + "relationshipDetail"] = "getRelationshipDetail",
                 [WorkspaceLinks.RelationBase + "edit"] = "editContribution",
                 [WorkspaceLinks.RelationBase + "remove"] = "removeContribution",
-                [WorkspaceLinks.RelationBase + "codifications"] = "associateCodification"
+                [WorkspaceLinks.RelationBase + "codifications"] = "associateCodification",
+                [WorkspaceLinks.RelationBase + "traceImpact"] = "traceImpact",
+                [WorkspaceLinks.RelationBase + "viewC4"] = "viewC4"
             }
         });
         document.Components ??= new OpenApiComponents();

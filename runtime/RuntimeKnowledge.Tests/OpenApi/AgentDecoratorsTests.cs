@@ -19,6 +19,9 @@ public sealed class AgentDecoratorsTests
         { "post", "/api/search", "searchWorkspace", "workspace_search", "none", true, true, "SearchRequest", "SearchResult" },
         { "post", "/api/traverse", "traverseGraph", "workspace_traverse_graph", "none", true, true, "TraversalRequest", "TraversalResult" },
         { "get", "/api/history", "listHistory", "workspace_list_history", "none", true, true, "parameters", "HistoryPage" },
+        { "post", "/api/impact/search", "searchImpact", "workspace_search_impact", "none", true, true, "ImpactSearchRequest", "ImpactSearchResult" },
+        { "post", "/api/impact/paths", "traceImpact", "workspace_trace_impact", "none", true, true, "ImpactPathsRequest", "ImpactPathsResult" },
+        { "post", "/api/impact/views", "viewC4", "workspace_view_c4", "none", true, true, "ImpactViewRequest", "C4ViewResult" },
         { "post", "/api/contributions/annotations", "createAnnotation", "workspace_create_annotation", "creates-contribution", false, false, "CreateAnnotation", "ContributionResult" },
         { "post", "/api/contributions/relationships", "createRelationship", "workspace_create_relationship", "creates-contribution", false, false, "CreateRelationship", "ContributionResult" },
         { "put", "/api/contributions/{id}", "editContribution", "workspace_edit_contribution", "updates-contribution", false, false, "EditContributionRequest", "ContributionResult" },
@@ -68,7 +71,7 @@ public sealed class AgentDecoratorsTests
         Assert.Equal("/api/docs", (string)discovery["docs"]!);
         Assert.Equal("/health", (string)discovery["health"]!["path"]!);
         var tags = spec["tags"]!.AsArray().ToDictionary(t => (string)t!["name"]!, t => (string)t!["description"]!);
-        Assert.Equal(["Contributions", "Health", "Reading"], tags.Keys.Order(StringComparer.Ordinal));
+        Assert.Equal(["Contributions", "Health", "Impact", "Reading"], tags.Keys.Order(StringComparer.Ordinal));
         Assert.All(tags.Values, description => Assert.False(string.IsNullOrWhiteSpace(description)));
     }
 

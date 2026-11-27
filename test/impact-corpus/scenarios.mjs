@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { withPilotFixture } from '../fixtures/c4/fixture-repos.mjs';
 import { withConfluenceFixture } from '../fixtures/impact/confluence-repos.mjs';
 import { withMeaningFixture } from '../fixtures/impact/meaning-repos.mjs';
+import { withPagingFixture } from '../fixtures/impact/paging-repos.mjs';
 import { generateWalkthrough } from '../acceptance/c4-walkthrough.mjs';
 
 const common = f => ['--catalog-commit', f.catalogCommit, '--registry-commit', f.registryCommit,
@@ -102,6 +103,11 @@ export const scenarios = {
       await run(['assessment-render', ...c, '--input', input], o);                            // 3: B10 pin
       await run(['paths', ...at_(f.unlinkedCommit), '--start', at(f.keys.claim)], o);         // 4: B13 unlinked term
       await run(['paths', ...at_(f.corruptCommit), '--start', at(f.keys.claim)], o);          // 5: invalid list
+    });
+  },
+  async paging(run) {
+    await withPagingFixture(async f => {
+      await run(['search', ...common(f), '--output', f.outputDir, '--query', 'claim'], { cwd: f.divisionRoot }); // 0: 250 leads
     });
   }
 };
