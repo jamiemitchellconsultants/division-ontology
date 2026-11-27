@@ -60,5 +60,5 @@ public sealed class ImpactModelTests
 
     [Fact]
     public void Test_model_matches_makeModel() =>
-        Assert.Equal(5, TestModels.MakeModel().Registry!.Mappings.Count);
+        Assert.Equal(6, TestModels.MakeModel().Registry!.Mappings.Count);
 }

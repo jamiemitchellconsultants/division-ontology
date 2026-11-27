@@ -47,6 +47,7 @@ internal static class TestModels
             new JsonObject { ["sourceId"] = "fixture/Alpha", ["nodeIri"] = "https://alpha.example/#component", ["level"] = "component", ["role"] = "component", ["parent"] = new JsonObject { ["sourceId"] = "fixture/Alpha", ["nodeIri"] = "https://alpha.example/#container" }, ["supportAssertionIri"] = "https://alpha.example/#contains2", ["supportEvidenceIri"] = "https://alpha.example/#evidence" },
             new JsonObject { ["sourceId"] = "fixture/Alpha", ["nodeIri"] = "https://alpha.example/#container", ["level"] = "container", ["role"] = "container", ["parent"] = new JsonObject { ["sourceId"] = "fixture/Alpha", ["nodeIri"] = "https://alpha.example/#system" }, ["supportAssertionIri"] = "https://alpha.example/#contains1", ["supportEvidenceIri"] = "https://alpha.example/#evidence" },
             new JsonObject { ["sourceId"] = "fixture/Alpha", ["nodeIri"] = "https://alpha.example/#system", ["level"] = "context", ["role"] = "software-system", ["supportAssertionIri"] = "https://alpha.example/#assertion", ["supportEvidenceIri"] = "https://alpha.example/#evidence" },
+            new JsonObject { ["sourceId"] = "fixture/Alpha", ["nodeIri"] = "https://alpha.example/#external", ["level"] = "context", ["role"] = "software-system", ["supportAssertionIri"] = "https://alpha.example/#assertion", ["supportEvidenceIri"] = "https://alpha.example/#evidence" },
             new JsonObject { ["sourceId"] = "fixture/Beta", ["nodeIri"] = "https://beta.example/#system", ["level"] = "context", ["role"] = "software-system", ["supportAssertionIri"] = "https://beta.example/#assertion", ["supportEvidenceIri"] = "https://beta.example/#evidence" }
         );
 
@@ -121,7 +122,8 @@ internal static class TestModels
             ["files"] = new JsonArray(
                 new JsonObject { ["role"] = "impactInput", ["sourceId"] = "division-core", ["path"] = "impact-input.json", ["sha256"] = impactDigest, ["bytes"] = impactBytes.Length },
                 new JsonObject { ["role"] = "graphEvidence", ["sourceId"] = "fixture/Alpha", ["path"] = "src/app.ts", ["sha256"] = appSha256, ["bytes"] = appBytes.Length },
-                new JsonObject { ["role"] = "graphEvidence", ["sourceId"] = "fixture/Beta", ["path"] = "src/app.ts", ["sha256"] = appSha256, ["bytes"] = appBytes.Length }
+                new JsonObject { ["role"] = "graphEvidence", ["sourceId"] = "fixture/Beta", ["path"] = "src/app.ts", ["sha256"] = appSha256, ["bytes"] = appBytes.Length },
+                new JsonObject { ["role"] = "inspectedSource", ["sourceId"] = "fixture/Alpha", ["path"] = "src/app.ts", ["sha256"] = appSha256, ["bytes"] = appBytes.Length }
             )
         };
 

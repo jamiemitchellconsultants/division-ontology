@@ -664,6 +664,9 @@
       "runtimeknowledge.contracts": {
         "type": "Project"
       },
+      "runtimeknowledge.impact": {
+        "type": "Project"
+      },
       "runtimeknowledge.providers": {
         "type": "Project",
         "dependencies": {
