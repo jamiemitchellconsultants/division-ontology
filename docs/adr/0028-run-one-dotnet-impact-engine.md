@@ -25,8 +25,8 @@ Implement the impact rules once, in a .NET library, `runtime/RuntimeKnowledge.Im
 
 - There is one implementation of every impact rule, so the command line and the workspace cannot drift apart.
 - Architects need the .NET SDK pinned by `runtime/global.json` as well as Node. The first run builds the tool.
-- Path ids and digests must be serialised exactly as ECMAScript `JSON.stringify` does, so that today's C4 path ids are unchanged (B4).
-- The corpus that proves B4 must be captured before the Node engine is removed, because there is nothing to compare against afterwards.
+- Path ids and digests must be serialised exactly as ECMAScript `JSON.stringify` does, so that today's C4 path ids are unchanged (B37).
+- The corpus that proves B37 must be captured before the Node engine is removed, because there is nothing to compare against afterwards.
 
 ## Alternatives considered
 
