@@ -83,11 +83,20 @@ public sealed class TracesTests
     }
 
     [Fact]
+    public void Five_traces_are_accepted()                                                    // ADR 0035, amended
+    {
+        var model = Deep();
+        var path = PathTo(model, "system", 4, "code");
+        var five = new JsonArray(Enumerable.Range(0, 5).Select(_ => (JsonNode)Trace("system", 4)).ToArray());
+        Assert.NotEmpty(Assessments.CitablePaths(model, Record(model, "code", path, five)));
+    }
+
+    [Fact]
     public void Too_many_traces_or_starts_or_a_depth_out_of_range_is_refused()
     {
         var model = Deep();
         var path = PathTo(model, "system", 4, "code");
-        var tooMany = new JsonArray(Enumerable.Range(0, 21).Select(_ => (JsonNode)Trace("system", 4)).ToArray());
+        var tooMany = new JsonArray(Enumerable.Range(0, 6).Select(_ => (JsonNode)Trace("system", 4)).ToArray());
         var wideStarts = new JsonObject { ["starts"] = new JsonArray(Enumerable.Range(0, 21).Select(_ => (JsonNode)Key("system")).ToArray()), ["maxDepth"] = 4 };
         foreach (var traces in new[] { tooMany, new JsonArray(wideStarts), new JsonArray(Trace("system", 7)), new JsonArray(Trace("system", 0)),
                                        new JsonArray(new JsonObject { ["starts"] = new JsonArray(), ["maxDepth"] = 4 }) })

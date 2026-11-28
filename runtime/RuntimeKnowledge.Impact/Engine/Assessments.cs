@@ -51,7 +51,7 @@ public static class Assessments
             s["to"]?["sourceId"]?.GetValue<string>() == key["sourceId"]?.GetValue<string>() &&
             s["to"]?["nodeIri"]?.GetValue<string>() == key["nodeIri"]?.GetValue<string>());
 
-    private const int MaxTraces = 20, MaxTraceStarts = 20;
+    private const int MaxTraces = 5, MaxTraceStarts = 20;
 
     /// <summary>ADR 0035: the paths a record may cite, the union of the paths of every trace it lists, each once,
     /// in trace order. Without `traces`, its confirmed leads at depth 4, as the pilot traced them.</summary>
