@@ -192,6 +192,14 @@ For each task:
 
    Read the diff. Check that nothing outside the task's file list is staged, that no test was
    weakened, and that no `expected/` file changed unless the task requires it.
+
+   **The commit message must match the diff.** Before committing, list every change you intend to
+   describe and find each one in `git diff --cached --stat` and the diff itself. If a change you
+   meant to make is not staged, make it and stage it first; never describe a change the diff does
+   not contain. A body, if you write one, names only what the diff shows. `AI-Fingerprint:` lines
+   belong only in the pull request body, never in a commit message. After committing, run
+   `git show --stat HEAD` and check the file list again; if it does not match the message, stop and
+   report (section 9) rather than amending a pushed commit.
 7. Commit with the task's exact message as the subject, then a blank line, then the trailer:
 
    ```bash
@@ -282,7 +290,8 @@ Stop work immediately, commit nothing more, and print a report if any of these h
   change);
 - two authorities in section 2 disagree;
 - CI fails for a reason you cannot fix within the current task's files;
-- the working tree has changes you did not make.
+- the working tree has changes you did not make;
+- a pushed commit's message describes a change its diff does not contain.
 
 The report, printed in your final message and nothing else:
 
