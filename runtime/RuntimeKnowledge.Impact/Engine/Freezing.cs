@@ -177,7 +177,7 @@ public static class Freezing
         var starts = record["confirmedLeads"]!.AsArray()
             .Select(k => (k!["sourceId"]!.GetValue<string>(), k["nodeIri"]!.GetValue<string>()))
             .ToList();
-        if (starts.Count == 0) return [];
+        if (starts.Count == 0) return Paths.ModelGaps(model);
         return Paths.Read(model, starts)["gaps"]!.AsArray().Select(g => g!.AsObject());
     }
 }

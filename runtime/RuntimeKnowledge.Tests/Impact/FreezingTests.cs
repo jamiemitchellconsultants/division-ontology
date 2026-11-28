@@ -71,6 +71,16 @@ public sealed class FreezingTests
     }
 
     [Fact]
+    public void With_no_confirmed_lead_the_assessment_still_carries_the_master_list_gap()   // B9 (PR #220 review 7)
+    {
+        var model = Confluence();
+        var record = Assessments.New(model, "CR-9", "x");
+        record["assessor"] = "Analyst A";
+        var gaps = Freezing.Freeze(record, model, [], [])["gaps"]!["traces"]!.AsArray();
+        Assert.Single(gaps, g => g!["code"]!.GetValue<string>() == "no-relationship-master-list");
+    }
+
+    [Fact]
     public void Init_writes_schema_2_with_pins()                                     // B32 (command line)
     {
         var record = Assessments.New(Confluence(), "CR-9", "x");

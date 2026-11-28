@@ -33,6 +33,19 @@ public static class Paths
         ["nodeIri"] = pair.NodeIri
     });
 
+    /// <summary>The gaps every trace carries whatever its starts: registry gaps and, without a list, B9's gap.</summary>
+    public static IEnumerable<JsonObject> ModelGaps(ImpactModel model)
+    {
+        foreach (var g in model.Registry.Gaps)
+            yield return g.DeepClone()!.AsObject();
+        if (model.MasterList == null)
+            yield return new JsonObject
+            {
+                ["code"] = "no-relationship-master-list",
+                ["reason"] = "Impact direction is assumed from subject to object; no relationship master list is defined"
+            };
+    }
+
     public static JsonObject Read(ImpactModel model, IReadOnlyList<(string SourceId, string NodeIri)> starts, int maxDepth = 4)
     {
         if (!starts.Any())
@@ -43,15 +56,7 @@ public static class Paths
         var walk = new Walk { Model = model, MaxDepth = maxDepth };
         var gaps = walk.Gaps;
 
-        foreach (var g in model.Registry.Gaps)
-            gaps.Add(g.DeepClone()!.AsObject());
-
-        if (model.MasterList == null)
-            gaps.Add(new JsonObject
-            {
-                ["code"] = "no-relationship-master-list",
-                ["reason"] = "Impact direction is assumed from subject to object; no relationship master list is defined"
-            });
+        gaps.AddRange(ModelGaps(model));
 
         var evidenceGapsAt = gaps.Count;
 
