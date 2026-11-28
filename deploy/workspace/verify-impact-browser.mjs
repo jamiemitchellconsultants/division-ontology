@@ -20,14 +20,28 @@ async function tabTo(page, locator, key, name) {
 
 async function searchAndTrace(page, origin) {
   await page.goto(origin + '/impact');
-  await page.getByLabel('Change request description').fill('order');
+  await page.getByLabel('Change request description').fill('ecommerce');
   await page.keyboard.press('Enter');
-  const box = page.locator('input[type=checkbox]:not([disabled])').first();
-  await tabTo(page, box, 'Space', 'a supported lead');
-  assert.ok(await box.isChecked(), 'Space chooses the focused lead');
-  await tabTo(page, page.getByRole('button', { name: 'Trace impact' }), 'Enter', 'Trace impact');
-  // Search already shows its own limits; the paths heading renders only once a trace has succeeded.
+  const boxes = page.locator('input[type=checkbox]:not([disabled])');
+  const first = boxes.first();
+  await tabTo(page, first, 'Space', 'a supported lead');
+  assert.ok(await first.isChecked(), 'Space chooses the focused lead');
+  const trace = page.getByRole('button', { name: 'Trace impact' });
+  await tabTo(page, trace, 'Enter', 'Trace impact');
+  // Search already shows its own limits; only the paths heading and a rendered step prove a trace returned paths.
+  const steps = page.locator('.impact-path .impact-step');
+  const settled = () => steps.first().or(page.getByText('No paths were found')).waitFor();
   await page.getByRole('heading', { name: 'Impact paths' }).waitFor();
+  await settled();
+  for (let i = 1; !(await steps.count()); i++) {
+    assert.ok(i < Math.min(await boxes.count(), 10), 'a supported lead traces to at least one rendered step');
+    await boxes.nth(i - 1).uncheck();
+    await boxes.nth(i).check();
+    const traced = page.waitForResponse(r => r.url().endsWith('/api/impact/paths') && r.ok());
+    await trace.click();
+    await traced;
+    await settled();
+  }
 }
 
 // Q6: the impact pages work from the keyboard and have no serious or critical WCAG 2.2 AA violations.
