@@ -14,12 +14,12 @@ public sealed class AssessmentApiTests
     private static readonly string[] Read = ["ReadKnowledgeGraph"];
     private static readonly string[] Manage = ["ReadKnowledgeGraph", "ManageKnowledgeGraph"];
 
-    private static async Task<(ApiFixture Api, string Snapshot)> OpenAsync()
+    private static async Task<(ApiFixture Api, string Snapshot)> OpenAsync(string corpus = "confluence")
     {
         string? snapshot = null;
         var api = await ApiFixture.OpenAsync("Keycloak", async scenario =>
         {
-            snapshot = scenario.Bundles.AddCorpusBundle("confluence");
+            snapshot = scenario.Bundles.AddCorpusBundle(corpus);
             await scenario.Store.StageAsync(snapshot, CancellationToken.None);
             await scenario.Store.ActivateAsync(snapshot, CancellationToken.None);
         });
@@ -63,6 +63,25 @@ public sealed class AssessmentApiTests
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var preview = await response.Content.ReadFromJsonAsync<AssessmentPreview>(WorkspaceJson.Options);
         Assert.Contains("C4 registry: " + search.Registry!.Commit, preview!.Markdown);
+    }
+
+    [Fact]
+    public async Task A_browser_draft_on_a_listed_master_list_previews_and_saves()           // B32
+    {
+        var (api, snapshot) = await OpenAsync("meaning");
+        await using var _ = api;
+        var search = await (await api.ClientWithToken(Read).PostAsJsonAsync("api/impact/search", new ImpactSearchRequest("claim", null)))
+            .Content.ReadFromJsonAsync<ImpactSearchResult>(WorkspaceJson.Options);
+        Assert.Equal("listed", search!.MasterList.Status);
+        Assert.NotNull(search.MasterList.Sha256);
+        var draft = new RuntimeKnowledge.Web.Services.AssessmentDraft();
+        draft.Start(search.SnapshotId, "CR-21", "Change how claims affect cases\n", "Analyst A",
+            RuntimeKnowledge.Web.Services.AssessmentDraft.Pins(search));
+        draft.Confirm(new ImpactKey("fixture/claims", "https://example.test/claims/graph#claim"));
+        var preview = await api.ClientWithToken(Read).PostAsJsonAsync("api/assessments/preview", new AssessmentDraftRequest(snapshot, draft.Record!));
+        Assert.True(preview.StatusCode == HttpStatusCode.OK, await BodyAsync(preview));
+        var save = await api.ClientWithToken(Manage).PostAsJsonAsync("api/assessments", new AssessmentDraftRequest(snapshot, draft.Record!));
+        Assert.True(save.StatusCode == HttpStatusCode.Created, await BodyAsync(save));
     }
 
     [Fact]

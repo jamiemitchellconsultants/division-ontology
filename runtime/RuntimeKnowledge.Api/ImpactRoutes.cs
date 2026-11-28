@@ -68,6 +68,8 @@ internal static class ImpactRoutes
         var remaining = after is null ? leads : leads.Where(l => Compare(LeadKey(l), after.Key) > 0).ToList();
         var page = remaining.Take(PageSize).ToList();
         result["leads"] = new JsonArray(page.Select(l => (JsonNode)l.DeepClone()).ToArray());
+        // The engine's search output has no master list; drafts pin it from here, so it must be the model's.
+        if (model.MasterList is { } masterList) result["masterList"] = masterList.Identity.DeepClone();
 
         var mapped = Map<ImpactSearchResult>(result, snapshotId) with
         {
