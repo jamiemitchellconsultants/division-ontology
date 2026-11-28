@@ -37,39 +37,75 @@ public static class FrontMatter
         return new PageMetadata(title, url);
     }
 
-    // Plain, single-quoted and double-quoted scalars are decoded as YAML does. A YAML null, and anchors, aliases,
-    // tags, block and flow values, are treated as absent.
+    // Plain, single-quoted and double-quoted scalars are decoded as YAML does, and a comment may follow any of them.
+    // A YAML null, and anchors, aliases, tags, block and flow values, are treated as absent.
     private static string? Scalar(string raw)
     {
         var value = raw.Trim();
-        if (value.Length >= 2 && value[0] == '\'' && value[^1] == '\'')
-            return value[1..^1].Replace("''", "'");
-        if (value.Length >= 2 && value[0] == '"' && value[^1] == '"')
-            return DoubleQuoted(value[1..^1]);
-        if (value.Length > 0 && "&*!|>[{'\"".Contains(value[0])) return null;
+        if (value.Length > 0 && value[0] is '\'' or '"')
+        {
+            var (text, rest) = value[0] == '\'' ? SingleQuoted(value) : DoubleQuoted(value);
+            return text != null && (rest.Length == 0 || rest[0] == '#') ? text : null;
+        }
+        if (value.Length > 0 && "&*!|>[{".Contains(value[0])) return null;
         var comment = value.IndexOf(" #", StringComparison.Ordinal);
         if (comment >= 0) value = value[..comment].TrimEnd();
         return value is "" or "~" or "null" or "Null" or "NULL" ? null : value;
     }
 
-    private static string? DoubleQuoted(string body)
+    // Returns the decoded text and what follows the closing quote, trimmed; null text when it never closes.
+    private static (string? Text, string After) SingleQuoted(string value)
     {
         var text = new System.Text.StringBuilder();
-        for (var i = 0; i < body.Length; i++)
+        for (var i = 1; i < value.Length; i++)
         {
-            if (body[i] != '\\') { text.Append(body[i]); continue; }
-            if (++i == body.Length) return null;
-            switch (body[i])
+            if (value[i] != '\'') { text.Append(value[i]); continue; }
+            if (i + 1 < value.Length && value[i + 1] == '\'') { text.Append('\''); i++; continue; }
+            return (text.ToString(), value[(i + 1)..].Trim());
+        }
+        return (null, "");
+    }
+
+    private static (string? Text, string After) DoubleQuoted(string value)
+    {
+        var text = new System.Text.StringBuilder();
+        for (var i = 1; i < value.Length; i++)
+        {
+            var c = value[i];
+            if (c == '"') return (text.ToString(), value[(i + 1)..].Trim());
+            if (c != '\\') { text.Append(c); continue; }
+            if (++i == value.Length) return (null, "");
+            switch (value[i])
             {
                 case '\\': text.Append('\\'); break;
                 case '"': text.Append('"'); break;
                 case '/': text.Append('/'); break;
-                case 'n': text.Append('\n'); break;
-                case 't': text.Append('\t'); break;
                 case ' ': text.Append(' '); break;
-                default: return null;
+                case '0': text.Append('\0'); break;
+                case 'a': text.Append('\a'); break;
+                case 'b': text.Append('\b'); break;
+                case 't': text.Append('\t'); break;
+                case 'n': text.Append('\n'); break;
+                case 'v': text.Append('\v'); break;
+                case 'f': text.Append('\f'); break;
+                case 'r': text.Append('\r'); break;
+                case 'e': text.Append('\u001B'); break;
+                case 'N': text.Append('\u0085'); break;
+                case '_': text.Append('\u00A0'); break;
+                case 'L': text.Append('\u2028'); break;
+                case 'P': text.Append('\u2029'); break;
+                case 'x' or 'u' or 'U':
+                    var digits = value[i] switch { 'x' => 2, 'u' => 4, _ => 8 };
+                    if (i + digits >= value.Length ||
+                        !int.TryParse(value.AsSpan(i + 1, digits), System.Globalization.NumberStyles.HexNumber, null, out var code) ||
+                        !System.Text.Rune.IsValid(code))
+                        return (null, "");
+                    text.Append(new System.Text.Rune(code).ToString());
+                    i += digits;
+                    break;
+                default: return (null, "");
             }
         }
-        return text.ToString();
+        return (null, "");
     }
 }

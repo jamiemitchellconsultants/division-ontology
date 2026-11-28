@@ -65,6 +65,10 @@ public sealed class EvidenceTextTests
     [InlineData("title: 'Claims don''t wait'", "Claims don't wait")]
     [InlineData("title: \"Say \\\"hi\\\"\"", "Say \"hi\"")]
     [InlineData("title: Plain # comment", "Plain")]
+    [InlineData("title: \"Caf\\u00e9 policy\"", "Café policy")]
+    [InlineData("title: \"Quoted\" # a comment", "Quoted")]
+    [InlineData("title: 'Single' # a comment", "Single")]
+    [InlineData("title: \"Unclosed", null)]
     public void Yaml_scalars_are_decoded(string line, string? title)                       // B25 (PR #220 review 29)
     {
         Assert.Equal(title, FrontMatter.Parse($"---\n{line}\n---\n")!.Title);
