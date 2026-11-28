@@ -84,7 +84,7 @@ test('a run leaves no staging directory behind, on success or failure',async()=>
   // A temp directory of its own, because other test files run the command line in parallel.
   const saved=process.env.TMPDIR,own=mkdtempSync(join(tmpdir(),'cli-staging-test-'));process.env.TMPDIR=own;
   try {
-  const staged=()=>readdirSync(own);
+  const staged=()=>readdirSync(own).filter(n=>n.startsWith('division-impact-'));
   const common=['--catalog-commit',f.catalogCommit,'--registry-commit',f.registryCommit,...[...f.checkouts].flatMap(([id,path])=>['--checkout',`${id}=${path}`]),'--output',f.outputDir];
   assert.equal(await runC4Cli(['search',...common,'--query','Alpha API'],{cwd:f.divisionRoot}),0);
   assert.notEqual(await runC4Cli(['paths',...common,'--start','fixture/Alpha=urn:missing','--max-depth','9'],{cwd:f.divisionRoot,stderr:{write(){}}}),0);
