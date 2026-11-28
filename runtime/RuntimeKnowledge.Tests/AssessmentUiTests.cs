@@ -338,6 +338,89 @@ public sealed class AssessmentUiTests
         Assert.DoesNotContain(page.FindAll("button"), b => b.TextContent == "Load more versions");
     }
 
+    // A saved assessment citing one path whose step carries frozen page evidence (B32, B34).
+    private static SavedAssessment SavedWithEvidence()
+    {
+        var saved = Saved(pinned: false);
+        var frozen = saved.Frozen.DeepClone().AsObject();
+        frozen["paths"] = new JsonArray(new JsonObject
+        {
+            ["id"] = "p1",
+            ["steps"] = new JsonArray(new JsonObject
+            {
+                ["type"] = "assertion", ["subject"] = new JsonObject { ["sourceId"] = "example-claims", ["nodeIri"] = Key("a").NodeIri },
+                ["object"] = new JsonObject { ["sourceId"] = "example-claims", ["nodeIri"] = Key("b").NodeIri },
+                ["direction"] = "outgoing", ["assertionIri"] = "https://example.test/claims/graph#a-b", ["relationship"] = "https://example.test/rel#next",
+                ["basis"] = "direct", ["evidenceIris"] = new JsonArray("https://example.test/claims/graph#e1"), ["commit"] = new string('c', 40)
+            })
+        });
+        frozen["evidence"] = new JsonArray(new JsonObject
+        {
+            ["evidenceIri"] = "https://example.test/claims/graph#e1", ["sourceId"] = "example-claims", ["commit"] = new string('c', 40),
+            ["role"] = "selected-document", ["path"] = "pages/claim.md", ["startLine"] = 5, ["endLine"] = 5, ["blobId"] = new string('1', 40),
+            ["lines"] = new JsonArray("A claim affects its case."),
+            ["page"] = new JsonObject { ["title"] = "Claim policy", ["confluenceUrl"] = "https://confluence.example.test/pages/1" }
+        });
+        return saved with { Frozen = frozen };
+    }
+
+    [Fact]
+    public void The_saved_view_shows_registry_digests_evidence_provenance_and_step_citations()   // B32, B34 (re-review 6, 42)
+    {
+        var (context, _, _) = Context(canManage: false, (_, path, _) => SavedRoutes(SavedWithEvidence(), path));
+        using var _ = context;
+        var page = context.Render<SavedAssessmentView>(p => p.Add(c => c.Id, Guid.Parse("11111111-1111-1111-1111-111111111111")));
+        page.WaitForAssertion(() => Assert.Contains("mappings sha256", page.Markup));
+        Assert.Contains("bindings sha256", page.Markup);
+        Assert.Contains(new string('c', 40), page.Find("#assessment-evidence ~ ul, section[aria-labelledby=assessment-evidence]").TextContent);
+        Assert.Contains(page.FindAll("section[aria-labelledby=assessment-evidence] a"), a => a.GetAttribute("href") == "https://confluence.example.test/pages/1");
+        var step = page.Find(".impact-path li");
+        Assert.Contains("pages/claim.md:5-5", step.TextContent);
+        Assert.Equal("A claim affects its case.", step.QuerySelector("pre.evidence-lines")!.TextContent);
+    }
+
+    // Holds the answer to one path until released, so a test can change the page while it is pending.
+    private sealed class GatedApi(string gatedPath, Func<string, (HttpStatusCode, object)> respond) : HttpMessageHandler
+    {
+        public TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource Answered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
+        {
+            var path = request.RequestUri!.PathAndQuery.TrimStart('/');
+            if (path == gatedPath)
+            {
+                await Release.Task;
+                _ = Task.Delay(50).ContinueWith(_ => Answered.TrySetResult());
+            }
+            var (status, body) = path == "api/session" ? (HttpStatusCode.OK, new WorkspaceSession(true, false)) : respond(path);
+            return new HttpResponseMessage(status) { Content = JsonContent.Create(body, options: WorkspaceJson.Options) };
+        }
+    }
+
+    [Fact]
+    public void A_revision_answered_after_moving_to_another_assessment_is_not_shown()          // B22 (re-review 39)
+    {
+        var first = Saved(pinned: false);
+        var second = first with { Id = Guid.Parse("22222222-2222-2222-2222-222222222222"), RequestId = "CR-2" };
+        var handler = new GatedApi($"api/assessments/{first.Id:D}/revisions/1", path =>
+            SavedRoutes(path.Contains(first.Id.ToString("D")) ? first : second, path));
+        using var context = new BunitContext();
+        context.JSInterop.Mode = JSRuntimeMode.Loose;
+        context.Services.AddSingleton(new WorkspaceClient(new HttpClient(handler) { BaseAddress = new Uri("https://workspace.test") }));
+        context.Services.AddSingleton(new AssessmentDraft());
+        var page = context.Render<SavedAssessmentView>(p => p.Add(c => c.Id, first.Id));
+        page.WaitForAssertion(() => Assert.Contains("Show version 1", page.Markup));
+        page.FindAll("button").Single(b => b.TextContent == "Show version 1").Click();
+        page.Render(p => p.Add(c => c.Id, second.Id));
+        page.WaitForAssertion(() => Assert.Contains("CR-2", page.Markup));
+        handler.Release.SetResult();
+        handler.Answered.Task.Wait(TimeSpan.FromSeconds(5));
+        Thread.Sleep(200);
+        Assert.Contains("CR-2", page.Markup);
+        Assert.Empty(page.FindAll("pre.assessment-markdown"));
+    }
+
     [Fact]
     public void Edit_is_hidden_when_pinned_to_an_earlier_snapshot()                            // B33
     {
