@@ -80,6 +80,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [70](#entry-docs-feature-forbid-re-running-the-baseline-capture-in-the-198-build-han) | 2026-11-27 | docs(feature): forbid re-running the baseline capture in the #198 build handover | product | The hard rules now forbid running `capture.mjs` after Task 1. |
 | [71](#entry-docs-feature-correct-task-12-s-confluence-capture-expectations-198) | 2026-11-27 | docs(feature): correct Task 12's confluence capture expectations (#198) | product | The plan now guards `likelyImpacts` on a found path, which leaves it empty until B3 lands. |
 | [72](#entry-docs-feature-amend-impact-assessment-behaviours-for-the-pr-220-review-pu) | 2026-11-28 | docs(feature): amend impact assessment behaviours for the PR #220 review pushback (#200) | product | - A reviewed-link crossing substantiates a likely impact on the node it arrives at. Its links and catalog commit are the support, and no evidence IRI is needed (B39). |
+| [73](#entry-docs-feature-lower-the-assessment-trace-cap-to-five-201) | 2026-11-28 | docs(feature): lower the assessment trace cap to five (#201) | product | - A record lists at most 5 traces, each with at most 20 starts. That puts the worst case at about 10 s. The owner chose this over keeping 20 traces and accepting that worst-case previews fail on AWS. |
 
 ---
 
@@ -1978,3 +1979,32 @@ The PR #220 review found three cases the behaviours did not settle:
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
 AI-Fingerprint: sha256:ded4efbaa3f5
+
+---
+
+<a id="entry-docs-feature-lower-the-assessment-trace-cap-to-five-201"></a>
+
+## Entry 73 — 2026-11-28 — docs(feature): lower the assessment trace cap to five (#201)
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+ADR 0035 lets a record list the traces its cited paths came from, and validation re-traces each one. Task 42 measured the worst case on the Q1 fixture. A first preview of 20 traces of 20 starts took 37.8 s. That was after each trace had been limited to one run per request. One trace of 20 starts takes about 1.9 s. The time is inside the ADR's budget of 100 s, but above the 30 s that API Gateway allows on AWS.
+
+## Decision
+
+- A record lists at most 5 traces, each with at most 20 starts. That puts the worst case at about 10 s. The owner chose this over keeping 20 traces and accepting that worst-case previews fail on AWS.
+- A draft at 5 traces does not take paths from a sixth. The page says so, and the assessor starts another assessment for the rest. This is the architect's call.
+
+## Consequences
+
+- The engine refuses more than 5 traces as `invalidAssessment`.
+- The draft page stops at 5 traces.
+- The Q1 performance test measures previews at 5 traces of 20 starts.
+
+---
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+AI-Fingerprint: sha256:c89bdd1248e9
