@@ -85,6 +85,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [75](#entry-docs-feature-require-build-commit-messages-to-match-their-diffs-198) | 2026-11-28 | docs(feature): require build commit messages to match their diffs (#198) | product | Section 7 of the prompt now requires the executor to find every change it describes in the staged diff before committing, and to check `git show --stat HEAD` afterwards. |
 | [76](#entry-docs-feature-bound-a-trace-at-500-paths-200) | 2026-11-28 | docs(feature): bound a trace at 500 paths (#200) | product | - Every trace, on the command line and in the workspace, returns at most its first 500 paths, in today's order. It reports one `paths-truncated` gap when more exist (B40). - Assessments cite only paths in the bounded result. |
 | [77](#entry-docs-feature-bound-traces-and-repair-models-from-the-publisher-201) | 2026-11-28 | docs(feature): bound traces and repair models from the publisher (#201) | product | - **Publisher repair pass (ADR 0036, amended).** On AWS the publisher's schedule stays enabled. Each run, after any import, rebuilds the missing model of every activated snapshot, in its own short transaction outside the journal lock. |
+| [78](#entry-feat-generalise-impact-assessment-beyond-c4-198) | 2026-11-28 | feat: generalise impact assessment beyond C4 (#198) | product | Build the plan in docs/superpowers/plans/generalise-impact-assessment/plan.md as written, increment by increment, with the C4 baseline in test/impact-corpus as the arbiter of B37. |
 
 ---
 
@@ -2134,3 +2135,27 @@ AI-Fingerprint: sha256:f9ba4b1f8529
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
 AI-Fingerprint: sha256:bd998fb868f9
+
+---
+
+<a id="entry-feat-generalise-impact-assessment-beyond-c4-198"></a>
+
+## Entry 78 — 2026-11-28 — feat: generalise impact assessment beyond C4 (#198)
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The impact assessment only worked on C4-mapped sources and ran on a Node engine that the workspace
+could not share. The reviewed plan replaces it with one .NET engine used by both the command line
+and the workspace.
+
+## Decision
+
+Build the plan in docs/superpowers/plans/generalise-impact-assessment/plan.md as written, increment
+by increment, with the C4 baseline in test/impact-corpus as the arbiter of B37.
+
+## Consequences
+
+Architects need the .NET SDK to run `npm run c4`. The Node CI job installs it. The workspace gains
+impact search, trace and saved assessments.
