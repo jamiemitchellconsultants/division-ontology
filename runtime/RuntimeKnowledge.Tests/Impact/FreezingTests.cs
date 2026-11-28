@@ -110,8 +110,37 @@ public sealed class FreezingTests
         var (record, model, paths) = Draft("<script>x</script> | # Heading\n## Fake");
         var md = AssessmentMarkdown.Render(Freezing.Freeze(record, model, paths, []));
         Assert.DoesNotContain("<script>", md);
-        Assert.Contains("&lt;script&gt;x&lt;/script&gt; &#124; # Heading ## Fake", md);
+        Assert.Contains("&lt;script&gt;x&lt;/script&gt; &#124; \\# Heading \\#\\# Fake", md);
         Assert.DoesNotContain("\n## Fake", md);
+    }
+
+    [Theory]                                                                          // Q4 (PR #220 review 14)
+    [InlineData("# Not a heading\n", "\\# Not a heading ")]
+    [InlineData("- not a list\n", "\\- not a list ")]
+    [InlineData("1. not a list\n", "1\\. not a list ")]
+    [InlineData("    not code\n", "&#32;   not code ")]
+    [InlineData("*not* [a](link) `code` _x_\n", "\\*not\\* \\[a\\](link) \\`code\\` \\_x\\_ ")]
+    public void A_description_stays_literal_text(string description, string line)
+    {
+        var (record, model, paths) = Draft();
+        record["description"] = description;
+        var md = AssessmentMarkdown.Render(Freezing.Freeze(record, model, paths, []));
+        Assert.Equal(line, md.Split('\n')[2]);
+    }
+
+    [Fact]
+    public void The_export_shows_source_commits_registry_digests_and_cited_steps()   // B32, B34 (PR #220 review 15)
+    {
+        var (record, model, paths) = Draft();
+        var frozen = Freezing.Freeze(record, model, paths, []);
+        var md = AssessmentMarkdown.Render(frozen);
+        foreach (var source in frozen["pins"]!["snapshotId"]!["sources"]!.AsArray())
+            Assert.Contains($"Source {source!["id"]}: {source["commit"]}\n", md);
+        var digests = frozen["pins"]!["registry"]!["digests"]!;
+        Assert.Contains($"(mappings sha256 {digests["mappings"]}, bindings sha256 {digests["bindings"]})", md);
+        var path = frozen["paths"]!.AsArray().Single()!;
+        Assert.Contains($"## Cited paths\n- {path["id"]}\n  1. fixture/policies: {P}expense-policy → ", md);
+        Assert.Contains("  2. ", md);
     }
 
     [Fact]
