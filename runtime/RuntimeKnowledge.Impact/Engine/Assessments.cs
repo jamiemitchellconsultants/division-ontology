@@ -96,17 +96,18 @@ public static class Assessments
             throw new ImpactException("registry mismatch");
     }
 
-    // B31: no approval or sign-off field, at the top level or in any likely impact.
-    private static bool ClaimsApproval(JsonObject record)
+    // B31: no approval or sign-off field anywhere in the record, since the whole record is frozen and stored.
+    private static bool ClaimsApproval(JsonNode? node) => node switch
     {
-        static bool Claims(JsonObject o) => o.Select(p => p.Key).Any(k =>
+        JsonObject o => o.Any(p =>
         {
-            var lower = k.ToLowerInvariant();
-            return k is "approved" or "approvalStatus" || lower.Contains("signoff") || lower.Contains("sign-off");
-        });
-        return Claims(record) ||
-               (record["likelyImpacts"] as JsonArray ?? []).OfType<JsonObject>().Any(Claims);
-    }
+            var lower = p.Key.ToLowerInvariant();
+            return p.Key is "approved" or "approvalStatus" || lower.Contains("signoff") || lower.Contains("sign-off") ||
+                   ClaimsApproval(p.Value);
+        }),
+        JsonArray a => a.Any(ClaimsApproval),
+        _ => false
+    };
 
     private static void CheckContent(JsonObject record, ImpactModel model, JsonArray paths, IReadOnlyList<JsonObject> views)
     {

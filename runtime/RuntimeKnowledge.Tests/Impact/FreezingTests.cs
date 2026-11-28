@@ -131,6 +131,12 @@ public sealed class FreezingTests
         var (record, model, paths) = Draft();
         var signed = record.DeepClone().AsObject(); signed["managerSignOff"] = "yes";
         Assert.Equal("approval is not supported", Assert.Throws<ImpactException>(() => Assessments.Validate(signed, model, paths, [])).Message);
+        var nested = record.DeepClone().AsObject();
+        nested["unresolved"] = new JsonArray(new JsonObject { ["code"] = "owner-unknown", ["reason"] = "Who owns the ledger?", ["signOff"] = "manager" });
+        Assert.Equal("approval is not supported", Assert.Throws<ImpactException>(() => Assessments.Validate(nested, model, paths, [])).Message);
+        var deep = record.DeepClone().AsObject();
+        deep["likelyImpacts"]![0]!["key"]!["approved"] = true;
+        Assert.Equal("approval is not supported", Assert.Throws<ImpactException>(() => Assessments.Validate(deep, model, paths, [])).Message);
         var moved = record.DeepClone().AsObject(); moved["pins"]!["masterList"] = new JsonObject { ["status"] = "listed", ["catalogCommit"] = new string('a', 40), ["sha256"] = new string('b', 64) };
         Assert.Equal("master list mismatch", Assert.Throws<ImpactException>(() => Assessments.Validate(moved, model, paths, [])).Message);
     }
