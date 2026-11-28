@@ -18,8 +18,8 @@ dotnet test runtime/RuntimeKnowledge.Tests --filter "FullyQualifiedName~Conforma
 
 `capture.mjs` overwrites `expected/` and `steps.json` with whatever the engine does now. The Node
 engine has been removed, so a capture records the .NET engine and turns any bug into the
-baseline. Run it only where a task in the detailed plan says to. Rebuild the tool first, because
-the command line reuses an existing build:
+baseline. Run it only where a task in the detailed plan says to. The command line rebuilds the tool
+whenever the engine sources change; clearing the cache first makes the capture independent of it:
 
 ```bash
 rm -rf .cache/impact-cli && npm run impact:build
