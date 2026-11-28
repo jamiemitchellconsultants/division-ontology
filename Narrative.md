@@ -78,7 +78,8 @@ This document records what was asked, what was decided, why, and what followed.
 | [68](#entry-docs-feature-amend-impact-assessment-architecture-for-pushback-201) | 2026-11-27 | docs(feature): amend impact assessment architecture for pushback (#201) | product | - The traceability table now covers B37 and B38. Comparing against the C4 baseline fails on any difference outside B37's list. - The engine reports one `unlinked-term` gap for each source and term, listing the nodes in sorted order. |
 | [69](#entry-docs-feature-plan-generalised-impact-assessment-build-202) | 2026-11-27 | docs(feature): plan generalised impact assessment build (#202) | product | - **The walking skeleton is a fixed baseline.** I1 first captures today's Node outputs on every C4 fixture scenario, with Git dates and identities pinned so the capture is deterministic, under `test/impact-corpus/`. |
 | [70](#entry-docs-feature-forbid-re-running-the-baseline-capture-in-the-198-build-han) | 2026-11-27 | docs(feature): forbid re-running the baseline capture in the #198 build handover | product | The hard rules now forbid running `capture.mjs` after Task 1. |
-| [71](#entry-docs-feature-amend-impact-assessment-behaviours-for-the-pr-220-review-pu) | 2026-11-28 | docs(feature): amend impact assessment behaviours for the PR #220 review pushback (#200) | product | - A reviewed-link crossing substantiates a likely impact on the node it arrives at. Its links and catalog commit are the support, and no evidence IRI is needed (B39). |
+| [71](#entry-docs-feature-correct-task-12-s-confluence-capture-expectations-198) | 2026-11-27 | docs(feature): correct Task 12's confluence capture expectations (#198) | product | The plan now guards `likelyImpacts` on a found path, which leaves it empty until B3 lands. |
+| [72](#entry-docs-feature-amend-impact-assessment-behaviours-for-the-pr-220-review-pu) | 2026-11-28 | docs(feature): amend impact assessment behaviours for the PR #220 review pushback (#200) | product | - A reviewed-link crossing substantiates a likely impact on the node it arrives at. Its links and catalog commit are the support, and no evidence IRI is needed (B39). |
 
 ---
 
@@ -1921,9 +1922,33 @@ AI-Fingerprint: sha256:e61863ef4fe9
 
 ---
 
+<a id="entry-docs-feature-correct-task-12-s-confluence-capture-expectations-198"></a>
+
+## Entry 71 — 2026-11-27 — docs(feature): correct Task 12's confluence capture expectations (#198)
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+Task 12 said that the confluence capture records "steps 2 and 4 refused". In fact the engine returns exit 0 with an `unsupported-start` gap and no paths, as I1's pilot step 5 does. As a result, the scenario's `traced.paths.find(...)` returns `undefined`, and the unguarded `path.id` crashes before step 7. The executor worked around the crash, and also added `architect` to the render input. With an architect set, step 7 passes before B30 lands, so the baseline would never show B30 changing it.
+
+## Decision
+
+The plan now guards `likelyImpacts` on a found path, which leaves it empty until B3 lands. It also spells out what today's capture must record: steps 2–4 with exit 0 and `unsupported-start`, the view `unsupported-focus`, and step 7 with exit 1 because there is no `architect`. It says explicitly not to add `architect`. No behaviour, task or commit message changes.
+
+## Consequences
+
+A re-run of Task 12 no longer crashes. The confluence baseline shows B3 and B30 arriving as separate diffs in later tasks.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+AI-Fingerprint: sha256:a70963db5796
+
+---
+
 <a id="entry-docs-feature-amend-impact-assessment-behaviours-for-the-pr-220-review-pu"></a>
 
-## Entry 71 — 2026-11-28 — docs(feature): amend impact assessment behaviours for the PR #220 review pushback (#200)
+## Entry 72 — 2026-11-28 — docs(feature): amend impact assessment behaviours for the PR #220 review pushback (#200)
 
 *Kind: product. Status: accepted.*
 
