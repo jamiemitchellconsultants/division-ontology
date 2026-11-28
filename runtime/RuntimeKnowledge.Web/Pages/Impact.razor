@@ -72,7 +72,9 @@ else if (searchGaps is not null)
     {
         Clear();
         searchedQuery = query;
-        return Run(async () => Show(await Api.ImpactSearch(new ImpactSearchRequest(searchedQuery, null))));
+        // A search made for a draft in progress is pinned to the draft's snapshot, so a newer one refuses it (B36).
+        var expected = Draft.Record is null ? null : Draft.SnapshotId;
+        return Run(async () => Show(await Api.ImpactSearch(new ImpactSearchRequest(searchedQuery, null, expected))));
     }
 
     private Task LoadMore() =>
@@ -96,6 +98,7 @@ else if (searchGaps is not null)
     private void UseInDraft()
     {
         if (paths is null || !ContinuesDraft) return;
+        if (TooManyStarts()) return;
         if (!Draft.UsePaths(paths.Paths, tracedStarts))
         {
             message = $"Assessment {Draft.RequestId} already cites {AssessmentDraft.MaxTraces} traces, the most it can. Start another assessment for these paths.";
@@ -107,11 +110,20 @@ else if (searchGaps is not null)
     private async Task StartAssessment()
     {
         if (firstPage is null || string.IsNullOrWhiteSpace(requestId)) return;
+        if (paths is not null && TooManyStarts()) return;
         var user = Authentication is null ? null : (await Authentication).User;
         var assessor = user?.FindFirst("name")?.Value ?? user?.FindFirst("sub")?.Value ?? "Workspace user";
         Draft.Start(firstPage.SnapshotId, requestId.Trim(), searchedQuery ?? query, assessor, AssessmentDraft.Pins(firstPage));
         if (paths is not null) Draft.UsePaths(paths.Paths, tracedStarts);
         Navigation.NavigateTo("assessments/draft");
+    }
+
+    // ADR 0035: a trace an assessment cites has at most 20 starts.
+    private bool TooManyStarts()
+    {
+        if (tracedStarts.Count <= AssessmentDraft.MaxTraceStarts) return false;
+        message = $"An assessment can cite a trace of at most {AssessmentDraft.MaxTraceStarts} starts. This one has {tracedStarts.Count}: choose fewer leads and trace again.";
+        return true;
     }
 
     private void Toggle(ImpactKey key)
@@ -150,6 +162,11 @@ else if (searchGaps is not null)
         {
             Clear();
             message = problem.Message;
+            if (Draft.Record is not null)
+            {
+                Draft.Discard();
+                message = "The workspace snapshot changed, so the draft in progress can no longer be saved. Exports you downloaded are unaffected.";
+            }
         }
         catch (WorkspaceApiException problem) { error = problem; }
         finally { busy = false; }

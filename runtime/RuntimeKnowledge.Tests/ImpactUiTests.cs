@@ -122,6 +122,38 @@ public sealed class ImpactUiTests
     }
 
     [Fact]
+    public void A_search_for_a_draft_is_pinned_and_a_newer_snapshot_discards_the_draft()      // B36 (re-review 40)
+    {
+        var draft = new AssessmentDraft();
+        draft.Start(Snapshot, "CR-7", "Claim threshold", "Analyst A", AssessmentDraft.Pins(SearchPage([])));
+        var (context, page, api) = Render((_, _, _) => (HttpStatusCode.Conflict,
+            new { code = "snapshotChanged", title = "The workspace snapshot changed. Start again from a new search." }), draft);
+        using var _ = context;
+        page.Find("form").Submit();
+        page.WaitForAssertion(() => Assert.Contains("the draft in progress can no longer be saved", page.Markup));
+        Assert.Equal(Snapshot, (string)api.Requests.Single(r => r.Path == "api/impact/search").Body["snapshotId"]!);
+        Assert.Null(draft.Record);
+    }
+
+    [Fact]
+    public void A_trace_of_more_than_20_starts_is_not_taken_into_an_assessment()             // ADR 0035 (re-review 38)
+    {
+        var many = Enumerable.Range(0, 21).Select(i => Lead($"l{i}")).ToList();
+        var draft = new AssessmentDraft();
+        var (context, page, _) = Render(SearchThen(SearchPage(many), PathsResult(new ImpactPath("p1", [AssertionStep("l0", "c")]))), draft);
+        using var _ = context;
+        SearchFor(page, "claim");
+        page.WaitForAssertion(() => Assert.Equal(21, page.FindAll("li input[type=checkbox]").Count));
+        for (var i = 0; i < 21; i++) Choose(page, i);
+        Click(page, "Trace impact");
+        page.WaitForAssertion(() => Assert.Contains("Impact paths", page.Markup));
+        page.Find("#assessment-request-id").Change("CR-8");
+        page.Find("form.start-assessment").Submit();
+        Assert.Contains("at most 20 starts. This one has 21", page.Markup);
+        Assert.Null(draft.Record);
+    }
+
+    [Fact]
     public void A_graph_lead_and_a_catalog_concept_with_the_same_key_both_render()          // B1 (PR #220 review 24)
     {
         var concept = Lead("a") with { Kind = "concept", SourceCommit = null, Reason = "Catalog concept" };

@@ -73,7 +73,7 @@ else
             }
             <label for="impact-reason">Reason</label>
             <input id="impact-reason" type="text" @bind="impactReason" />
-            <button type="button" disabled="@(string.IsNullOrWhiteSpace(impactReason) || chosenPaths.Count == 0 || (chosenEvidence.Count == 0 && !CrossingSupport(chosen).Any()))" @onclick="AddImpact">Add likely impact</button>
+            <button type="button" disabled="@(string.IsNullOrWhiteSpace(impactReason) || chosenPaths.Count == 0 || (!EligibleEvidence().Any() && !CrossingSupport(chosen).Any()))" @onclick="AddImpact">Add likely impact</button>
         }
         <ul>
             @foreach (var (impact, index) in record["likelyImpacts"]!.AsArray().Select((impact, index) => (impact, index)))
@@ -191,6 +191,13 @@ else
     private IEnumerable<ImpactStep> CrossingSupport(ImpactKey node) => Draft.Paths.Where(p => chosenPaths.Contains(p.Id))
         .SelectMany(p => p.Steps).Where(s => s.Type == "reviewedLinkCrossing" && s.To == node).DistinctBy(s => (s.SharedTerm, s.CatalogCommit));
 
+    // The chosen evidence that the currently chosen paths still offer: what enabling and adding both use.
+    private IEnumerable<string> EligibleEvidence()
+    {
+        var offered = OfferedEvidence().ToHashSet(StringComparer.Ordinal);
+        return chosenEvidence.Where(offered.Contains);
+    }
+
     private static void Toggle(HashSet<string> set, string value)
     {
         if (!set.Remove(value)) set.Add(value);
@@ -199,8 +206,9 @@ else
     private void AddImpact()
     {
         if (ChosenNode is not { } node) return;
-        var offered = OfferedEvidence().ToHashSet();
-        Draft.AddImpact(node, impactReason, chosenPaths.ToList(), chosenEvidence.Where(offered.Contains).ToList());
+        var evidence = EligibleEvidence().ToList();
+        if (impactReason.Trim().Length == 0 || chosenPaths.Count == 0 || (evidence.Count == 0 && !CrossingSupport(node).Any())) return;
+        Draft.AddImpact(node, impactReason, chosenPaths.ToList(), evidence);
         impactNode = impactReason = "";
         chosenPaths.Clear();
         chosenEvidence.Clear();

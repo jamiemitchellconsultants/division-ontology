@@ -225,6 +225,35 @@ public sealed class AssessmentUiTests
     }
 
     [Fact]
+    public void Unticking_the_path_that_offered_the_chosen_evidence_disables_add()            // B17 (re-review 10)
+    {
+        var (context, draft, _) = Context(canManage: false, (_, _, _) => (HttpStatusCode.OK, new { }));
+        using var _ = context;
+        StartDraft(draft);
+        var page = context.Render<AssessmentDraftPage>();
+        page.Find("#impact-node").Change($"{Key("b").SourceId}\n{Key("b").NodeIri}");
+        page.Find("#impact-path-0").Change(true);
+        page.Find("#impact-evidence-0").Change(true);
+        page.Find("#impact-reason").Change("Claims change");
+        Assert.False(Buttons(page, "Add likely impact").Single().HasAttribute("disabled"));
+        page.Find("#impact-path-0").Change(false);
+        Assert.True(Buttons(page, "Add likely impact").Single().HasAttribute("disabled"));
+    }
+
+    [Fact]
+    public void The_same_starts_in_another_order_are_one_trace_and_21_starts_are_refused()     // ADR 0035 (re-review 38, 44)
+    {
+        var draft = new AssessmentDraft();
+        draft.Start(Snapshot, "CR-1", "x", "Analyst A", Pins);
+        Assert.True(draft.UsePaths([], [Key("b"), Key("a")]));
+        Assert.True(draft.UsePaths([], [Key("a"), Key("b")]));
+        Assert.Single(draft.Record!["traces"]!.AsArray());
+        Assert.Equal(Key("a").NodeIri, (string)draft.Record["traces"]![0]!["starts"]![0]!["nodeIri"]!);
+        Assert.False(draft.UsePaths([], Enumerable.Range(0, 21).Select(i => Key($"n{i}")).ToList()));
+        Assert.Single(draft.Record["traces"]!.AsArray());
+    }
+
+    [Fact]
     public void Preview_shows_markdown_as_text()                                                // Q4
     {
         var (context, draft, _) = Context(canManage: false, (_, _, _) => (HttpStatusCode.OK, Preview("# Impact\n<script>alert(1)</script>\n")));

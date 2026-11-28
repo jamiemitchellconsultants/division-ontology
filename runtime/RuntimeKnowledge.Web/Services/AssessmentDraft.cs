@@ -73,11 +73,15 @@ public sealed class AssessmentDraft
     /// <summary>The most traces a record may list (ADR 0035).</summary>
     public const int MaxTraces = 5;
 
+    /// <summary>The most starts one cited trace may have (ADR 0035).</summary>
+    public const int MaxTraceStarts = 20;
+
     /// <summary>Takes the paths of one trace into the draft. Paths from earlier traces stay citable, and the trace
     /// is recorded once in the record's `traces`, so validation re-traces exactly what was shown (ADR 0035).
     /// Returns false, changing nothing, when it would be a trace beyond <see cref="MaxTraces"/>.</summary>
     public bool UsePaths(IReadOnlyList<ImpactPath> paths, IReadOnlyList<ImpactKey>? starts = null, int maxDepth = 4)
     {
+        if (starts is { Count: > MaxTraceStarts }) return false;
         if (starts is { Count: > 0 } && Record is { } current && TraceCountWith(current, starts, maxDepth) > MaxTraces) return false;
         var known = Paths.Select(p => p.Id).ToHashSet(StringComparer.Ordinal);
         Paths = [.. Paths, .. paths.Where(p => known.Add(p.Id))];
@@ -99,9 +103,11 @@ public sealed class AssessmentDraft
 
     private static void AddTrace(JsonObject record, IReadOnlyList<ImpactKey> starts, int maxDepth)
     {
+        // Starts are stored in source and IRI order, so the same trace selected in another order is one trace.
         static JsonObject Trace(IEnumerable<ImpactKey> keys, int depth) => new()
         {
-            ["starts"] = new JsonArray(keys.Select(k => (JsonNode)KeyNode(k)).ToArray()),
+            ["starts"] = new JsonArray(keys.Distinct().OrderBy(k => k.SourceId, StringComparer.Ordinal).ThenBy(k => k.NodeIri, StringComparer.Ordinal)
+                .Select(k => (JsonNode)KeyNode(k)).ToArray()),
             ["maxDepth"] = depth
         };
         if (record["traces"] is not JsonArray traces)
