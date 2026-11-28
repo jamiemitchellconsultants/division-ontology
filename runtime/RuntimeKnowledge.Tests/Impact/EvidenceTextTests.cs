@@ -46,6 +46,30 @@ public sealed class EvidenceTextTests
         Assert.Equal(["The old ledger still exports claims nightly."], text.Lines);
     }
 
+    [Fact]
+    public void A_selected_document_that_is_not_markdown_is_ordinary_even_with_document_markers()   // B38 (PR #220 review 29)
+    {
+        var yaml = Encoding.UTF8.GetBytes("---\nkind: config\n---\n");
+        var m = TestModels.MakeModel(input =>
+                input["sources"]![0]!["graph"]!["evidence"]![0]!["role"] = EvidenceText.PageRole,
+            blobOverride: _ => yaml);
+        var text = EvidenceText.Read(m, "fixture/Alpha", m.Source("fixture/Alpha")!.EvidenceNode("https://alpha.example/#evidence")!);
+        Assert.NotNull(text.Lines);
+        Assert.Null(text.Page);
+        Assert.Null(text.Gap);
+    }
+
+    [Theory]
+    [InlineData("title: null", null)]
+    [InlineData("title: ~", null)]
+    [InlineData("title: 'Claims don''t wait'", "Claims don't wait")]
+    [InlineData("title: \"Say \\\"hi\\\"\"", "Say \"hi\"")]
+    [InlineData("title: Plain # comment", "Plain")]
+    public void Yaml_scalars_are_decoded(string line, string? title)                       // B25 (PR #220 review 29)
+    {
+        Assert.Equal(title, FrontMatter.Parse($"---\n{line}\n---\n")!.Title);
+    }
+
     [Theory]
     [InlineData("---\ntitle: T\nconfluence_url: http://insecure.test/x\n---\n", "Exported page has no Confluence address")]
     [InlineData("---\nconfluence_url: https://c.test/x\n---\n", "Exported page has no title")]

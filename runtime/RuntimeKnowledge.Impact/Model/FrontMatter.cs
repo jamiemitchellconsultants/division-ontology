@@ -37,13 +37,39 @@ public static class FrontMatter
         return new PageMetadata(title, url);
     }
 
-    // Only plain or singly quoted scalars count; YAML anchors, aliases, tags, block and flow values are treated as absent.
+    // Plain, single-quoted and double-quoted scalars are decoded as YAML does. A YAML null, and anchors, aliases,
+    // tags, block and flow values, are treated as absent.
     private static string? Scalar(string raw)
     {
         var value = raw.Trim();
-        if (value.Length >= 2 && (value[0] == '"' || value[0] == '\'') && value[^1] == value[0])
-            return value[1..^1];
-        if (value.Length > 0 && "&*!|>[{".Contains(value[0])) return null;
-        return value;
+        if (value.Length >= 2 && value[0] == '\'' && value[^1] == '\'')
+            return value[1..^1].Replace("''", "'");
+        if (value.Length >= 2 && value[0] == '"' && value[^1] == '"')
+            return DoubleQuoted(value[1..^1]);
+        if (value.Length > 0 && "&*!|>[{'\"".Contains(value[0])) return null;
+        var comment = value.IndexOf(" #", StringComparison.Ordinal);
+        if (comment >= 0) value = value[..comment].TrimEnd();
+        return value is "" or "~" or "null" or "Null" or "NULL" ? null : value;
+    }
+
+    private static string? DoubleQuoted(string body)
+    {
+        var text = new System.Text.StringBuilder();
+        for (var i = 0; i < body.Length; i++)
+        {
+            if (body[i] != '\\') { text.Append(body[i]); continue; }
+            if (++i == body.Length) return null;
+            switch (body[i])
+            {
+                case '\\': text.Append('\\'); break;
+                case '"': text.Append('"'); break;
+                case '/': text.Append('/'); break;
+                case 'n': text.Append('\n'); break;
+                case 't': text.Append('\t'); break;
+                case ' ': text.Append(' '); break;
+                default: return null;
+            }
+        }
+        return text.ToString();
     }
 }

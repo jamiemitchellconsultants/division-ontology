@@ -38,9 +38,13 @@ public static class EvidenceText
         }
 
         var cited = lines.Skip(start - 1).Take(end - start + 1).ToList();
-        var page = role == PageRole ? FrontMatter.Parse(text!) : null;
+        var page = role == PageRole && IsMarkdown(path) ? FrontMatter.Parse(text!) : null;
         return new CitedText(sourceId, iri, path, start, end, role, cited, page, page == null ? null : MetadataGap(sourceId, path, page));
     }
+
+    // An exported page is a Markdown file that opens with front matter; any other selected document is ordinary.
+    private static bool IsMarkdown(string path) =>
+        path.EndsWith(".md", StringComparison.OrdinalIgnoreCase) || path.EndsWith(".markdown", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>The `page` object a path step's evidence gains: title and address when present, lines when readable.</summary>
     public static JsonObject StepPage(CitedText text)
