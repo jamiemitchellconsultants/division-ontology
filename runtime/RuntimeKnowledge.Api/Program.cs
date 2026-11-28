@@ -34,6 +34,8 @@ public partial class ApiProgram
         services.AddSingleton<Db>();
         services.AddSingleton<GraphQueries>();
         services.AddSingleton<ContributionStore>();
+        services.AddSingleton<ImpactModelCache>();
+        services.AddSingleton<AssessmentStore>(provider => new AssessmentStore(provider.GetRequiredService<Db>()));
         services.AddSingleton<IEmbeddingProvider>(provider =>
         {
             var config = provider.GetRequiredService<IConfiguration>().GetSection("Workspace:Embeddings");
@@ -64,6 +66,9 @@ public partial class ApiProgram
                 return TypedResults.Ok(new HealthStatus("ready"));
             }).AllowAnonymous().WithSummary("Report readiness").WithTags("Health");
             endpoints.MapWorkspaceRoutes();
+            endpoints.MapImpactRoutes();
+            endpoints.MapAssessmentRoutes();
+            endpoints.MapSuccessorRoute();
             endpoints.MapOpenApi("/api/openapi/{documentName}.json").AllowAnonymous();
         });
     }

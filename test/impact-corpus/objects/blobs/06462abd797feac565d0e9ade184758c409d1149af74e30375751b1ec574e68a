@@ -1,0 +1,5 @@
+The shopper uses the Ecommerce system.
+Storefront API writes to the Order store. Order processing calls Address validation.
+Address validation reads the Order store. Its registry parent is the Storefront API.
+The service inventory records Storefront API and Order store as containers.
+The component inventory records Address validation. Legacy routing is unverified.

@@ -196,6 +196,51 @@ internal sealed class MemoryBundles : IBundleObjects
         return id;
     }
 
+    /// <summary>Adds a corpus scenario's first impact bundle as a workspace bundle. Corpus bundles carry only the
+    /// engine's roles, so minimal catalog, nquads, source inventory and projection objects are added, and the
+    /// manifest is rewritten.</summary>
+    /// <param name="inspectedSource">An extra inspectedSource file, (sourceId, path), which changes the manifest id
+    /// without changing the impact input, as a republished but otherwise identical snapshot would.</param>
+    public string AddCorpusBundle(string scenario, (string SourceId, string Path)? inspectedSource = null)
+    {
+        var steps = Impact.CorpusPaths.Steps(scenario);
+        var corpusId = steps.First(s => s!["manifest"] is not null)!["manifest"]!.GetValue<string>();
+        var corpus = JsonSerializer.Deserialize<BundleManifest>(
+            File.ReadAllBytes(Path.Combine(Impact.CorpusPaths.Objects, "manifests", corpusId + ".json")), WorkspaceJson.Options)!;
+        foreach (var file in corpus.Files)
+            _objects[$"blobs/{file.Sha256}"] = File.ReadAllBytes(Path.Combine(Impact.CorpusPaths.Objects, "blobs", file.Sha256));
+        var workspace = new[]
+        {
+            AddFile("catalog", "dist/catalog.json", JsonSerializer.SerializeToUtf8Bytes(new { schemaVersion = 1 })),
+            AddFile("nquads", "dist/combined.nq", []),
+            AddFile("sourceInventory", "sources.json", JsonSerializer.SerializeToUtf8Bytes(new { sources = Array.Empty<string>() })),
+            AddFile("projection", "projection.json", JsonSerializer.SerializeToUtf8Bytes(
+                new PublishedProjection([], [], [], []), WorkspaceJson.Options))
+        };
+        var extra = new List<BundleFile>();
+        if (inspectedSource is { } inspected)
+        {
+            var bytes = System.Text.Encoding.UTF8.GetBytes($"marker for {inspected.Path}\n");
+            var digest = Digest(bytes);
+            _objects[$"blobs/{digest}"] = bytes;
+            extra.Add(new BundleFile("inspectedSource", inspected.SourceId, inspected.Path, digest, bytes.Length));
+        }
+        var manifest = corpus with { CatalogSha256 = workspace[0].Sha256, Files = [.. corpus.Files, .. workspace, .. extra] };
+        var body = JsonSerializer.SerializeToUtf8Bytes(manifest, WorkspaceJson.Options);
+        var id = Digest(body);
+        _objects[$"manifests/{id}.json"] = body;
+        return id;
+    }
+
+    /// <summary>Adds a prepared bundle: its manifest and every blob it lists. Returns the manifest id.</summary>
+    public string Add(byte[] manifest, IReadOnlyDictionary<string, byte[]> blobs)
+    {
+        foreach (var (digest, bytes) in blobs) _objects[$"blobs/{digest}"] = bytes;
+        var id = Digest(manifest);
+        _objects[$"manifests/{id}.json"] = manifest;
+        return id;
+    }
+
     private BundleFile AddFile(string role, string path, byte[] bytes)
     {
         var digest = Digest(bytes);

@@ -27,21 +27,38 @@ internal sealed class ApiFixture : IAsyncDisposable
     private const string Audience = "workspace-api";
     private const string ClientId = "workspace-client";
     private readonly Scenario _scenario;
-    private readonly WebApplicationFactory<ApiProgram> _factory;
+    private WebApplicationFactory<ApiProgram> _factory;
     private readonly RSA _rsa;
     private readonly RsaSecurityKey _signingKey;
     private readonly string _provider;
+    private readonly IEmbeddingProvider? _embeddings;
     private readonly ConcurrentBag<ObservedResponse> _observed = [];
 
     internal ApiFixture(Scenario scenario, string provider, IEmbeddingProvider? embeddings = null)
     {
         _scenario = scenario;
         _provider = provider;
+        _embeddings = embeddings;
         _rsa = RSA.Create(2048);
         _signingKey = new RsaSecurityKey(_rsa) { KeyId = "workspace-fixture" };
+        _factory = CreateFactory();
+    }
+
+    /// <summary>Stops the API and starts a fresh one on the same database, as a process restart would (Q5).</summary>
+    public async Task RestartAsync()
+    {
+        await _factory.DisposeAsync();
+        _factory = CreateFactory();
+    }
+
+    private WebApplicationFactory<ApiProgram> CreateFactory()
+    {
+        var scenario = _scenario;
+        var provider = _provider;
+        var embeddings = _embeddings;
         var metadata = new OpenIdConnectConfiguration { Issuer = Issuer };
         metadata.SigningKeys.Add(_signingKey);
-        _factory = new WebApplicationFactory<ApiProgram>().WithWebHostBuilder(builder =>
+        return new WebApplicationFactory<ApiProgram>().WithWebHostBuilder(builder =>
         {
             builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(
                 new Dictionary<string, string?>
@@ -77,7 +94,27 @@ internal sealed class ApiFixture : IAsyncDisposable
         }
     }
 
+    /// <summary>As <see cref="OpenAsync(string)"/>, but runs <paramref name="arrange"/> in place of activating "initial".</summary>
+    public static async Task<ApiFixture> OpenAsync(string provider, Func<Scenario, Task> arrange)
+    {
+        var scenario = await Scenario.OpenAsync();
+        try
+        {
+            await arrange(scenario);
+            return new ApiFixture(scenario, provider);
+        }
+        catch
+        {
+            await scenario.DisposeAsync();
+            throw;
+        }
+    }
+
     public HttpClient CreateClient() => _factory.CreateClient();
+
+    internal Scenario Scenario => _scenario;
+
+    public T Service<T>() where T : notnull => _factory.Services.GetRequiredService<T>();
 
     public HttpClient ClientWithToken(string[] roles, bool expired = false, string? issuer = null,
         string? audience = null, bool wrongSignature = false, string? keycloakClient = null, bool injectCapability = false,

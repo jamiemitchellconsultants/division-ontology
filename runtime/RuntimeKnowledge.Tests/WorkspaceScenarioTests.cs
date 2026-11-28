@@ -154,4 +154,43 @@ public sealed class WorkspaceScenarioTests
             $"/api/contributions/{edge.Id:D}/remove", new RemoveContributionRequest(editedEdge.Version + 1));
         Assert.Equal($"</api/history?contributionId={removed!.Id:D}>; rel=\"{RelBase}history\"", removeLinks);
     }
+
+    [Fact]
+    public async Task An_analyst_assesses_in_the_workspace_and_another_reader_opens_it()
+    {
+        const string P = "https://example.test/policies/graph#";
+        await using var s = await ScenarioRunner.OpenAsync();
+        var snapshot = await s.ActivateCorpusAsync("confluence");
+        var policy = new ImpactKey("fixture/policies", P + "expense-policy");
+        var ledger = new ImpactKey("fixture/policies", P + "ledger");
+
+        var search = await s.Query<ImpactSearchResult>("/api/impact/search", new ImpactSearchRequest("expense", null));
+        Assert.Contains(search.Leads, l => l.Key == policy && l.Supported);
+        var traced = await s.Query<ImpactPathsResult>("/api/impact/paths", new ImpactPathsRequest(search.SnapshotId, [policy]));
+        var path = traced.Paths.First(p => p.Steps.Count == 2 && p.Steps[1].Object == ledger);
+
+        // The draft is built exactly as the workspace pages build it.
+        var draft = new RuntimeKnowledge.Web.Services.AssessmentDraft();
+        draft.Start(search.SnapshotId, "CR-33", "Raise the expense approval threshold\n", "Analyst A",
+            RuntimeKnowledge.Web.Services.AssessmentDraft.Pins(search));
+        draft.UsePaths(traced.Paths, [policy]);
+        draft.Confirm(policy);
+        draft.AddImpact(ledger, "Ledger supports approvals", [path.Id], path.Steps.SelectMany(step => step.EvidenceIris ?? []).ToList());
+        var request = new AssessmentDraftRequest(snapshot, draft.Record!);
+
+        var preview = await s.Query<AssessmentPreview>("/api/assessments/preview", request);
+        var saved = await s.Send<AssessmentSaved>(HttpMethod.Post, "/api/assessments", request, HttpStatusCode.Created);
+        var manager = s.Client(["ManageKnowledgeGraph"], "analyst");
+        Assert.Equal(System.Text.Encoding.UTF8.GetBytes(preview.Markdown),
+            await manager.GetByteArrayAsync($"/api/assessments/{saved!.Id:D}/markdown"));
+
+        var reader = s.Client(["ReadKnowledgeGraph"], "reader-2");
+        var opened = await System.Net.Http.Json.HttpClientJsonExtensions.GetFromJsonAsync<SavedAssessment>(
+            reader, $"/api/assessments/{saved.Id:D}", WorkspaceJson.Options);
+        Assert.Equal(preview.Frozen.ToJsonString(), opened!.Frozen.ToJsonString());
+        Assert.Equal(preview.Markdown, opened.Markdown);
+        Assert.Contains("Ledger supports approvals", opened.Markdown);
+
+        await s.Send<AssessmentSaved>(HttpMethod.Post, "/api/assessments", request, HttpStatusCode.Forbidden, reader: true);
+    }
 }

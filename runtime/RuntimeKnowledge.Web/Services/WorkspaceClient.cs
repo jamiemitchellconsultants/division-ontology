@@ -19,6 +19,20 @@ public sealed class WorkspaceClient(HttpClient http) : IDisposable
     public Task<TraversalResult> Traverse(TraversalRequest request, CancellationToken cancellationToken = default) =>
         Post<TraversalResult>("api/traverse", request, cancellationToken);
     public Task<SearchResult> Search(string query) => Post<SearchResult>("api/search", new SearchRequest(query));
+    public Task<ImpactSearchResult> ImpactSearch(ImpactSearchRequest request) => Post<ImpactSearchResult>("api/impact/search", request);
+    public Task<ImpactPathsResult> ImpactPaths(ImpactPathsRequest request) => Post<ImpactPathsResult>("api/impact/paths", request);
+    public Task<C4ViewResult> ImpactView(ImpactViewRequest request) => Post<C4ViewResult>("api/impact/views", request);
+    public Task<AssessmentPreview> PreviewAssessment(AssessmentDraftRequest request) => Post<AssessmentPreview>("api/assessments/preview", request);
+    public Task<AssessmentSaved> SaveAssessment(AssessmentDraftRequest request) => Post<AssessmentSaved>("api/assessments", request);
+    public Task<SavedAssessment> GetAssessment(Guid id) => Get<SavedAssessment>($"api/assessments/{id:D}");
+    public Task<AssessmentPage> ListAssessments(string? cursor = null) =>
+        Get<AssessmentPage>(cursor is null ? "api/assessments" : $"api/assessments?cursor={Uri.EscapeDataString(cursor)}");
+    public Task<AssessmentRevisionPage> Revisions(Guid id, string? cursor = null) =>
+        Get<AssessmentRevisionPage>(cursor is null ? $"api/assessments/{id:D}/revisions" : $"api/assessments/{id:D}/revisions?cursor={Uri.EscapeDataString(cursor)}");
+    public Task<AssessmentRevision> Revision(Guid id, int version) => Get<AssessmentRevision>($"api/assessments/{id:D}/revisions/{version}");
+    public Task<AssessmentSuccessor> Successor(Guid id) => Post<AssessmentSuccessor>($"api/assessments/{id:D}/successor", new { });
+    public Task<AssessmentSaved> EditAssessment(Guid id, AssessmentEditRequest request) =>
+        Send<AssessmentSaved>(HttpMethod.Put, $"api/assessments/{id:D}", request);
     public Task<HistoryPage> History(Guid? id, string? cursor = null)
     {
         var filters = new List<string>();

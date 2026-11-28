@@ -1,0 +1,5 @@
+# Accounting
+
+Accounting contains Accounting service, which contains Sales and purchase ledgers.
+Accounting sends payment instructions to an external bank, which is not a participating source.
+This is fabricated evidence for a synthetic acceptance fixture.

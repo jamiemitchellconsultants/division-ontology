@@ -19,7 +19,7 @@ test('assessment and feedback render against the pinned snapshot',async()=>{
   const common=['--catalog-commit',f.catalogCommit,'--registry-commit',f.registryCommit,...[...f.checkouts].flatMap(([id,path])=>['--checkout',`${id}=${path}`]),'--output',f.outputDir];
   const description=join(f.divisionRoot,'description.txt');writeFileSync(description,'Change Alpha API');
   assert.equal(await runC4Cli(['assessment-init',...common,'--request-id','CR-1','--description-file',description],{cwd:f.divisionRoot}),0);
-  const input=join(f.outputDir,'assessment.json'),record=JSON.parse(readFileSync(input,'utf8'));record.architect='Architect';record.confirmedLeads=[f.keys.alphaSystem];writeFileSync(input,JSON.stringify(record));
+  const input=join(f.outputDir,'assessment.json'),record=JSON.parse(readFileSync(input,'utf8'));record.assessor='Architect';record.confirmedLeads=[f.keys.alphaSystem];writeFileSync(input,JSON.stringify(record));
   assert.equal(await runC4Cli(['assessment-render',...common,'--input',input],{cwd:f.divisionRoot}),0);
   const markdown=readFileSync(join(f.outputDir,'assessment.md'),'utf8'),digest=markdown.match(/Assessment digest: ([a-f0-9]{64})/)[1];
   const feedback=join(f.outputDir,'feedback-input.json');writeFileSync(feedback,JSON.stringify({schemaVersion:1,assessmentDigest:digest,architect:'Architect',reviewer:'Reviewer',perceivedAccuracy:'good',perceivedCompleteness:'partial',confidence:'medium',usefulDiscoveries:[],suspectedMisses:[],falseLeads:[],examples:[],openQuestions:[]}));
@@ -60,16 +60,64 @@ test('assessment renders a cited inspected-code view',async()=>{
   assert.equal(await runC4Cli(['view',...common,'--level','code','--focus',`${f.keys.alphaComponent.sourceId}=${f.keys.alphaComponent.nodeIri}`,'--supplement',supplement],{cwd:f.divisionRoot}),0);
   const viewPath=join(f.outputDir,'view-code.json'),view=JSON.parse(readFileSync(viewPath,'utf8'));
   const desc=join(f.divisionRoot,'desc.txt');writeFileSync(desc,'Change');assert.equal(await runC4Cli(['assessment-init',...common,'--request-id','CR-1','--description-file',desc],{cwd:f.divisionRoot}),0);
-  const input=join(f.outputDir,'assessment.json'),a=JSON.parse(readFileSync(input,'utf8'));a.architect='Architect';
-  const {viewDigest}=await import('../src/c4/assessment.mjs');a.likelyImpacts=[{key:view.items.find(x=>x.basis==='architect-inspected').key,reason:'Inspected',viewIds:[viewDigest(view)],pathIds:[],evidenceIris:[]}];writeFileSync(input,JSON.stringify(a));
+  const input=join(f.outputDir,'assessment.json'),a=JSON.parse(readFileSync(input,'utf8'));a.assessor='Architect';
+  const {viewDigest}=await import('./fixtures/c4/digest.mjs');a.likelyImpacts=[{key:view.items.find(x=>x.basis==='architect-inspected').key,reason:'Inspected',viewIds:[viewDigest(view)],pathIds:[],evidenceIris:[]}];writeFileSync(input,JSON.stringify(a));
   assert.equal(await runC4Cli(['assessment-render',...common,'--input',input,'--view-input',viewPath],{cwd:f.divisionRoot}),0);
+  const digest=readFileSync(join(f.outputDir,'assessment.md'),'utf8').match(/Assessment digest: ([a-f0-9]{64})/)[1];
+  const feedback=join(f.divisionRoot,'feedback-input.json');writeFileSync(feedback,JSON.stringify({schemaVersion:1,assessmentDigest:digest,architect:'Architect',reviewer:'Reviewer',perceivedAccuracy:'good',perceivedCompleteness:'partial',confidence:'medium',usefulDiscoveries:[],suspectedMisses:[],falseLeads:[],examples:[],openQuestions:[]}));
+  const stderr={text:'',write(t){this.text+=t;}};
+  assert.equal(await runC4Cli(['feedback-render',...common,'--input',feedback,'--assessment-file',input,'--view-input',viewPath],{cwd:f.divisionRoot,stderr}),0,stderr.text);
+ });
+});
+test('feedback rendering requires the assessment file',async()=>{
+ await withPilotFixture(async f=>{
+  const common=['--catalog-commit',f.catalogCommit,'--registry-commit',f.registryCommit,...[...f.checkouts].flatMap(([id,path])=>['--checkout',`${id}=${path}`]),'--output',f.outputDir];
+  const feedback=join(f.divisionRoot,'feedback-input.json');writeFileSync(feedback,JSON.stringify({schemaVersion:1,assessmentDigest:'0'.repeat(64),architect:'Architect',reviewer:'Reviewer',perceivedAccuracy:'good',perceivedCompleteness:'partial',confidence:'medium',usefulDiscoveries:[],suspectedMisses:[],falseLeads:[],examples:[],openQuestions:[]}));
+  const stderr={text:'',write(t){this.text+=t;}};
+  assert.equal(await runC4Cli(['feedback-render',...common,'--input',feedback],{cwd:f.divisionRoot,stderr}),1);
+  assert.match(stderr.text,/assessment file is required/);assert.equal(existsSync(f.outputDir),false);
+ });
+});
+test('a run leaves no staging directory behind, on success or failure',async()=>{
+ await withPilotFixture(async f=>{
+  const {readdirSync,mkdtempSync,rmSync}=await import('node:fs');const {tmpdir}=await import('node:os');
+  // A temp directory of its own, because other test files run the command line in parallel.
+  const saved=process.env.TMPDIR,own=mkdtempSync(join(tmpdir(),'cli-staging-test-'));process.env.TMPDIR=own;
+  try {
+  const staged=()=>readdirSync(own).filter(n=>n.startsWith('division-impact-'));
+  const common=['--catalog-commit',f.catalogCommit,'--registry-commit',f.registryCommit,...[...f.checkouts].flatMap(([id,path])=>['--checkout',`${id}=${path}`]),'--output',f.outputDir];
+  assert.equal(await runC4Cli(['search',...common,'--query','Alpha API'],{cwd:f.divisionRoot}),0);
+  assert.notEqual(await runC4Cli(['paths',...common,'--start','fixture/Alpha=urn:missing','--max-depth','9'],{cwd:f.divisionRoot,stderr:{write(){}}}),0);
+  assert.deepEqual(staged(),[]);
+  } finally { if(saved===undefined) delete process.env.TMPDIR; else process.env.TMPDIR=saved; rmSync(own,{recursive:true,force:true}); }
+ });
+});
+test('a relative description file resolves against the supplied working directory',async()=>{
+ await withPilotFixture(async f=>{
+  const common=['--catalog-commit',f.catalogCommit,'--registry-commit',f.registryCommit,...[...f.checkouts].flatMap(([id,path])=>['--checkout',`${id}=${path}`]),'--output',f.outputDir];
+  writeFileSync(join(f.divisionRoot,'description.txt'),'Change Alpha API');
+  const stderr={text:'',write(t){this.text+=t;}};
+  assert.equal(await runC4Cli(['assessment-init',...common,'--request-id','CR-1','--description-file','description.txt'],{cwd:f.divisionRoot,stderr}),0,stderr.text);
+  assert.equal(JSON.parse(readFileSync(join(f.outputDir,'assessment.json'),'utf8')).description,'Change Alpha API');
+ });
+});
+test('depth accepts an integral decimal and reports the range for anything else',async()=>{
+ await withPilotFixture(async f=>{
+  const common=['--catalog-commit',f.catalogCommit,'--registry-commit',f.registryCommit,...[...f.checkouts].flatMap(([id,path])=>['--checkout',`${id}=${path}`]),'--output',f.outputDir];
+  const start=['--start',`fixture/Alpha=${f.keys.alphaSystem.nodeIri}`];
+  assert.equal(await runC4Cli(['paths',...common,...start,'--max-depth','4.0'],{cwd:f.divisionRoot}),0);
+  for(const depth of ['abc','4.5','7']) {
+   const stderr={text:'',write(t){this.text+=t;}};
+   assert.equal(await runC4Cli(['paths',...common,...start,'--max-depth',depth],{cwd:f.divisionRoot,stderr}),1);
+   assert.equal(stderr.text,'depth must be from 1 to 6\n',depth);
+  }
  });
 });
 test('assessment rendering never overwrites its input file',async()=>{
  await withPilotFixture(async f=>{
   const common=['--catalog-commit',f.catalogCommit,'--registry-commit',f.registryCommit,...[...f.checkouts].flatMap(([id,path])=>['--checkout',`${id}=${path}`]),'--output',f.outputDir];
   const desc=join(f.divisionRoot,'desc.txt');writeFileSync(desc,'Change');await runC4Cli(['assessment-init',...common,'--request-id','CR-1','--description-file',desc],{cwd:f.divisionRoot});
-  const a=JSON.parse(readFileSync(join(f.outputDir,'assessment.json'),'utf8'));a.architect='Architect';const input=join(f.outputDir,'assessment.md'),raw=JSON.stringify(a);writeFileSync(input,raw);
+  const a=JSON.parse(readFileSync(join(f.outputDir,'assessment.json'),'utf8'));a.assessor='Architect';const input=join(f.outputDir,'assessment.md'),raw=JSON.stringify(a);writeFileSync(input,raw);
   assert.notEqual(await runC4Cli(['assessment-render',...common,'--input',input],{cwd:f.divisionRoot}),0);assert.equal(readFileSync(input,'utf8'),raw);
  });
 });

@@ -47,7 +47,7 @@ public sealed class ContributionStore(Db db, TimeProvider? clock = null)
             SELECT position, event_type, actor_issuer, actor_subject, occurred_at,
                    aggregate_id, aggregate_revision, payload::text, snapshot_id
               FROM workspace_journal.events
-              WHERE position > $1 AND aggregate_id IS NOT NULL
+              WHERE position > $1 AND aggregate_id IS NOT NULL AND event_type NOT LIKE 'assessment%'
                 AND ($2::uuid IS NULL OR aggregate_id = $2)
               ORDER BY position LIMIT $3
             """, after, contributionId, request.Limit + 1);

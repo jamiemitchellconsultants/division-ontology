@@ -1,0 +1,6 @@
+---
+title: "<script>alert(1)</script> | # Heading"
+confluence_url: https://confluence.example.test/pages/1004
+---
+Line with <b>markup</b> and | pipes
+# Not a heading

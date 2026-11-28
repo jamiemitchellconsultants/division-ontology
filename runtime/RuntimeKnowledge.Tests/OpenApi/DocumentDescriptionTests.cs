@@ -32,9 +32,11 @@ public sealed class DocumentDescriptionTests
     {
         var operations = Operations(await Spec()).Where(o => o.Path.StartsWith("/api/")).ToArray();
         Assert.NotEmpty(operations);
-        foreach (var (path, _, op) in operations)
+        foreach (var (path, method, op) in operations)
         {
-            var expected = path.StartsWith("/api/contributions/") ? "ManageKnowledgeGraph" : "ReadKnowledgeGraph";
+            var manages = path.StartsWith("/api/contributions/") ||
+                (method, path) is ("post", "/api/assessments") or ("put", "/api/assessments/{id}") or ("post", "/api/assessments/{id}/successor");
+            var expected = manages ? "ManageKnowledgeGraph" : "ReadKnowledgeGraph";
             Assert.Equal(expected, (string)op["x-workspace-role"]!);
             Assert.Equal("""[{"bearer":[]}]""", op["security"]!.ToJsonString());
             Assert.Equal("#/components/responses/unauthorized", (string)op["responses"]!["401"]!["$ref"]!);

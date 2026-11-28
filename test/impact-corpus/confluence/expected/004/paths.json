@@ -1,0 +1,166 @@
+{
+  "snapshotId": {
+    "catalogCommit": "13c91eac591164b5c6cb8b25c5cf940df293d47e",
+    "catalogSha256": "fc532b8afa036c400067de674d16066446567fe5ee89290faa7e0281b5727abe",
+    "sources": [
+      {
+        "id": "fixture/operations",
+        "commit": "0c986d6944c5abdbf0c45252e280731f2c2f19cd"
+      },
+      {
+        "id": "fixture/policies",
+        "commit": "f3477a0bf5dee574afb7248a6ac3bbe9e31f6326"
+      }
+    ]
+  },
+  "registryCommit": "13c91eac591164b5c6cb8b25c5cf940df293d47e",
+  "coverage": [
+    {
+      "sourceId": "fixture/operations",
+      "iri": "https://example.test/operations/graph#coverage",
+      "selector": "pages/**",
+      "status": "covered",
+      "priority": 1
+    },
+    {
+      "sourceId": "fixture/policies",
+      "iri": "https://example.test/policies/graph#coverage",
+      "selector": "pages/**",
+      "status": "covered",
+      "priority": 1
+    }
+  ],
+  "paths": [
+    {
+      "id": "f77c7f2f83a9dbc2e9709d18d262472f74cbd631a2e9f50b3bce0fbb05b199cb",
+      "steps": [
+        {
+          "type": "assertion",
+          "subject": {
+            "sourceId": "fixture/policies",
+            "nodeIri": "https://example.test/policies/graph#injected"
+          },
+          "object": {
+            "sourceId": "fixture/policies",
+            "nodeIri": "https://example.test/policies/graph#approval"
+          },
+          "direction": "outgoing",
+          "assertionIri": "https://example.test/policies/graph#assert-injected",
+          "relationship": "https://example.test/rel#governs",
+          "basis": "direct",
+          "evidenceIris": [
+            "https://example.test/policies/graph#ev-injected"
+          ],
+          "evidence": [
+            {
+              "iri": "https://example.test/policies/graph#ev-injected",
+              "path": "pages/injected.md",
+              "startLine": 5,
+              "endLine": 6,
+              "blobId": "d1478f77285713f547a55590d8cefc32f29b1b3d",
+              "role": "selected-document",
+              "page": {
+                "title": "<script>alert(1)</script> | # Heading",
+                "confluenceUrl": "https://confluence.example.test/pages/1004",
+                "lines": [
+                  "Line with <b>markup</b> and | pipes",
+                  "# Not a heading"
+                ]
+              }
+            }
+          ],
+          "commit": "f3477a0bf5dee574afb7248a6ac3bbe9e31f6326"
+        }
+      ]
+    },
+    {
+      "id": "15fcf4b0f8345a8d49ec004597e86a68ff45d9962dd4ea7d7bda425aa03ad4ef",
+      "steps": [
+        {
+          "type": "assertion",
+          "subject": {
+            "sourceId": "fixture/policies",
+            "nodeIri": "https://example.test/policies/graph#injected"
+          },
+          "object": {
+            "sourceId": "fixture/policies",
+            "nodeIri": "https://example.test/policies/graph#approval"
+          },
+          "direction": "outgoing",
+          "assertionIri": "https://example.test/policies/graph#assert-injected",
+          "relationship": "https://example.test/rel#governs",
+          "basis": "direct",
+          "evidenceIris": [
+            "https://example.test/policies/graph#ev-injected"
+          ],
+          "evidence": [
+            {
+              "iri": "https://example.test/policies/graph#ev-injected",
+              "path": "pages/injected.md",
+              "startLine": 5,
+              "endLine": 6,
+              "blobId": "d1478f77285713f547a55590d8cefc32f29b1b3d",
+              "role": "selected-document",
+              "page": {
+                "title": "<script>alert(1)</script> | # Heading",
+                "confluenceUrl": "https://confluence.example.test/pages/1004",
+                "lines": [
+                  "Line with <b>markup</b> and | pipes",
+                  "# Not a heading"
+                ]
+              }
+            }
+          ],
+          "commit": "f3477a0bf5dee574afb7248a6ac3bbe9e31f6326"
+        },
+        {
+          "type": "assertion",
+          "subject": {
+            "sourceId": "fixture/policies",
+            "nodeIri": "https://example.test/policies/graph#approval"
+          },
+          "object": {
+            "sourceId": "fixture/policies",
+            "nodeIri": "https://example.test/policies/graph#ledger"
+          },
+          "direction": "outgoing",
+          "assertionIri": "https://example.test/policies/graph#assert-approval",
+          "relationship": "https://example.test/rel#uses",
+          "basis": "direct",
+          "evidenceIris": [
+            "https://example.test/policies/graph#ev-approval"
+          ],
+          "evidence": [
+            {
+              "iri": "https://example.test/policies/graph#ev-approval",
+              "path": "pages/approval-process.md",
+              "startLine": 5,
+              "endLine": 5,
+              "blobId": "fc5d5d54a8e4a4616f714a2656fe70068c5e3024",
+              "role": "selected-document",
+              "page": {
+                "title": "Approval process",
+                "lines": [
+                  "Managers approve claims in the finance system."
+                ]
+              }
+            }
+          ],
+          "commit": "f3477a0bf5dee574afb7248a6ac3bbe9e31f6326"
+        }
+      ]
+    }
+  ],
+  "gaps": [
+    {
+      "code": "no-relationship-master-list",
+      "reason": "Impact direction is assumed from subject to object; no relationship master list is defined"
+    },
+    {
+      "code": "page-metadata-missing",
+      "sourceId": "fixture/policies",
+      "path": "pages/approval-process.md",
+      "reason": "Exported page has no Confluence address"
+    }
+  ]
+}

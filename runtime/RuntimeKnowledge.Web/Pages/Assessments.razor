@@ -1,0 +1,60 @@
+@page "/assessments"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject WorkspaceClient Api
+
+<h1>Saved assessments</h1>
+<ApiError Error="error" ReturnRoute="assessments" />
+
+@if (rows.Count == 0 && loaded)
+{
+    <p>No assessments have been saved yet.</p>
+}
+else if (rows.Count > 0)
+{
+    <table>
+        <caption>Saved impact assessments, newest first</caption>
+        <thead>
+            <tr><th scope="col">Request id</th><th scope="col">Author</th><th scope="col">Saved</th><th scope="col">Snapshot</th><th scope="col">Pinned</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var row in rows)
+            {
+                <tr @key="row.Id">
+                    <td><a href="@($"assessments/{row.Id:D}")">@row.RequestId</a></td>
+                    <td>@row.Author.Subject</td>
+                    <td>@row.SavedAt.ToString("u")</td>
+                    <td><code>@(row.SnapshotId.Length > 12 ? row.SnapshotId[..12] : row.SnapshotId)</code></td>
+                    <td>@(row.PinnedToEarlierSnapshot ? "Pinned to an earlier snapshot" : "")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+@if (nextCursor is not null) { <button type="button" disabled="@busy" @onclick="LoadMore">Load more</button> }
+
+@code {
+    private readonly List<AssessmentSummary> rows = [];
+    private string? nextCursor;
+    private WorkspaceApiException? error;
+    private bool loaded, busy;
+
+    protected override Task OnInitializedAsync() => Load(null);
+
+    private Task LoadMore() => Load(nextCursor);
+
+    private async Task Load(string? cursor)
+    {
+        if (busy) return;
+        busy = true;
+        error = null;
+        try
+        {
+            var page = await Api.ListAssessments(cursor);
+            rows.AddRange(page.Assessments);
+            nextCursor = page.NextCursor;
+            loaded = true;
+        }
+        catch (WorkspaceApiException problem) { error = problem; }
+        finally { busy = false; }
+    }
+}

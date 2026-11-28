@@ -1,0 +1,264 @@
+{
+  "snapshotId": {
+    "catalogCommit": "e63348017b778e678b0c349160b8ec2bbc659ff5",
+    "catalogSha256": "c90d3acfa72250b00fc49921e67e37ca60767fc63956931c1f09186fcc920d0d",
+    "sources": [
+      {
+        "id": "fixture/Alpha",
+        "commit": "980b69eca326c7bc54d4c8e34aa067b6fd509409"
+      },
+      {
+        "id": "fixture/Beta",
+        "commit": "9c08221fbb185a173313dd0e3317273cc8d0e992"
+      }
+    ]
+  },
+  "registryCommit": "e63348017b778e678b0c349160b8ec2bbc659ff5",
+  "coverage": [
+    {
+      "sourceId": "fixture/Alpha",
+      "iri": "https://alpha.example/#coverage",
+      "selector": "src/**",
+      "status": "covered",
+      "priority": 1
+    },
+    {
+      "sourceId": "fixture/Beta",
+      "iri": "https://beta.example/#coverage",
+      "selector": "src/**",
+      "status": "covered",
+      "priority": 1
+    }
+  ],
+  "paths": [
+    {
+      "id": "a6e6ed301642657313724fda27d61f64be29afd75bc74ebddc8f4370722391f2",
+      "steps": [
+        {
+          "type": "assertion",
+          "subject": {
+            "sourceId": "fixture/Beta",
+            "nodeIri": "https://beta.example/#system"
+          },
+          "object": {
+            "sourceId": "fixture/Beta",
+            "nodeIri": "https://beta.example/#container"
+          },
+          "direction": "outgoing",
+          "assertionIri": "https://beta.example/#contains1",
+          "relationship": "https://ontology-kit.dev/schema#contains",
+          "basis": "direct",
+          "evidenceIris": [
+            "https://beta.example/#evidence"
+          ],
+          "evidence": [
+            {
+              "iri": "https://beta.example/#evidence",
+              "path": "src/app.ts",
+              "startLine": 1,
+              "endLine": 1,
+              "blobId": "129fbfa125de7a8b2b24c3dbc34ef5d0e0570747",
+              "role": "implementation"
+            }
+          ],
+          "commit": "9c08221fbb185a173313dd0e3317273cc8d0e992"
+        }
+      ]
+    },
+    {
+      "id": "27b2dde9925275026bb18493b311025b2c929624b47dc2d149ae5f98b7cabfaa",
+      "steps": [
+        {
+          "type": "assertion",
+          "subject": {
+            "sourceId": "fixture/Beta",
+            "nodeIri": "https://beta.example/#system"
+          },
+          "object": {
+            "sourceId": "fixture/Beta",
+            "nodeIri": "https://beta.example/#container"
+          },
+          "direction": "outgoing",
+          "assertionIri": "https://beta.example/#contains1",
+          "relationship": "https://ontology-kit.dev/schema#contains",
+          "basis": "direct",
+          "evidenceIris": [
+            "https://beta.example/#evidence"
+          ],
+          "evidence": [
+            {
+              "iri": "https://beta.example/#evidence",
+              "path": "src/app.ts",
+              "startLine": 1,
+              "endLine": 1,
+              "blobId": "129fbfa125de7a8b2b24c3dbc34ef5d0e0570747",
+              "role": "implementation"
+            }
+          ],
+          "commit": "9c08221fbb185a173313dd0e3317273cc8d0e992"
+        },
+        {
+          "type": "assertion",
+          "subject": {
+            "sourceId": "fixture/Beta",
+            "nodeIri": "https://beta.example/#container"
+          },
+          "object": {
+            "sourceId": "fixture/Beta",
+            "nodeIri": "https://beta.example/#component"
+          },
+          "direction": "outgoing",
+          "assertionIri": "https://beta.example/#contains2",
+          "relationship": "https://ontology-kit.dev/schema#contains",
+          "basis": "direct",
+          "evidenceIris": [
+            "https://beta.example/#evidence"
+          ],
+          "evidence": [
+            {
+              "iri": "https://beta.example/#evidence",
+              "path": "src/app.ts",
+              "startLine": 1,
+              "endLine": 1,
+              "blobId": "129fbfa125de7a8b2b24c3dbc34ef5d0e0570747",
+              "role": "implementation"
+            }
+          ],
+          "commit": "9c08221fbb185a173313dd0e3317273cc8d0e992"
+        }
+      ]
+    },
+    {
+      "id": "5296d1503460bffb30c01e35f550edd23a08f40bd9cc1c9bc8ea920b86fe56bb",
+      "steps": [
+        {
+          "type": "assertion",
+          "subject": {
+            "sourceId": "fixture/Beta",
+            "nodeIri": "https://beta.example/#system"
+          },
+          "object": {
+            "sourceId": "fixture/Beta",
+            "nodeIri": "https://beta.example/#container"
+          },
+          "direction": "outgoing",
+          "assertionIri": "https://beta.example/#contains1",
+          "relationship": "https://ontology-kit.dev/schema#contains",
+          "basis": "direct",
+          "evidenceIris": [
+            "https://beta.example/#evidence"
+          ],
+          "evidence": [
+            {
+              "iri": "https://beta.example/#evidence",
+              "path": "src/app.ts",
+              "startLine": 1,
+              "endLine": 1,
+              "blobId": "129fbfa125de7a8b2b24c3dbc34ef5d0e0570747",
+              "role": "implementation"
+            }
+          ],
+          "commit": "9c08221fbb185a173313dd0e3317273cc8d0e992"
+        },
+        {
+          "type": "assertion",
+          "subject": {
+            "sourceId": "fixture/Beta",
+            "nodeIri": "https://beta.example/#container"
+          },
+          "object": {
+            "sourceId": "fixture/Beta",
+            "nodeIri": "https://beta.example/#component"
+          },
+          "direction": "outgoing",
+          "assertionIri": "https://beta.example/#contains2",
+          "relationship": "https://ontology-kit.dev/schema#contains",
+          "basis": "direct",
+          "evidenceIris": [
+            "https://beta.example/#evidence"
+          ],
+          "evidence": [
+            {
+              "iri": "https://beta.example/#evidence",
+              "path": "src/app.ts",
+              "startLine": 1,
+              "endLine": 1,
+              "blobId": "129fbfa125de7a8b2b24c3dbc34ef5d0e0570747",
+              "role": "implementation"
+            }
+          ],
+          "commit": "9c08221fbb185a173313dd0e3317273cc8d0e992"
+        },
+        {
+          "type": "assertion",
+          "subject": {
+            "sourceId": "fixture/Beta",
+            "nodeIri": "https://beta.example/#component"
+          },
+          "object": {
+            "sourceId": "fixture/Beta",
+            "nodeIri": "https://beta.example/#code"
+          },
+          "direction": "outgoing",
+          "assertionIri": "https://beta.example/#contains3",
+          "relationship": "https://ontology-kit.dev/schema#contains",
+          "basis": "direct",
+          "evidenceIris": [
+            "https://beta.example/#evidence"
+          ],
+          "evidence": [
+            {
+              "iri": "https://beta.example/#evidence",
+              "path": "src/app.ts",
+              "startLine": 1,
+              "endLine": 1,
+              "blobId": "129fbfa125de7a8b2b24c3dbc34ef5d0e0570747",
+              "role": "implementation"
+            }
+          ],
+          "commit": "9c08221fbb185a173313dd0e3317273cc8d0e992"
+        }
+      ]
+    },
+    {
+      "id": "0423ab039229a1f609e555211b6d5660ad8b0c91a848aaf8a8a4b88ee7c8675d",
+      "steps": [
+        {
+          "type": "assertion",
+          "subject": {
+            "sourceId": "fixture/Beta",
+            "nodeIri": "https://beta.example/#system"
+          },
+          "object": {
+            "sourceId": "fixture/Beta",
+            "nodeIri": "https://beta.example/#external"
+          },
+          "direction": "outgoing",
+          "assertionIri": "https://beta.example/#assertion",
+          "relationship": "https://ontology-kit.dev/schema#communicates-with",
+          "basis": "inferred",
+          "evidenceIris": [
+            "https://beta.example/#evidence"
+          ],
+          "evidence": [
+            {
+              "iri": "https://beta.example/#evidence",
+              "path": "src/app.ts",
+              "startLine": 1,
+              "endLine": 1,
+              "blobId": "129fbfa125de7a8b2b24c3dbc34ef5d0e0570747",
+              "role": "implementation"
+            }
+          ],
+          "commit": "9c08221fbb185a173313dd0e3317273cc8d0e992"
+        }
+      ]
+    }
+  ],
+  "gaps": [
+    {
+      "code": "no-relationship-master-list",
+      "reason": "Impact direction is assumed from subject to object; no relationship master list is defined"
+    }
+  ]
+}

@@ -1,0 +1,113 @@
+import { writeFileSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { withPilotFixture } from '../fixtures/c4/fixture-repos.mjs';
+import { withConfluenceFixture } from '../fixtures/impact/confluence-repos.mjs';
+import { withMeaningFixture } from '../fixtures/impact/meaning-repos.mjs';
+import { withPagingFixture } from '../fixtures/impact/paging-repos.mjs';
+import { generateWalkthrough } from '../acceptance/c4-walkthrough.mjs';
+
+const common = f => ['--catalog-commit', f.catalogCommit, '--registry-commit', f.registryCommit,
+  ...[...f.checkouts].flatMap(([id, path]) => ['--checkout', `${id}=${path}`])];
+const at = key => `${key.sourceId}=${key.nodeIri}`;
+// The pilot's schema 1 record from before assessment-init wrote schema 2.
+const schema1Record = fileURLToPath(new URL('./pilot/fixtures/assessment-v1.json', import.meta.url));
+
+export const scenarios = {
+  async pilot(run) {
+    await withPilotFixture(async f => {
+      const c = [...common(f), '--output', f.outputDir], o = { cwd: f.divisionRoot };
+      const temp = name => join(f.divisionRoot, '..', name);
+      await run(['search', ...c, '--query', 'Alpha API'], o);                                    // 0
+      await run(['search', ...c, '--exact-iri', f.keys.alphaSystem.nodeIri], o);                // 1
+      await run(['search', ...c, '--query', 'unmatched phrase'], o);                             // 2
+      await run(['paths', ...c, '--start', at(f.keys.alphaSystem)], o);                          // 3
+      const traced = JSON.parse(readFileSync(join(f.outputDir, 'paths.json'), 'utf8'));
+      await run(['paths', ...c, '--start', at(f.keys.alphaSystem), '--max-depth', '1'], o);      // 4
+      await run(['paths', ...c, '--start', at(f.keys.betaSystem)], o);                           // 5
+      for (const [level, focus] of [['context', f.keys.alphaSystem], ['container', f.keys.alphaSystem],
+        ['component', f.keys.alphaContainer], ['code', f.keys.alphaComponent], ['container', f.keys.betaSystem]])
+        await run(['view', ...c, '--level', level, '--focus', at(focus)], o);                    // 6-10
+      const supplement = temp('supplement.json');
+      writeFileSync(supplement, JSON.stringify(f.codeSupplement()));
+      await run(['view', ...c, '--level', 'code', '--focus', at(f.keys.alphaComponent), '--supplement', supplement], o); // 11
+      const description = temp('description.txt');
+      writeFileSync(description, 'Change Alpha API\n');
+      await run(['assessment-init', ...c, '--request-id', 'CR-1', '--description-file', description], o);              // 12
+      const record = JSON.parse(readFileSync(join(f.outputDir, 'assessment.json'), 'utf8'));
+      const path = traced.paths.find(p => p.steps.length === 2);
+      Object.assign(record, { assessor: 'Architect A', confirmedLeads: [f.keys.alphaSystem],
+        rejectedLeads: [{ key: f.keys.externalBeta, reason: 'Out | <b>scope</b>\nnext' }],
+        likelyImpacts: [{ key: path.steps[1].object, reason: 'Call path', pathIds: [path.id],
+          evidenceIris: [path.steps[0].evidenceIris[0]] }],
+        unresolved: [{ code: 'partial-code', reason: 'No graph code coverage' }] });
+      const input = temp('assessment-input.json');
+      writeFileSync(input, JSON.stringify(record));
+      await run(['assessment-render', ...c, '--input', input], o);                               // 13
+      const digest = readFileSync(join(f.outputDir, 'assessment.md'), 'utf8').match(/Assessment digest: ([a-f0-9]{64})/)[1];
+      const feedback = temp('feedback-input.json');
+      writeFileSync(feedback, JSON.stringify({ schemaVersion: 1, assessmentDigest: digest,
+        architect: 'Architect A', reviewer: 'Reviewer B', perceivedAccuracy: 'mostly accurate',
+        perceivedCompleteness: 'partial', confidence: 'medium', usefulDiscoveries: ['Beta dependency'],
+        suspectedMisses: ['data store'], falseLeads: [], examples: ['CR-1 path'], openQuestions: ['Who owns it?'] }));
+      await run(['feedback-render', ...c, '--input', feedback, '--assessment-file', input], o);  // 14
+      await run(['assessment-render', ...c, '--input', schema1Record], o);                       // 15: schema 1 still renders
+    });
+  },
+  async walkthrough(run, root) {
+    await generateWalkthrough(join(root, 'walkthrough'), { run });
+  },
+  async confluence(run) {
+    await withConfluenceFixture(async f => {
+      const c = [...f.common(f), '--output', f.outputDir], o = { cwd: f.divisionRoot };
+      const temp = name => join(f.divisionRoot, '..', name);
+      await run(['search', ...c, '--query', 'expense'], o);                       // 0: B1, B2
+      await run(['search', ...c, '--query', 'approval'], o);                      // 1
+      await run(['paths', ...c, '--start', f.at(f.keys.policy)], o);              // 2: B3, B25
+      const traced = JSON.parse(readFileSync(join(f.outputDir, 'paths.json'), 'utf8'));
+      await run(['paths', ...c, '--start', f.at(f.keys.orphan)], o);              // 3: B3 refused start
+      await run(['paths', ...c, '--start', f.at(f.keys.injected)], o);            // 4: Q4 data
+      await run(['view', ...c, '--level', 'context', '--focus', f.at(f.keys.policy)], o);   // 5: B5
+      const description = temp('description.txt');
+      writeFileSync(description, 'Raise the expense approval threshold\n');
+      await run(['assessment-init', ...c, '--request-id', 'CR-9', '--description-file', description], o);  // 6
+      const record = JSON.parse(readFileSync(join(f.outputDir, 'assessment.json'), 'utf8'));
+      const path = traced.paths.find(p => p.steps.length === 2);
+      Object.assign(record, { assessor: 'Analyst A', confirmedLeads: [f.keys.policy],
+        likelyImpacts: path ? [{ key: f.keys.ledger, reason: 'Ledger supports approvals', pathIds: [path.id],
+          evidenceIris: path.steps.flatMap(s => s.evidenceIris) }] : [],
+        unresolved: [{ code: 'threshold-owner', reason: 'Who owns the threshold?' }] });
+      const input = temp('assessment-input.json');
+      writeFileSync(input, JSON.stringify(record));
+      await run(['assessment-render', ...c, '--input', input], o);                // 7: B25, B30, B32
+    });
+  },
+  async meaning(run) {
+    await withMeaningFixture(async f => {
+      const at_ = commit => ['--catalog-commit', commit, '--registry-commit', f.registryCommit,
+        ...[...f.checkouts].flatMap(([id, path]) => ['--checkout', `${id}=${path}`]), '--output', f.outputDir];
+      const c = at_(f.catalogCommit), o = { cwd: f.divisionRoot };
+      const temp = name => join(f.divisionRoot, '..', name);
+      await run(['search', ...c, '--query', 'claim'], o);                                     // 0: supported leads
+      await run(['paths', ...c, '--start', at(f.keys.claim)], o);                             // 1: B6–B8, B10, B11
+      const traced = JSON.parse(readFileSync(join(f.outputDir, 'paths.json'), 'utf8'));
+      const description = temp('description.txt');
+      writeFileSync(description, 'Change how claims affect cases\n');
+      await run(['assessment-init', ...c, '--request-id', 'CR-21', '--description-file', description], o); // 2
+      const record = JSON.parse(readFileSync(join(f.outputDir, 'assessment.json'), 'utf8'));
+      const path = traced.paths.find(p => p.steps.length === 1 && p.steps[0].object?.nodeIri === f.keys.case.nodeIri);
+      Object.assign(record, { assessor: 'Analyst A', confirmedLeads: [f.keys.claim],
+        likelyImpacts: [{ key: f.keys.case, reason: 'Claims affect cases', pathIds: [path.id], evidenceIris: path.steps[0].evidenceIris }] });
+      const input = temp('assessment-input.json');
+      writeFileSync(input, JSON.stringify(record));
+      await run(['assessment-render', ...c, '--input', input], o);                            // 3: B10 pin
+      await run(['paths', ...at_(f.unlinkedCommit), '--start', at(f.keys.claim)], o);         // 4: B13 unlinked term
+      await run(['paths', ...at_(f.corruptCommit), '--start', at(f.keys.claim)], o);          // 5: invalid list
+    });
+  },
+  async paging(run) {
+    await withPagingFixture(async f => {
+      await run(['search', ...common(f), '--output', f.outputDir, '--query', 'claim'], { cwd: f.divisionRoot }); // 0: 250 leads
+    });
+  }
+};

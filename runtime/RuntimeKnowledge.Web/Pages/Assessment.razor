@@ -1,0 +1,243 @@
+@page "/assessments/{Id:guid}"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@using System.Text
+@using System.Text.Json
+@using System.Text.Json.Nodes
+@inject WorkspaceClient Api
+@inject AssessmentDraft Draft
+@inject NavigationManager Navigation
+
+@* There is no approve, sign-off or status control here: the workspace records impact, it does not approve it (B31). *@
+<ApiError Error="error" ReturnRoute="@($"assessments/{Id:D}")" />
+
+@if (saved is not null)
+{
+    var record = saved.Frozen["record"]!.AsObject();
+    var pins = saved.Frozen["pins"]!.AsObject();
+    <h1>Impact assessment: @saved.RequestId</h1>
+    @if (saved.PinnedToEarlierSnapshot)
+    {
+        <p role="status" class="pinned-banner">Pinned to an earlier snapshot. It opens unchanged, but it can no longer be edited.</p>
+    }
+    <p>@Text(record["description"])</p>
+    <p>Saved by @saved.Author.Subject on @saved.SavedAt.ToString("u") · version @saved.Version</p>
+    @if (saved.StartedFrom is { } earlier)
+    {
+        <p>Started from <a href="@($"assessments/{earlier:D}")">the earlier assessment</a></p>
+    }
+
+    <section aria-labelledby="assessment-pins">
+        <h2 id="assessment-pins">Pins</h2>
+        <dl>
+            <dt>Catalog commit</dt><dd><code>@Text(pins["snapshotId"]?["catalogCommit"])</code></dd>
+            @foreach (var source in pins["snapshotId"]?["sources"] as JsonArray ?? [])
+            {
+                <dt>Source @Text(source!["id"])</dt><dd><code>@Text(source["commit"])</code></dd>
+            }
+            <dt>Relationship master list</dt>
+            <dd>@(Text(pins["masterList"]?["status"]) == "listed" ? $"{Text(pins["masterList"]!["catalogCommit"])} (sha256 {Text(pins["masterList"]!["sha256"])})" : "none")</dd>
+            <dt>C4 registry</dt>
+            @if (pins["registry"] is JsonObject registry)
+            {
+                <dd><code>@Text(registry["commit"])</code> (mappings sha256 <code>@Text(registry["digests"]?["mappings"])</code>, bindings sha256 <code>@Text(registry["digests"]?["bindings"])</code>)</dd>
+            }
+            else { <dd>none</dd> }
+        </dl>
+    </section>
+
+    <section aria-labelledby="assessment-leads">
+        <h2 id="assessment-leads">Leads</h2>
+        <h3>Confirmed</h3>
+        <ul>@foreach (var lead in saved.Frozen["leads"]?["confirmed"] as JsonArray ?? []) { <li>@Text(lead!["key"]?["nodeIri"]) — @Text(lead["label"])</li> }</ul>
+        <h3>Not expected to be affected</h3>
+        <ul>@foreach (var lead in saved.Frozen["leads"]?["rejected"] as JsonArray ?? []) { <li>@Text(lead!["key"]?["nodeIri"]) — @Text(lead["reason"])</li> }</ul>
+        <h3>Likely impacts</h3>
+        <ul>@foreach (var impact in record["likelyImpacts"] as JsonArray ?? [])
+            {
+                <li>@Text(impact!["key"]?["nodeIri"]) — @Text(impact["reason"])
+                    @foreach (var crossing in CrossingSupport(impact))
+                    {
+                        <span class="impact-support"> · supported by reviewed links through <code>@Text(crossing["sharedTerm"])</code> at catalog <code>@Text(crossing["catalogCommit"])</code></span>
+                    }
+                </li>
+            }</ul>
+    </section>
+
+    @if (record["traces"] is JsonArray traces)
+    {
+        <section aria-labelledby="assessment-traces">
+            <h2 id="assessment-traces">Cited traces</h2>
+            <ul>@foreach (var trace in traces) { <li>Depth @Text(trace!["maxDepth"]) from @string.Join(", ", (trace["starts"] as JsonArray ?? []).Select(k => $"{Text(k!["sourceId"])}: {Text(k["nodeIri"])}"))</li> }</ul>
+        </section>
+    }
+
+    <section aria-labelledby="assessment-paths">
+        <h2 id="assessment-paths">Cited paths</h2>
+        <ImpactPathList Paths="paths" />
+    </section>
+
+    <section aria-labelledby="assessment-evidence">
+        <h2 id="assessment-evidence">Evidence</h2>
+        <ul>
+            @foreach (var evidence in saved.Frozen["evidence"] as JsonArray ?? [])
+            {
+                <li>
+                    <span>@Text(evidence!["evidenceIri"]) · @Text(evidence["role"]) in @Text(evidence["sourceId"]) @Text(evidence["path"]):@Text(evidence["startLine"])-@Text(evidence["endLine"]) at <code>@Text(evidence["commit"])</code></span>
+                    @if (evidence["page"] is JsonObject page)
+                    {
+                        var title = Text(page["title"]) is { Length: > 0 } t ? t : "Untitled page";
+                        <span> · @if (Text(page["confluenceUrl"]) is { Length: > 0 } url) { <a href="@url" rel="noopener noreferrer" target="_blank">@title</a> } else { @title }</span>
+                    }
+                    @if (evidence["lines"] is JsonArray lines) { <pre class="evidence-lines">@string.Join("\n", lines.Select(Text))</pre> }
+                </li>
+            }
+        </ul>
+    </section>
+
+    <section aria-labelledby="assessment-gaps">
+        <h2 id="assessment-gaps">Gaps</h2>
+        @foreach (var (heading, key) in new[] { ("Unresolved gaps and questions", "unresolved"), ("Snapshot coverage gaps", "snapshot"),
+                                                ("Gaps from cited path traces", "traces"), ("Evidence gaps", "evidence") })
+        {
+            <h3>@heading</h3>
+            <ul>@foreach (var gap in saved.Frozen["gaps"]?[key] as JsonArray ?? []) { <li><code>@Text(gap!["code"])</code> @Text(gap["reason"])</li> }</ul>
+        }
+    </section>
+
+    <div class="actions">
+        <a href="@DownloadHref" download="@($"{saved.RequestId}.md")">Download Markdown</a>
+        @if (canManage && !saved.PinnedToEarlierSnapshot) { <button type="button" @onclick="Edit">Edit</button> }
+        @if (canManage) { <button type="button" @onclick="StartFromThis">Start a new assessment from this one</button> }
+    </div>
+
+    <section aria-labelledby="assessment-history">
+        <h2 id="assessment-history">History</h2>
+        <ol>
+            @foreach (var revision in revisions)
+            {
+                <li>
+                    Version @revision.Version by @revision.Editor.Subject on @revision.EditedAt.ToString("u")
+                    <button type="button" @onclick="() => Show(revision.Version)">Show version @revision.Version</button>
+                    @if (shown?.Version == revision.Version) { <pre class="assessment-markdown">@shown.Markdown</pre> }
+                </li>
+            }
+        </ol>
+        @if (revisionsCursor is not null) { <button type="button" disabled="@loadingRevisions" @onclick="MoreRevisions">Load more versions</button> }
+    </section>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private SavedAssessment? saved;
+    private IReadOnlyList<ImpactPath> paths = [];
+    private WorkspaceApiException? error;
+    private bool canManage;
+    private AssessmentRevision? shown;
+    private List<AssessmentRevisionSummary> revisions = [];
+    private string? revisionsCursor;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        error = null;
+        try
+        {
+            var id = Id;
+            var loaded = await Api.GetAssessment(id);
+            var page = await Api.Revisions(id);
+            if (id != Id) return;
+            saved = loaded;
+            // Each step cites its evidence as it was frozen, with its lines, address and commit (B34).
+            var frozenEvidence = (saved.Frozen["evidence"] as JsonArray ?? []).Select(e => e!.AsObject())
+                .ToDictionary(e => (Text(e["sourceId"]), Text(e["evidenceIri"])));
+            paths = (saved.Frozen["paths"]?.Deserialize<IReadOnlyList<ImpactPath>>(WorkspaceJson.Options) ?? [])
+                .Select(p => p with { Steps = p.Steps.Select(s => s with
+                {
+                    Evidence = (s.EvidenceIris ?? []).Select(iri => frozenEvidence.GetValueOrDefault((s.Subject?.SourceId ?? "", iri)))
+                        .OfType<JsonObject>().Select(Cited).ToList()
+                }).ToList() }).ToList();
+            (revisions, revisionsCursor, shown) = (page.Revisions.ToList(), page.NextCursor, null);
+            canManage = (await Api.Session()).CanManage;
+        }
+        catch (WorkspaceApiException problem) { error = problem; }
+    }
+
+    private static CitedEvidence Cited(JsonObject e) => new(Text(e["evidenceIri"]), Text(e["path"]),
+        e["startLine"]?.GetValue<int>() ?? 0, e["endLine"]?.GetValue<int>() ?? 0, Text(e["blobId"]), Text(e["role"]),
+        e["page"] is JsonObject page ? new PageEvidence(NullIfEmpty(Text(page["title"])), NullIfEmpty(Text(page["confluenceUrl"])), null) : null,
+        (e["lines"] as JsonArray)?.Select(Text).ToList());
+
+    private static string? NullIfEmpty(string text) => text.Length == 0 ? null : text;
+
+    private bool loadingRevisions;
+
+    // A response is used only if it still belongs to the assessment shown and the page it was asked for.
+    private async Task MoreRevisions()
+    {
+        if (loadingRevisions || revisionsCursor is not { } cursor) return;
+        var id = Id;
+        loadingRevisions = true;
+        try
+        {
+            var page = await Api.Revisions(id, cursor);
+            if (id != Id || cursor != revisionsCursor) return;
+            revisions.AddRange(page.Revisions);
+            revisionsCursor = page.NextCursor;
+        }
+        catch (WorkspaceApiException problem) { error = problem; }
+        finally { loadingRevisions = false; }
+    }
+
+    private async Task Show(int version)
+    {
+        var id = Id;
+        try
+        {
+            var revision = await Api.Revision(id, version);
+            if (id == Id) shown = revision;
+        }
+        catch (WorkspaceApiException problem) { error = problem; }
+    }
+
+    // The saved Markdown, exactly as stored, without a second request (the download needs no bearer token).
+    private string DownloadHref => "data:text/markdown;charset=utf-8;base64," +
+        Convert.ToBase64String(Encoding.UTF8.GetBytes(saved?.Markdown ?? ""));
+
+    private static string Text(JsonNode? node) => node is JsonValue value ? value.ToString() : "";
+
+    // B39: the frozen crossing steps that arrive at an impact's node, through the paths it cites.
+    private IEnumerable<JsonObject> CrossingSupport(JsonNode impact)
+    {
+        var cited = (impact["pathIds"] as JsonArray ?? []).Select(id => Text(id)).ToHashSet(StringComparer.Ordinal);
+        return (saved!.Frozen["paths"] as JsonArray ?? []).Select(p => p!.AsObject()).Where(p => cited.Contains(Text(p["id"])))
+            .SelectMany(p => p["steps"] as JsonArray ?? []).Select(s => s!.AsObject())
+            .Where(s => Text(s["type"]) == "reviewedLinkCrossing" && Text(s["to"]?["sourceId"]) == Text(impact["key"]?["sourceId"]) &&
+                        Text(s["to"]?["nodeIri"]) == Text(impact["key"]?["nodeIri"]))
+            .DistinctBy(c => Text(c["sharedTerm"]) + " " + Text(c["catalogCommit"]));
+    }
+
+    private void Edit()
+    {
+        Draft.LoadForEdit(saved!);
+        Navigation.NavigateTo("assessments/draft");
+    }
+
+    [CascadingParameter] private Task<AuthenticationState>? Authentication { get; set; }
+
+    // B35: the new draft is on the active snapshot and carries only the request forward.
+    private async Task StartFromThis()
+    {
+        error = null;
+        try
+        {
+            var successor = await Api.Successor(Id);
+            var record = successor.Record;
+            var user = Authentication is null ? null : (await Authentication).User;
+            var assessor = user?.FindFirst("name")?.Value ?? user?.FindFirst("sub")?.Value ?? "Workspace user";
+            Draft.Start(successor.SnapshotId, Text(record["requestId"]), Text(record["description"]), assessor,
+                record["pins"]!.AsObject(), Id);
+            Navigation.NavigateTo("assessments/draft");
+        }
+        catch (WorkspaceApiException problem) { error = problem; }
+    }
+}

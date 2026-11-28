@@ -6,6 +6,1030 @@
     "version": "v1"
   },
   "paths": {
+    "/api/assessments": {
+      "post": {
+        "tags": [
+          "Assessments"
+        ],
+        "summary": "Save an assessment",
+        "description": "Validates, freezes and saves a schema 2 assessment draft as version 1, returning its id. Not idempotent: retrying saves another assessment, so read back the returned id instead of retrying blindly. The same refusals as previewAssessment apply.",
+        "operationId": "saveAssessment",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssessmentDraftRequest"
+              },
+              "example": {
+                "snapshotId": "example-snapshot-id",
+                "record": {
+                  "schemaVersion": 2,
+                  "requestId": "example-CR-1",
+                  "description": "Example: raise the claim approval threshold.",
+                  "assessor": "Example assessor",
+                  "pins": {
+                    "snapshotId": {
+                      "catalogCommit": "example-catalog-commit"
+                    },
+                    "masterList": {
+                      "status": "none"
+                    },
+                    "registry": null
+                  },
+                  "confirmedLeads": [
+                    {
+                      "sourceId": "example-claims",
+                      "nodeIri": "https://example.test/claims/graph#claim"
+                    }
+                  ],
+                  "rejectedLeads": [ ],
+                  "likelyImpacts": [ ],
+                  "unresolved": [ ]
+                },
+                "views": null
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssessmentSaved"
+                }
+              }
+            },
+            "links": {
+              "assessment": {
+                "operationId": "getAssessment",
+                "parameters": {
+                  "id": "$response.body#/id"
+                },
+                "description": "Open the saved assessment."
+              },
+              "assessmentMarkdown": {
+                "operationId": "getAssessmentMarkdown",
+                "parameters": {
+                  "id": "$response.body#/id"
+                },
+                "description": "Download its Markdown."
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/unreadableRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "404": {
+            "description": "Not Found. Codes: assessmentNotFound",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "assessmentNotFound"
+            ]
+          },
+          "409": {
+            "description": "Conflict. Codes: snapshotChanged",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "snapshotChanged"
+            ]
+          },
+          "422": {
+            "description": "Unprocessable Entity. Codes: approvalNotSupported, invalidAssessment",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "approvalNotSupported",
+              "invalidAssessment"
+            ]
+          },
+          "500": {
+            "$ref": "#/components/responses/internalError"
+          },
+          "503": {
+            "description": "Service Unavailable. Codes: impactUnavailable, snapshotUnavailable, writesPaused",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "impactUnavailable",
+              "snapshotUnavailable",
+              "writesPaused"
+            ]
+          }
+        },
+        "security": [
+          {
+            "bearer": [ ]
+          }
+        ],
+        "x-workspace-role": "ManageKnowledgeGraph",
+        "x-agent-tool-name": "workspace_save_assessment",
+        "x-agent-idempotent": false,
+        "x-agent-retryable": false,
+        "x-agent-side-effects": "creates-assessment",
+        "x-agent-input": "AssessmentDraftRequest",
+        "x-agent-output": "AssessmentSaved"
+      },
+      "get": {
+        "tags": [
+          "Assessments"
+        ],
+        "summary": "List saved assessments, newest first",
+        "description": "Cursor-paginated list of saved assessments, newest first, at most 50 per page. Pass the previous page's nextCursor as cursor with the same limit; never invent a cursor. Treat nextCursor=null as the end. pinnedToEarlierSnapshot=true marks an assessment saved on an earlier snapshot.",
+        "operationId": "assessmentList",
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssessmentPage"
+                }
+              }
+            },
+            "links": {
+              "next": {
+                "operationId": "assessmentList",
+                "parameters": {
+                  "cursor": "$response.body#/nextCursor",
+                  "limit": "$request.query.limit"
+                },
+                "description": "Fetch the next page using this page's nextCursor, keeping the same limit."
+              },
+              "assessment": {
+                "operationId": "getAssessment",
+                "description": "Open a listed assessment; supply its id."
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/unreadableRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "422": {
+            "description": "Unprocessable Entity. Codes: invalidCursor, invalidLimit",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "invalidCursor",
+              "invalidLimit"
+            ]
+          },
+          "500": {
+            "$ref": "#/components/responses/internalError"
+          },
+          "503": {
+            "description": "Service Unavailable. Codes: snapshotUnavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "snapshotUnavailable"
+            ]
+          }
+        },
+        "security": [
+          {
+            "bearer": [ ]
+          }
+        ],
+        "x-workspace-role": "ReadKnowledgeGraph",
+        "x-agent-tool-name": "workspace_list_assessments",
+        "x-agent-idempotent": true,
+        "x-agent-retryable": true,
+        "x-agent-side-effects": "none",
+        "x-agent-input": "parameters",
+        "x-agent-output": "AssessmentPage"
+      }
+    },
+    "/api/assessments/preview": {
+      "post": {
+        "tags": [
+          "Assessments"
+        ],
+        "summary": "Preview an assessment draft without saving it",
+        "description": "Read-only despite POST: validates a schema 2 assessment draft against the active snapshot's impact model, freezes it with everything it cites, and returns the frozen content and its Markdown. Nothing is stored. Every likely impact must name a node on a cited path and evidence on that path, or a verified inspected view. A snapshotId that is no longer active fails 409 snapshotChanged: the draft belongs to an earlier snapshot, so start again from a new search. Approval and sign-off fields fail 422 approvalNotSupported; the workspace records impact, it does not approve it.",
+        "operationId": "previewAssessment",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssessmentDraftRequest"
+              },
+              "example": {
+                "snapshotId": "example-snapshot-id",
+                "record": {
+                  "schemaVersion": 2,
+                  "requestId": "example-CR-1",
+                  "description": "Example: raise the claim approval threshold.",
+                  "assessor": "Example assessor",
+                  "pins": {
+                    "snapshotId": {
+                      "catalogCommit": "example-catalog-commit"
+                    },
+                    "masterList": {
+                      "status": "none"
+                    },
+                    "registry": null
+                  },
+                  "confirmedLeads": [
+                    {
+                      "sourceId": "example-claims",
+                      "nodeIri": "https://example.test/claims/graph#claim"
+                    }
+                  ],
+                  "rejectedLeads": [ ],
+                  "likelyImpacts": [ ],
+                  "unresolved": [ ]
+                },
+                "views": null
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssessmentPreview"
+                }
+              }
+            },
+            "links": {
+              "saveAssessment": {
+                "operationId": "saveAssessment",
+                "description": "Save the same draft; requires ManageKnowledgeGraph."
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/unreadableRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "409": {
+            "description": "Conflict. Codes: snapshotChanged",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "snapshotChanged"
+            ]
+          },
+          "422": {
+            "description": "Unprocessable Entity. Codes: approvalNotSupported, invalidAssessment",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "approvalNotSupported",
+              "invalidAssessment"
+            ]
+          },
+          "500": {
+            "$ref": "#/components/responses/internalError"
+          },
+          "503": {
+            "description": "Service Unavailable. Codes: impactUnavailable, snapshotUnavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "impactUnavailable",
+              "snapshotUnavailable"
+            ]
+          }
+        },
+        "security": [
+          {
+            "bearer": [ ]
+          }
+        ],
+        "x-workspace-role": "ReadKnowledgeGraph",
+        "x-agent-tool-name": "workspace_preview_assessment",
+        "x-agent-idempotent": true,
+        "x-agent-retryable": true,
+        "x-agent-side-effects": "none",
+        "x-agent-input": "AssessmentDraftRequest",
+        "x-agent-output": "AssessmentPreview"
+      }
+    },
+    "/api/assessments/{id}": {
+      "get": {
+        "tags": [
+          "Assessments"
+        ],
+        "summary": "Open a saved assessment",
+        "description": "Returns a saved assessment's current version exactly as it was frozen; list earlier versions with assessmentRevisions. pinnedToEarlierSnapshot=true means a newer snapshot is active: the assessment still opens unchanged, but it can no longer be edited.",
+        "operationId": "getAssessment",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedAssessment"
+                }
+              }
+            },
+            "links": {
+              "assessmentMarkdown": {
+                "operationId": "getAssessmentMarkdown",
+                "parameters": {
+                  "id": "$request.path.id"
+                },
+                "description": "Download its Markdown."
+              },
+              "assessmentRevisions": {
+                "operationId": "assessmentRevisions",
+                "parameters": {
+                  "id": "$request.path.id"
+                },
+                "description": "List its revisions."
+              },
+              "editAssessment": {
+                "operationId": "editAssessment",
+                "parameters": {
+                  "id": "$request.path.id"
+                },
+                "description": "Edit it on the same snapshot; supply its version as expectedVersion."
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/unreadableRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "404": {
+            "description": "Not Found. Codes: assessmentNotFound",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "assessmentNotFound"
+            ]
+          },
+          "500": {
+            "$ref": "#/components/responses/internalError"
+          }
+        },
+        "security": [
+          {
+            "bearer": [ ]
+          }
+        ],
+        "x-workspace-role": "ReadKnowledgeGraph",
+        "x-agent-tool-name": "workspace_get_assessment",
+        "x-agent-idempotent": true,
+        "x-agent-retryable": true,
+        "x-agent-side-effects": "none",
+        "x-agent-input": "parameters",
+        "x-agent-output": "SavedAssessment"
+      },
+      "put": {
+        "tags": [
+          "Assessments"
+        ],
+        "summary": "Edit a saved assessment",
+        "description": "Revises a saved assessment on the snapshot it was saved on, keeping every earlier version with its editor and time. Optimistic concurrency: expectedVersion must match the current version, or it fails 409 versionConflict; reload and reapply your changes. An assessment saved on an earlier snapshot fails 409 snapshotMismatch: start a new assessment from it instead.",
+        "operationId": "editAssessment",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssessmentEditRequest"
+              },
+              "example": {
+                "snapshotId": "example-snapshot-id",
+                "expectedVersion": 1,
+                "record": {
+                  "schemaVersion": 2,
+                  "requestId": "example-CR-1",
+                  "description": "Example: raise the claim approval threshold.",
+                  "assessor": "Example assessor",
+                  "pins": {
+                    "snapshotId": {
+                      "catalogCommit": "example-catalog-commit"
+                    },
+                    "masterList": {
+                      "status": "none"
+                    },
+                    "registry": null
+                  },
+                  "confirmedLeads": [
+                    {
+                      "sourceId": "example-claims",
+                      "nodeIri": "https://example.test/claims/graph#claim"
+                    }
+                  ],
+                  "rejectedLeads": [ ],
+                  "likelyImpacts": [ ],
+                  "unresolved": [ ]
+                },
+                "views": null
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssessmentSaved"
+                }
+              }
+            },
+            "links": {
+              "assessment": {
+                "operationId": "getAssessment",
+                "parameters": {
+                  "id": "$request.path.id"
+                },
+                "description": "Read back the edited assessment."
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/unreadableRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "404": {
+            "description": "Not Found. Codes: assessmentNotFound",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "assessmentNotFound"
+            ]
+          },
+          "409": {
+            "description": "Conflict. Codes: snapshotChanged, snapshotMismatch, versionConflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceConflictProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "snapshotChanged",
+              "snapshotMismatch",
+              "versionConflict"
+            ]
+          },
+          "422": {
+            "description": "Unprocessable Entity. Codes: approvalNotSupported, invalidAssessment",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "approvalNotSupported",
+              "invalidAssessment"
+            ]
+          },
+          "500": {
+            "$ref": "#/components/responses/internalError"
+          },
+          "503": {
+            "description": "Service Unavailable. Codes: impactUnavailable, snapshotUnavailable, writesPaused",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "impactUnavailable",
+              "snapshotUnavailable",
+              "writesPaused"
+            ]
+          }
+        },
+        "security": [
+          {
+            "bearer": [ ]
+          }
+        ],
+        "x-workspace-role": "ManageKnowledgeGraph",
+        "x-agent-tool-name": "workspace_edit_assessment",
+        "x-agent-idempotent": false,
+        "x-agent-retryable": false,
+        "x-agent-side-effects": "updates-assessment",
+        "x-agent-input": "AssessmentEditRequest",
+        "x-agent-output": "AssessmentSaved"
+      }
+    },
+    "/api/assessments/{id}/markdown": {
+      "get": {
+        "tags": [
+          "Assessments"
+        ],
+        "summary": "Download a saved assessment's Markdown",
+        "description": "Returns the saved assessment's Markdown, byte for byte as it was rendered when saved.",
+        "operationId": "getAssessmentMarkdown",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/markdown": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "links": {
+              "assessment": {
+                "operationId": "getAssessment",
+                "parameters": {
+                  "id": "$request.path.id"
+                },
+                "description": "Open the saved assessment with its frozen content."
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/unreadableRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "404": {
+            "description": "Not Found. Codes: assessmentNotFound",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "assessmentNotFound"
+            ]
+          },
+          "500": {
+            "$ref": "#/components/responses/internalError"
+          }
+        },
+        "security": [
+          {
+            "bearer": [ ]
+          }
+        ],
+        "x-workspace-role": "ReadKnowledgeGraph",
+        "x-agent-tool-name": "workspace_get_assessment_markdown",
+        "x-agent-idempotent": true,
+        "x-agent-retryable": true,
+        "x-agent-side-effects": "none",
+        "x-agent-input": "parameters",
+        "x-agent-output": "none"
+      }
+    },
+    "/api/assessments/{id}/revisions": {
+      "get": {
+        "tags": [
+          "Assessments"
+        ],
+        "summary": "List a saved assessment's revisions, oldest first",
+        "description": "Cursor-paginated revision metadata for a saved assessment, oldest first, at most 50 per page: version, editor and time. Pass the previous page's nextCursor as cursor with the same limit; never invent a cursor. Treat nextCursor=null as the end. Open one revision's content with getAssessmentRevision.",
+        "operationId": "assessmentRevisions",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssessmentRevisionPage"
+                }
+              }
+            },
+            "links": {
+              "next": {
+                "operationId": "assessmentRevisions",
+                "parameters": {
+                  "id": "$request.path.id",
+                  "cursor": "$response.body#/nextCursor",
+                  "limit": "$request.query.limit"
+                },
+                "description": "Fetch the next page using this page's nextCursor, keeping the same limit."
+              },
+              "assessmentRevision": {
+                "operationId": "getAssessmentRevision",
+                "parameters": {
+                  "id": "$request.path.id"
+                },
+                "description": "Open a listed revision; supply its version."
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/unreadableRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "404": {
+            "description": "Not Found. Codes: assessmentNotFound",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "assessmentNotFound"
+            ]
+          },
+          "422": {
+            "description": "Unprocessable Entity. Codes: invalidCursor, invalidLimit",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "invalidCursor",
+              "invalidLimit"
+            ]
+          },
+          "500": {
+            "$ref": "#/components/responses/internalError"
+          }
+        },
+        "security": [
+          {
+            "bearer": [ ]
+          }
+        ],
+        "x-workspace-role": "ReadKnowledgeGraph",
+        "x-agent-tool-name": "workspace_list_assessment_revisions",
+        "x-agent-idempotent": true,
+        "x-agent-retryable": true,
+        "x-agent-side-effects": "none",
+        "x-agent-input": "parameters",
+        "x-agent-output": "AssessmentRevisionPage"
+      }
+    },
+    "/api/assessments/{id}/revisions/{version}": {
+      "get": {
+        "tags": [
+          "Assessments"
+        ],
+        "summary": "Open one revision of a saved assessment",
+        "description": "Returns one revision of a saved assessment, with its editor, time, frozen content and Markdown exactly as saved.",
+        "operationId": "getAssessmentRevision",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssessmentRevision"
+                }
+              }
+            },
+            "links": {
+              "assessment": {
+                "operationId": "getAssessment",
+                "parameters": {
+                  "id": "$request.path.id"
+                },
+                "description": "Open the assessment's current version."
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/unreadableRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "404": {
+            "description": "Not Found. Codes: assessmentNotFound",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "assessmentNotFound"
+            ]
+          },
+          "500": {
+            "$ref": "#/components/responses/internalError"
+          }
+        },
+        "security": [
+          {
+            "bearer": [ ]
+          }
+        ],
+        "x-workspace-role": "ReadKnowledgeGraph",
+        "x-agent-tool-name": "workspace_get_assessment_revision",
+        "x-agent-idempotent": true,
+        "x-agent-retryable": true,
+        "x-agent-side-effects": "none",
+        "x-agent-input": "parameters",
+        "x-agent-output": "AssessmentRevision"
+      }
+    },
+    "/api/assessments/{id}/successor": {
+      "post": {
+        "tags": [
+          "Assessments"
+        ],
+        "summary": "Start a new assessment from a saved one",
+        "description": "Returns a new schema 2 draft on the active snapshot that carries the saved assessment's request id and description forward, with startedFrom naming it. Nothing else is copied, because leads, paths and evidence belong to the earlier snapshot. Nothing is stored: fill in the draft, preview it, and save it with saveAssessment, which links the new assessment back to this one.",
+        "operationId": "startAssessmentFrom",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssessmentSuccessor"
+                }
+              }
+            },
+            "links": {
+              "saveAssessment": {
+                "operationId": "saveAssessment",
+                "description": "Save the completed draft; requires ManageKnowledgeGraph."
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/unreadableRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "404": {
+            "description": "Not Found. Codes: assessmentNotFound",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "assessmentNotFound"
+            ]
+          },
+          "500": {
+            "$ref": "#/components/responses/internalError"
+          },
+          "503": {
+            "description": "Service Unavailable. Codes: impactUnavailable, snapshotUnavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "impactUnavailable",
+              "snapshotUnavailable"
+            ]
+          }
+        },
+        "security": [
+          {
+            "bearer": [ ]
+          }
+        ],
+        "x-workspace-role": "ManageKnowledgeGraph",
+        "x-agent-tool-name": "workspace_start_assessment_from",
+        "x-agent-idempotent": true,
+        "x-agent-retryable": true,
+        "x-agent-side-effects": "none",
+        "x-agent-input": "parameters",
+        "x-agent-output": "AssessmentSuccessor"
+      }
+    },
     "/api/contributions/annotations": {
       "post": {
         "tags": [
@@ -866,6 +1890,372 @@
         "x-agent-output": "HistoryPage"
       }
     },
+    "/api/impact/paths": {
+      "post": {
+        "tags": [
+          "Impact"
+        ],
+        "summary": "Trace impact paths from supported leads",
+        "description": "Read-only impact trace despite POST. Starts are lead keys from searchImpact on the same snapshotId; unsupported starts are skipped and reported as gaps. Each path lists its steps in order with the cited evidence and lines, so a later step is never shown as a direct relationship of the start. Gaps say what could not be followed: missing relationship meaning, unlinked terms, unreadable evidence text and coverage gaps; an empty result does not prove no impact. A snapshotId that is no longer active fails 409 snapshotChanged.",
+        "operationId": "traceImpact",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImpactPathsRequest"
+              },
+              "example": {
+                "snapshotId": "example-snapshot-id",
+                "starts": [
+                  {
+                    "sourceId": "example-claims",
+                    "nodeIri": "https://example.test/claims/graph#claim"
+                  }
+                ],
+                "maxDepth": 4
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImpactPathsResult"
+                }
+              }
+            },
+            "links": {
+              "viewC4": {
+                "operationId": "viewC4",
+                "parameters": {
+                  "snapshotId": "$response.body#/snapshotId"
+                },
+                "description": "Show a C4 view of a node on a path; supply the same snapshotId."
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/unreadableRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "409": {
+            "description": "Conflict. Codes: snapshotChanged",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "snapshotChanged"
+            ]
+          },
+          "422": {
+            "description": "Unprocessable Entity. Codes: invalidImpactRequest",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "invalidImpactRequest"
+            ]
+          },
+          "500": {
+            "$ref": "#/components/responses/internalError"
+          },
+          "503": {
+            "description": "Service Unavailable. Codes: impactUnavailable, snapshotUnavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "impactUnavailable",
+              "snapshotUnavailable"
+            ]
+          }
+        },
+        "security": [
+          {
+            "bearer": [ ]
+          }
+        ],
+        "x-workspace-role": "ReadKnowledgeGraph",
+        "x-agent-tool-name": "workspace_trace_impact",
+        "x-agent-idempotent": true,
+        "x-agent-retryable": true,
+        "x-agent-side-effects": "none",
+        "x-agent-input": "ImpactPathsRequest",
+        "x-agent-output": "ImpactPathsResult"
+      }
+    },
+    "/api/impact/search": {
+      "post": {
+        "tags": [
+          "Impact"
+        ],
+        "summary": "Search the active snapshot for impact leads",
+        "description": "Read-only impact lead search despite POST, paged at 100 leads. Matches node labels and catalog concepts in the active snapshot's impact model; each lead says whether it is supported (by a reviewed C4 mapping or verified evidence) and why, so only supported leads can start a trace. The response's snapshotId pins every later call. When nextCursor is set, submit it as cursor with the same query and exactIri; a cursor for another query fails 422 invalidCursor, and a cursor or snapshotId from an earlier snapshot fails 409 snapshotChanged, which means start again from a new search. 503 impactUnavailable means the active snapshot was published without an impact model.",
+        "operationId": "searchImpact",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImpactSearchRequest"
+              },
+              "examples": {
+                "firstPage": {
+                  "value": {
+                    "query": "example claim approval",
+                    "exactIri": null,
+                    "snapshotId": null,
+                    "cursor": null
+                  }
+                },
+                "nextPage": {
+                  "value": {
+                    "query": "example claim approval",
+                    "exactIri": null,
+                    "snapshotId": null,
+                    "cursor": "opaque-continuation-cursor"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImpactSearchResult"
+                }
+              }
+            },
+            "links": {
+              "next": {
+                "operationId": "searchImpact",
+                "parameters": {
+                  "cursor": "$response.body#/nextCursor"
+                },
+                "description": "Fetch the next page: submit this response's nextCursor as cursor with the same query and exactIri."
+              },
+              "traceImpact": {
+                "operationId": "traceImpact",
+                "parameters": {
+                  "snapshotId": "$response.body#/snapshotId"
+                },
+                "description": "Trace impact paths from supported leads; supply this response's snapshotId and the leads' keys as starts."
+              },
+              "viewC4": {
+                "operationId": "viewC4",
+                "parameters": {
+                  "snapshotId": "$response.body#/snapshotId"
+                },
+                "description": "Show a C4 view of a mapped lead; supply this response's snapshotId."
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/unreadableRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "409": {
+            "description": "Conflict. Codes: snapshotChanged",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "snapshotChanged"
+            ]
+          },
+          "422": {
+            "description": "Unprocessable Entity. Codes: invalidCursor, invalidImpactRequest",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "invalidCursor",
+              "invalidImpactRequest"
+            ]
+          },
+          "500": {
+            "$ref": "#/components/responses/internalError"
+          },
+          "503": {
+            "description": "Service Unavailable. Codes: impactUnavailable, snapshotUnavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "impactUnavailable",
+              "snapshotUnavailable"
+            ]
+          }
+        },
+        "security": [
+          {
+            "bearer": [ ]
+          }
+        ],
+        "x-workspace-role": "ReadKnowledgeGraph",
+        "x-agent-tool-name": "workspace_search_impact",
+        "x-agent-idempotent": true,
+        "x-agent-retryable": true,
+        "x-agent-side-effects": "none",
+        "x-agent-input": "ImpactSearchRequest",
+        "x-agent-output": "ImpactSearchResult"
+      }
+    },
+    "/api/impact/views": {
+      "post": {
+        "tags": [
+          "Impact"
+        ],
+        "summary": "Project a C4 view of a mapped node",
+        "description": "Read-only C4 view despite POST: projects the context, container, component or code level around a node that has a reviewed C4 mapping, as the C4 pilot's view JSON together with its Markdown. A node without a mapping returns an empty view with a no-c4-mapping gap. A snapshotId that is no longer active fails 409 snapshotChanged.",
+        "operationId": "viewC4",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImpactViewRequest"
+              },
+              "example": {
+                "snapshotId": "example-snapshot-id",
+                "focus": {
+                  "sourceId": "example-claims",
+                  "nodeIri": "https://example.test/claims/graph#claim"
+                },
+                "level": "container"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/C4ViewResult"
+                }
+              }
+            },
+            "links": {
+              "traceImpact": {
+                "operationId": "traceImpact",
+                "parameters": {
+                  "snapshotId": "$response.body#/snapshotId"
+                },
+                "description": "Trace impact paths from a node in the view; supply the same snapshotId."
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/unreadableRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "409": {
+            "description": "Conflict. Codes: snapshotChanged",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "snapshotChanged"
+            ]
+          },
+          "422": {
+            "description": "Unprocessable Entity. Codes: invalidImpactRequest",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "invalidImpactRequest"
+            ]
+          },
+          "500": {
+            "$ref": "#/components/responses/internalError"
+          },
+          "503": {
+            "description": "Service Unavailable. Codes: impactUnavailable, snapshotUnavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "impactUnavailable",
+              "snapshotUnavailable"
+            ]
+          }
+        },
+        "security": [
+          {
+            "bearer": [ ]
+          }
+        ],
+        "x-workspace-role": "ReadKnowledgeGraph",
+        "x-agent-tool-name": "workspace_view_c4",
+        "x-agent-idempotent": true,
+        "x-agent-retryable": true,
+        "x-agent-side-effects": "none",
+        "x-agent-input": "ImpactViewRequest",
+        "x-agent-output": "C4ViewResult"
+      }
+    },
     "/api/inventory": {
       "get": {
         "tags": [
@@ -1468,6 +2858,343 @@
           }
         }
       },
+      "AssessmentDraftRequest": {
+        "required": [
+          "snapshotId",
+          "record"
+        ],
+        "type": "object",
+        "properties": {
+          "snapshotId": {
+            "type": "string"
+          },
+          "record": {
+            "$ref": "#/components/schemas/JsonObject"
+          },
+          "views": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/JsonObject"
+            }
+          }
+        }
+      },
+      "AssessmentEditRequest": {
+        "required": [
+          "snapshotId",
+          "expectedVersion",
+          "record"
+        ],
+        "type": "object",
+        "properties": {
+          "snapshotId": {
+            "type": "string"
+          },
+          "expectedVersion": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "record": {
+            "$ref": "#/components/schemas/JsonObject"
+          },
+          "views": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/JsonObject"
+            }
+          }
+        }
+      },
+      "AssessmentPage": {
+        "required": [
+          "assessments",
+          "nextCursor"
+        ],
+        "type": "object",
+        "properties": {
+          "assessments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AssessmentSummary"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AssessmentPreview": {
+        "required": [
+          "snapshotId",
+          "digest",
+          "frozen",
+          "markdown"
+        ],
+        "type": "object",
+        "properties": {
+          "snapshotId": {
+            "type": "string"
+          },
+          "digest": {
+            "type": "string"
+          },
+          "frozen": {
+            "$ref": "#/components/schemas/JsonObject"
+          },
+          "markdown": {
+            "type": "string"
+          }
+        }
+      },
+      "AssessmentRevision": {
+        "required": [
+          "version",
+          "editor",
+          "editedAt",
+          "frozen",
+          "markdown"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "editor": {
+            "$ref": "#/components/schemas/Actor"
+          },
+          "editedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "frozen": {
+            "$ref": "#/components/schemas/JsonObject"
+          },
+          "markdown": {
+            "type": "string"
+          }
+        }
+      },
+      "AssessmentRevisionPage": {
+        "required": [
+          "revisions",
+          "nextCursor"
+        ],
+        "type": "object",
+        "properties": {
+          "revisions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AssessmentRevisionSummary"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AssessmentRevisionSummary": {
+        "required": [
+          "version",
+          "editor",
+          "editedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "editor": {
+            "$ref": "#/components/schemas/Actor"
+          },
+          "editedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AssessmentSaved": {
+        "required": [
+          "id",
+          "version",
+          "position"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "position": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          }
+        }
+      },
+      "AssessmentSuccessor": {
+        "required": [
+          "snapshotId",
+          "record"
+        ],
+        "type": "object",
+        "properties": {
+          "snapshotId": {
+            "type": "string"
+          },
+          "record": {
+            "$ref": "#/components/schemas/JsonObject"
+          }
+        }
+      },
+      "AssessmentSummary": {
+        "required": [
+          "id",
+          "requestId",
+          "author",
+          "savedAt",
+          "snapshotId",
+          "pinnedToEarlierSnapshot"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "requestId": {
+            "type": "string"
+          },
+          "author": {
+            "$ref": "#/components/schemas/Actor"
+          },
+          "savedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "snapshotId": {
+            "type": "string"
+          },
+          "pinnedToEarlierSnapshot": {
+            "type": "boolean"
+          }
+        }
+      },
+      "C4ViewResult": {
+        "required": [
+          "snapshotId",
+          "view",
+          "markdown"
+        ],
+        "type": "object",
+        "properties": {
+          "snapshotId": {
+            "type": "string"
+          },
+          "view": {
+            "$ref": "#/components/schemas/JsonObject"
+          },
+          "markdown": {
+            "type": "string"
+          }
+        }
+      },
+      "CitedEvidence": {
+        "required": [
+          "iri",
+          "path",
+          "startLine",
+          "endLine",
+          "blobId",
+          "role"
+        ],
+        "type": "object",
+        "properties": {
+          "iri": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "startLine": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "endLine": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "blobId": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "page": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PageEvidence"
+              }
+            ]
+          },
+          "lines": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "CodificationAssociation": {
         "required": [
           "id",
@@ -1581,6 +3308,44 @@
             ]
           },
           "selector": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "CoverageRecord": {
+        "required": [
+          "sourceId",
+          "iri",
+          "selector",
+          "status",
+          "priority"
+        ],
+        "type": "object",
+        "properties": {
+          "sourceId": {
+            "type": "string"
+          },
+          "iri": {
+            "type": "string"
+          },
+          "selector": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "priority": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "reason": {
             "type": [
               "null",
               "string"
@@ -1781,6 +3546,21 @@
           }
         }
       },
+      "GapNode": {
+        "required": [
+          "sourceId",
+          "nodeIri"
+        ],
+        "type": "object",
+        "properties": {
+          "sourceId": {
+            "type": "string"
+          },
+          "nodeIri": {
+            "type": "string"
+          }
+        }
+      },
       "HealthStatus": {
         "required": [
           "status"
@@ -1875,6 +3655,501 @@
           }
         }
       },
+      "ImpactGap": {
+        "required": [
+          "code"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sourceId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "nodeIri": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "coverageIri": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "selector": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "relationship": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "term": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sharedTerm": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "path": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "evidenceIri": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "nodes": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/GapNode"
+            }
+          },
+          "assertions": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "ImpactKey": {
+        "required": [
+          "sourceId",
+          "nodeIri"
+        ],
+        "type": "object",
+        "properties": {
+          "sourceId": {
+            "type": "string"
+          },
+          "nodeIri": {
+            "type": "string"
+          }
+        }
+      },
+      "ImpactLead": {
+        "required": [
+          "key",
+          "matchedText",
+          "matchKind",
+          "sourceCommit",
+          "supported",
+          "reason",
+          "kind"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/ImpactKey"
+          },
+          "matchedText": {
+            "type": "string"
+          },
+          "matchKind": {
+            "type": "string"
+          },
+          "sourceCommit": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "supported": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "pageEvidence": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/LeadPageEvidence"
+            }
+          }
+        }
+      },
+      "ImpactPath": {
+        "required": [
+          "id",
+          "steps"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImpactStep"
+            }
+          }
+        }
+      },
+      "ImpactPathsRequest": {
+        "required": [
+          "snapshotId",
+          "starts"
+        ],
+        "type": "object",
+        "properties": {
+          "snapshotId": {
+            "type": "string"
+          },
+          "starts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImpactKey"
+            }
+          },
+          "maxDepth": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "ImpactPathsResult": {
+        "required": [
+          "snapshotId",
+          "pinned",
+          "registryCommit",
+          "masterList",
+          "notFollowed",
+          "coverage",
+          "paths",
+          "gaps"
+        ],
+        "type": "object",
+        "properties": {
+          "snapshotId": {
+            "type": "string"
+          },
+          "pinned": {
+            "$ref": "#/components/schemas/PinnedSnapshot"
+          },
+          "registryCommit": {
+            "type": "string"
+          },
+          "masterList": {
+            "$ref": "#/components/schemas/MasterListIdentity"
+          },
+          "notFollowed": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotFollowed"
+            }
+          },
+          "coverage": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CoverageRecord"
+            }
+          },
+          "paths": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImpactPath"
+            }
+          },
+          "gaps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImpactGap"
+            }
+          }
+        }
+      },
+      "ImpactSearchRequest": {
+        "required": [
+          "query",
+          "exactIri"
+        ],
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "exactIri": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "snapshotId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "cursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ImpactSearchResult": {
+        "required": [
+          "snapshotId",
+          "pinned",
+          "registryCommit",
+          "masterList",
+          "coverage",
+          "leads",
+          "gaps"
+        ],
+        "type": "object",
+        "properties": {
+          "snapshotId": {
+            "type": "string"
+          },
+          "pinned": {
+            "$ref": "#/components/schemas/PinnedSnapshot"
+          },
+          "registryCommit": {
+            "type": "string"
+          },
+          "masterList": {
+            "$ref": "#/components/schemas/MasterListIdentity"
+          },
+          "coverage": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CoverageRecord"
+            }
+          },
+          "leads": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImpactLead"
+            }
+          },
+          "gaps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImpactGap"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "registry": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RegistryDigests"
+              }
+            ]
+          }
+        }
+      },
+      "ImpactStep": {
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "subject": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ImpactKey"
+              }
+            ]
+          },
+          "object": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ImpactKey"
+              }
+            ]
+          },
+          "direction": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "assertionIri": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "relationship": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "basis": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "evidenceIris": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "evidence": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/CitedEvidence"
+            }
+          },
+          "commit": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "from": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ImpactKey"
+              }
+            ]
+          },
+          "to": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ImpactKey"
+              }
+            ]
+          },
+          "registryCommit": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "identityEvidence": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/JsonObject"
+              }
+            ]
+          },
+          "sharedTerm": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "links": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/LinkCitation"
+            }
+          },
+          "catalogCommit": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ImpactViewRequest": {
+        "required": [
+          "snapshotId",
+          "focus",
+          "level"
+        ],
+        "type": "object",
+        "properties": {
+          "snapshotId": {
+            "type": "string"
+          },
+          "focus": {
+            "$ref": "#/components/schemas/ImpactKey"
+          },
+          "level": {
+            "type": "string"
+          }
+        }
+      },
       "InventoryPage": {
         "required": [
           "snapshotId",
@@ -1918,6 +4193,200 @@
             "items": {
               "$ref": "#/components/schemas/PublishedEdge"
             }
+          }
+        }
+      },
+      "JsonObject": {
+        "type": "object"
+      },
+      "LeadPageEvidence": {
+        "required": [
+          "evidenceIri",
+          "path",
+          "startLine",
+          "endLine",
+          "title",
+          "confluenceUrl",
+          "lines"
+        ],
+        "type": "object",
+        "properties": {
+          "evidenceIri": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "startLine": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "endLine": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "confluenceUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "lines": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "LinkCitation": {
+        "required": [
+          "source",
+          "local",
+          "shared",
+          "relation"
+        ],
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string"
+          },
+          "local": {
+            "type": "string"
+          },
+          "shared": {
+            "type": "string"
+          },
+          "relation": {
+            "type": "string"
+          }
+        }
+      },
+      "MasterListIdentity": {
+        "required": [
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "catalogCommit": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sha256": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "NotFollowed": {
+        "required": [
+          "relationship",
+          "assertions"
+        ],
+        "type": "object",
+        "properties": {
+          "relationship": {
+            "type": "string"
+          },
+          "assertions": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "PageEvidence": {
+        "required": [
+          "title",
+          "confluenceUrl",
+          "lines"
+        ],
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "confluenceUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "lines": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "PinnedSnapshot": {
+        "required": [
+          "catalogCommit",
+          "catalogSha256",
+          "sources"
+        ],
+        "type": "object",
+        "properties": {
+          "catalogCommit": {
+            "type": "string"
+          },
+          "catalogSha256": {
+            "type": "string"
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PinnedSource"
+            }
+          }
+        }
+      },
+      "PinnedSource": {
+        "required": [
+          "id",
+          "commit"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "commit": {
+            "type": "string"
           }
         }
       },
@@ -2073,6 +4542,25 @@
             "type": "string"
           },
           "identifier": {
+            "type": "string"
+          }
+        }
+      },
+      "RegistryDigests": {
+        "required": [
+          "commit",
+          "mappings",
+          "bindings"
+        ],
+        "type": "object",
+        "properties": {
+          "commit": {
+            "type": "string"
+          },
+          "mappings": {
+            "type": "string"
+          },
+          "bindings": {
             "type": "string"
           }
         }
@@ -2313,6 +4801,69 @@
             "items": {
               "$ref": "#/components/schemas/CodificationAssociation"
             }
+          }
+        }
+      },
+      "SavedAssessment": {
+        "required": [
+          "id",
+          "version",
+          "snapshotId",
+          "requestId",
+          "author",
+          "savedAt",
+          "updatedAt",
+          "pinnedToEarlierSnapshot",
+          "startedFrom",
+          "frozen",
+          "markdown"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "snapshotId": {
+            "type": "string"
+          },
+          "requestId": {
+            "type": "string"
+          },
+          "author": {
+            "$ref": "#/components/schemas/Actor"
+          },
+          "savedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "pinnedToEarlierSnapshot": {
+            "type": "boolean"
+          },
+          "startedFrom": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "frozen": {
+            "$ref": "#/components/schemas/JsonObject"
+          },
+          "markdown": {
+            "type": "string"
           }
         }
       },
@@ -2793,6 +5344,14 @@
       "description": "Read-only queries over the published snapshot and contribution history (ReadKnowledgeGraph)."
     },
     {
+      "name": "Impact",
+      "description": "Read-only impact search, path traces and C4 views over the active snapshot's impact model (ReadKnowledgeGraph)."
+    },
+    {
+      "name": "Assessments",
+      "description": "Impact assessments: preview and read (ReadKnowledgeGraph), save and edit (ManageKnowledgeGraph)."
+    },
+    {
       "name": "Contributions",
       "description": "Writes that create, edit, remove or codify runtime contributions (ManageKnowledgeGraph)."
     }
@@ -2809,7 +5368,7 @@
     "errors": "application/problem+json with a stable code per operation's x-workspace-codes",
     "hateoas": "follow each success response's links and the runtime Link response headers",
     "linkRelations": {
-      "next": "listInventory, listHistory or traverseGraph: the next page of the same listing or walk (registered relation)",
+      "next": "listInventory, listHistory, assessmentList, assessmentRevisions, traverseGraph or searchImpact: the next page of the same listing, walk or search (registered relation)",
       "service-desc": "this OpenAPI document at /api/openapi/v1.json (registered relation)",
       "service-doc": "the interactive docs at /api/docs (registered relation)",
       "https://github.com/jamiemitchellconsultants/division-ontology#link-relations/session": "getSession",
@@ -2822,7 +5381,12 @@
       "https://github.com/jamiemitchellconsultants/division-ontology#link-relations/relationshipDetail": "getRelationshipDetail",
       "https://github.com/jamiemitchellconsultants/division-ontology#link-relations/edit": "editContribution",
       "https://github.com/jamiemitchellconsultants/division-ontology#link-relations/remove": "removeContribution",
-      "https://github.com/jamiemitchellconsultants/division-ontology#link-relations/codifications": "associateCodification"
+      "https://github.com/jamiemitchellconsultants/division-ontology#link-relations/codifications": "associateCodification",
+      "https://github.com/jamiemitchellconsultants/division-ontology#link-relations/traceImpact": "traceImpact",
+      "https://github.com/jamiemitchellconsultants/division-ontology#link-relations/viewC4": "viewC4",
+      "https://github.com/jamiemitchellconsultants/division-ontology#link-relations/saveAssessment": "saveAssessment",
+      "https://github.com/jamiemitchellconsultants/division-ontology#link-relations/assessment": "getAssessment",
+      "https://github.com/jamiemitchellconsultants/division-ontology#link-relations/assessmentMarkdown": "getAssessmentMarkdown"
     }
   }
 }

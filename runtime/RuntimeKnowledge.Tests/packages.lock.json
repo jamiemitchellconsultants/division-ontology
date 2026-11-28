@@ -664,6 +664,9 @@
       "runtimeknowledge.contracts": {
         "type": "Project"
       },
+      "runtimeknowledge.impact": {
+        "type": "Project"
+      },
       "runtimeknowledge.providers": {
         "type": "Project",
         "dependencies": {
@@ -678,7 +681,8 @@
         "type": "Project",
         "dependencies": {
           "Npgsql": "[10.0.3, )",
-          "RuntimeKnowledge.Contracts": "[1.0.0, )"
+          "RuntimeKnowledge.Contracts": "[1.0.0, )",
+          "RuntimeKnowledge.Impact": "[1.0.0, )"
         }
       },
       "runtimeknowledge.web": {

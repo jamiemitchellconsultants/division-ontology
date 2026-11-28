@@ -1,15 +1,15 @@
-import {readFileSync,mkdirSync,writeFileSync,existsSync,realpathSync,lstatSync} from 'node:fs';
+import {createHash} from 'node:crypto';
+import {readFileSync,mkdirSync,writeFileSync,existsSync,realpathSync,lstatSync,readdirSync,chmodSync,rmSync,mkdtempSync} from 'node:fs';
 import {resolve,join,relative,isAbsolute,dirname,basename} from 'node:path';
+import {tmpdir} from 'node:os';
 import {pathToFileURL} from 'node:url';
 import {loadSnapshot} from './snapshot.mjs';
 import {loadRegistries} from './registry.mjs';
-import {findCandidates} from './candidates.mjs';
-import {readImpactPaths} from './paths.mjs';
-import {projectView} from './project.mjs';
-import {renderView} from './render.mjs';
-import {newAssessment,validateAssessment,renderAssessment} from './assessment.mjs';
-import {renderFeedback} from './feedback.mjs';
-const allowed={search:['query','exact-iri'],paths:['start','max-depth'],view:['focus','level','supplement'], 'assessment-init':['request-id','description-file'],'assessment-render':['input','view-input'],'feedback-render':['input','assessment-file','view-input']};
+import {loadMasterList} from './master-list.mjs';
+import {buildImpactBundle,writeImpactBundle} from './impact-bundle.mjs';
+import {pinnedBytes} from '../workspace/bundle.mjs';
+import {buildImpactCli,runImpactCli} from './engine.mjs';
+const allowed={search:['query','exact-iri'],paths:['start','max-depth'],view:['focus','level','supplement'],'assessment-init':['request-id','description-file'],'assessment-render':['input','view-input'],'feedback-render':['input','assessment-file','view-input']};
 const common=['catalog-commit','registry-commit','checkout','output'];
 function parse(argv) {
  const [command,...args]=argv;if(!allowed[command]) throw new Error('unknown command');const values={};
@@ -19,9 +19,9 @@ function parse(argv) {
 }
 function pair(value) {const index=value?.indexOf('=')??-1;if(index<1 || index===value.length-1) throw new Error('expected source ID=value');return [value.slice(0,index),value.slice(index+1)];}
 const sourceKey=x=>{const [sourceId,nodeIri]=pair(x);return {sourceId,nodeIri};};
-const json=x=>JSON.stringify(x,null,2)+'\n';
 function canonicalPath(path) {const abs=resolve(path);return existsSync(abs)?realpathSync(abs):join(canonicalPath(dirname(abs)),basename(abs));}
 export async function runC4Cli(argv,{cwd=process.cwd(),stdout=process.stdout,stderr=process.stderr}={}) {
+ let staging;
  try {
   const {command,values:v}=parse(argv),checkouts=new Map();
   for(const c of v.checkout??[]) {const [id,path]=pair(c);if(checkouts.has(id)||!isAbsolute(path)) throw new Error('invalid checkout');checkouts.set(id,path);}
@@ -29,24 +29,86 @@ export async function runC4Cli(argv,{cwd=process.cwd(),stdout=process.stdout,std
   for(const root of [resolve(cwd),...checkouts.values()]) {const rel=relative(canonicalPath(root),output);if(!rel || (!rel.startsWith('..')&&!isAbsolute(rel))) throw new Error('output must be outside repositories');}
   const snapshot=loadSnapshot({divisionRoot:cwd,catalogCommit:v['catalog-commit'],checkouts});
   const registry=loadRegistries({divisionRoot:cwd,registryCommit:v['registry-commit'],snapshot});
-  const files=new Map();
-  if(command==='search') {const result=findCandidates({snapshot,registry,query:v.query,exactIri:v['exact-iri']});files.set('candidates.json',json(result));}
-  if(command==='paths') {const result=readImpactPaths({snapshot,registry,starts:(v.start??[]).map(sourceKey),maxDepth:v['max-depth']===undefined?4:Number(v['max-depth'])});files.set('paths.json',json(result));}
-  if(command==='view') {if(!v.focus||!v.level) throw new Error('focus and level required');const supplement=v.supplement?JSON.parse(readFileSync(resolve(cwd,v.supplement),'utf8')):null;const result=renderView(projectView({snapshot,registry,focus:sourceKey(v.focus),level:v.level,supplement}));files.set(`view-${v.level}.json`,result.json);files.set(`view-${v.level}.md`,result.markdown);}
-  if(command==='assessment-init') {if(!v['request-id']||!v['description-file']) throw new Error('request ID and description file required');const record=newAssessment({requestId:v['request-id'],description:readFileSync(resolve(cwd,v['description-file']),'utf8'),snapshot,registry});files.set('assessment.json',json(record));}
+  const masterList=loadMasterList({divisionRoot:cwd,catalogCommit:v['catalog-commit']});
+
+  // Pre-validate inputs that can throw before calling the engine
+  if(command==='view') {if(!v.focus||!v.level) throw new Error('focus and level required');if(v.supplement) JSON.parse(readFileSync(resolve(cwd,v.supplement),'utf8'));}
+  if(command==='assessment-init') {if(!v['request-id']||!v['description-file']) throw new Error('request ID and description file required');readFileSync(resolve(cwd,v['description-file']),'utf8');}
   if(command==='assessment-render'||command==='feedback-render') {
    if(!v.input) throw new Error('input is required');
-   const input=JSON.parse(readFileSync(resolve(cwd,v.input),'utf8'));
-   const record=command==='assessment-render'?input:JSON.parse(readFileSync(resolve(cwd,v['assessment-file']??''),'utf8'));
-   const paths=record.confirmedLeads.length ? readImpactPaths({snapshot,registry,starts:record.confirmedLeads}).paths : [];
-   const views=(v['view-input']??[]).map(path=>JSON.parse(readFileSync(resolve(cwd,path),'utf8')));
-   const context={snapshot,registry,paths,views};
-   if(command==='assessment-render') files.set('assessment.md',renderAssessment(record,context));
-   else {const digest=validateAssessment(record,context);files.set('feedback.md',renderFeedback(input,{requestId:record.requestId,digest}));}
+   JSON.parse(readFileSync(resolve(cwd,v.input),'utf8'));
+   if(command==='feedback-render' && v['assessment-file']) JSON.parse(readFileSync(resolve(cwd,v['assessment-file']),'utf8'));
+   for(const p of (v['view-input']??[])) JSON.parse(readFileSync(resolve(cwd,p),'utf8'));
   }
+
+  // Collect extraFiles: supplement and view-input items with basis 'architect-inspected'
+  const extraFiles=[];
+  if(v.supplement) {
+   const supplement=JSON.parse(readFileSync(resolve(cwd,v.supplement),'utf8'));
+   if(supplement.sourceId && supplement.path) extraFiles.push({sourceId:supplement.sourceId,path:supplement.path});
+  }
+  for(const vi of (v['view-input']??[])) {
+   const parsed=JSON.parse(readFileSync(resolve(cwd,vi),'utf8'));
+   for(const item of (parsed.items??[])) {
+    if(item.basis==='architect-inspected' && item.path) extraFiles.push({sourceId:item.key.sourceId,path:item.path});
+   }
+  }
+
+  // Create staging directory
+  staging=mkdtempSync(join(tmpdir(),'division-impact-'));
+  chmodSync(staging, 0o700);
+  const outDir=join(staging,'out');
+  mkdirSync(outDir);
+
+  // Build and write impact bundle
+  const catalogBytes=pinnedBytes(cwd,v['catalog-commit'],'dist/catalog.json');
+  const bundle=buildImpactBundle({snapshot,registry,masterList,catalogBytes,extraFiles});
+  writeImpactBundle(bundle,join(staging,'bundle'));
+
+  // Build tool flags: command-specific flags with absolute paths, no Node-only flags
+  const pathFlags=new Set(['supplement','input','assessment-file','description-file','view-input']);
+  const toolArgs=[command];
+  for(let i=0;i<argv.length;i++) {
+   const flag=argv[i];
+   if(flag?.startsWith('--')) {
+    const name=flag.slice(2);
+    if(common.includes(name)) continue; // skip Node-only flags
+    if(i+1<argv.length && !argv[i+1]?.startsWith('--')) {
+     const val=argv[i+1];
+     if(pathFlags.has(name) && !isAbsolute(val)) toolArgs.push(flag,resolve(cwd,val));
+     else toolArgs.push(flag,val);
+     i++;
+    } else toolArgs.push(flag);
+   }
+  }
+
+  runImpactCli([...toolArgs,'--bundle',join(staging,'bundle'),'--manifest',bundle.id,'--staging',outDir]);
+
+  // Read output files
+  const files=new Map();
+  for(const name of readdirSync(outDir).sort()) {
+   let content=readFileSync(join(outDir,name),'utf8');
+   if(content.charCodeAt(0)===0xFEFF) content=content.slice(1);
+   files.set(name, content);
+  }
+
+  // Output checks (symlink, overwriting input)
   const inputPaths=[v.input,v['assessment-file'],v['description-file'],v.supplement,...(v['view-input']??[])].filter(Boolean).map(p=>canonicalPath(resolve(cwd,p)));
-  for(const name of files.keys()) {const target=join(output,name);let stat;try {stat=lstatSync(target);} catch(e) {if(e.code!=='ENOENT') throw e;} if(stat?.isSymbolicLink()) throw new Error('output file is a symlink');if(inputPaths.includes(canonicalPath(target))) throw new Error('output would overwrite an input');}
-  mkdirSync(output,{recursive:true});for(const [name,content] of files) writeFileSync(join(output,name),content);stdout?.write?.(`Wrote ${files.size} file(s)\n`);return 0;
- } catch(e) {stderr?.write?.(`${e.message}\n`);return 1;}
+  for(const name of files.keys()) {
+   const target=join(output,name);
+   let stat;
+   try { stat=lstatSync(target); } catch(e) { if(e.code!=='ENOENT') throw e; }
+   if(stat?.isSymbolicLink()) throw new Error('output file is a symlink');
+   if(inputPaths.includes(canonicalPath(target))) throw new Error('output would overwrite an input');
+  }
+
+  mkdirSync(output,{recursive:true});
+  for(const [name,content] of files) writeFileSync(join(output,name),content);
+  stdout?.write?.(`Wrote ${files.size} file(s)\n`);
+  return 0;
+ } catch(e) { stderr?.write?.(`${e.message}\n`); return 1; }
+ finally {
+  if(staging) rmSync(staging,{recursive:true,force:true});
+ }
 }
 if(process.argv[1] && import.meta.url===pathToFileURL(process.argv[1]).href) process.exitCode=await runC4Cli(process.argv.slice(2));

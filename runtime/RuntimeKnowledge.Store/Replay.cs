@@ -57,6 +57,14 @@ public sealed class ReplayStore(Db db, IBundleObjects objects)
 
             if (candidate.SnapshotId is null || candidate.SnapshotId != entry.SnapshotId || entry.Actor is null)
                 throw InvalidJournal("Contribution lacks its recorded active snapshot or actor.");
+            if (entry.Type is AssessmentStore.Saved or AssessmentStore.Revised)
+            {
+                if (entry.ContributionId is not { } assessmentId || entry.Revision is not { } version)
+                    throw InvalidJournal("Assessment event lacks its aggregate.");
+                await AssessmentStore.ApplyRecordedAsync(tx, candidate, entry.Type, assessmentId, version, entry.Actor,
+                    entry.OccurredAt, entry.SnapshotId!, ReadJson<AssessmentEvent>(entry.Payload), token);
+                continue;
+            }
             var change = ReadJson<ContributionChange>(entry.Payload);
             await CheckChangeAsync(tx, candidate, entry, change, token);
             await ContributionStore.ApplyRecordedAsync(tx, candidate, change, token);
@@ -133,7 +141,7 @@ public sealed class ReplayStore(Db db, IBundleObjects objects)
     {
         await using var command = Command(tx, """
             SELECT position, event_id, event_type, schema_version, actor_issuer, actor_subject,
-                   snapshot_id, aggregate_id, aggregate_revision, payload::text
+                   snapshot_id, aggregate_id, aggregate_revision, payload::text, occurred_at
             FROM workspace_journal.events WHERE position <= $1 ORDER BY position
             """, through);
         await using var rows = await command.ExecuteReaderAsync(token);
@@ -148,7 +156,7 @@ public sealed class ReplayStore(Db db, IBundleObjects objects)
             entries.Add(new ReplayEntry(position, rows.GetString(2),
                 rows.IsDBNull(4) ? null : new Actor(rows.GetString(4), rows.GetString(5)),
                 rows.IsDBNull(6) ? null : rows.GetString(6), rows.IsDBNull(7) ? null : rows.GetGuid(7),
-                rows.IsDBNull(8) ? null : rows.GetInt32(8), rows.GetString(9)));
+                rows.IsDBNull(8) ? null : rows.GetInt32(8), rows.GetString(9), rows.GetFieldValue<DateTimeOffset>(10)));
         }
         if (expected - 1 != through) throw InvalidJournal("The requested journal prefix is incomplete.");
         return entries;
@@ -209,6 +217,23 @@ public sealed class ReplayStore(Db db, IBundleObjects objects)
         await AddRowsAsync("""
             SELECT to_jsonb(e)::text FROM workspace_journal.events e WHERE position <= $1 ORDER BY position
             """, position);
+        // Replay recreates only activated snapshots, so a staged candidate that was never activated is left out.
+        await AddRowsAsync("""
+            SELECT m.package_sha256 FROM workspace_projection.impact_models m
+              WHERE m.generation = $1 AND EXISTS (
+                SELECT FROM workspace_journal.events e
+                 WHERE e.event_type = 'snapshotActivated' AND e.snapshot_id = m.snapshot_id AND e.position <= $2)
+              ORDER BY m.snapshot_id
+            """, state.Generation, position);
+        await AddRowsAsync("""
+            SELECT concat_ws(' ', assessment_id, version, snapshot_id,
+                             encode(sha256(frozen), 'hex'), encode(sha256(markdown), 'hex'))
+              FROM workspace_projection.assessments WHERE generation = $1 ORDER BY assessment_id
+            """, state.Generation);
+        await AddRowsAsync("""
+            SELECT concat_ws(' ', assessment_id, version, encode(sha256(frozen), 'hex'), encode(sha256(markdown), 'hex'))
+              FROM workspace_projection.assessment_revisions WHERE generation = $1 ORDER BY assessment_id, version
+            """, state.Generation);
         foreach (var edge in await AgeGraph.ReadActiveEdgesAsync(tx, state.GraphName, snapshot, token))
             Add(edge);
         return Convert.ToHexStringLower(hash.GetHashAndReset());
@@ -224,5 +249,5 @@ public sealed class ReplayStore(Db db, IBundleObjects objects)
     private static WorkspaceException InvalidJournal(string message) => new("invalidJournal", message);
     private sealed record SnapshotActivation(string ManifestId);
     private sealed record ReplayEntry(long Position, string Type, Actor? Actor, string? SnapshotId,
-        Guid? ContributionId, int? Revision, string Payload);
+        Guid? ContributionId, int? Revision, string Payload, DateTimeOffset OccurredAt);
 }

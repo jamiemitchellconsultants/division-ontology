@@ -1,0 +1,108 @@
+{
+  "snapshotId": {
+    "catalogCommit": "e63348017b778e678b0c349160b8ec2bbc659ff5",
+    "catalogSha256": "c90d3acfa72250b00fc49921e67e37ca60767fc63956931c1f09186fcc920d0d",
+    "sources": [
+      {
+        "id": "fixture/Alpha",
+        "commit": "980b69eca326c7bc54d4c8e34aa067b6fd509409"
+      },
+      {
+        "id": "fixture/Beta",
+        "commit": "9c08221fbb185a173313dd0e3317273cc8d0e992"
+      }
+    ]
+  },
+  "registryCommit": "e63348017b778e678b0c349160b8ec2bbc659ff5",
+  "coverage": [
+    {
+      "sourceId": "fixture/Alpha",
+      "iri": "https://alpha.example/#coverage",
+      "selector": "src/**",
+      "status": "covered",
+      "priority": 1
+    },
+    {
+      "sourceId": "fixture/Beta",
+      "iri": "https://beta.example/#coverage",
+      "selector": "src/**",
+      "status": "covered",
+      "priority": 1
+    }
+  ],
+  "leads": [
+    {
+      "key": {
+        "sourceId": "fixture/Alpha",
+        "nodeIri": "https://alpha.example/#system"
+      },
+      "matchedText": "Alpha API",
+      "matchKind": "phrase",
+      "sourceCommit": "980b69eca326c7bc54d4c8e34aa067b6fd509409",
+      "supported": true,
+      "reason": "Reviewed mapping",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/Beta",
+        "nodeIri": "https://beta.example/#system"
+      },
+      "matchedText": "Alpha API",
+      "matchKind": "phrase",
+      "sourceCommit": "9c08221fbb185a173313dd0e3317273cc8d0e992",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/Alpha",
+        "nodeIri": "https://alpha.example/#component"
+      },
+      "matchedText": "API handler",
+      "matchKind": "token",
+      "sourceCommit": "980b69eca326c7bc54d4c8e34aa067b6fd509409",
+      "supported": true,
+      "reason": "Reviewed mapping",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/Alpha",
+        "nodeIri": "https://alpha.example/#container"
+      },
+      "matchedText": "Alpha service",
+      "matchKind": "token",
+      "sourceCommit": "980b69eca326c7bc54d4c8e34aa067b6fd509409",
+      "supported": true,
+      "reason": "Reviewed mapping",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/Beta",
+        "nodeIri": "https://beta.example/#component"
+      },
+      "matchedText": "API handler",
+      "matchKind": "token",
+      "sourceCommit": "9c08221fbb185a173313dd0e3317273cc8d0e992",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/Beta",
+        "nodeIri": "https://beta.example/#container"
+      },
+      "matchedText": "Alpha service",
+      "matchKind": "token",
+      "sourceCommit": "9c08221fbb185a173313dd0e3317273cc8d0e992",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    }
+  ],
+  "gaps": []
+}

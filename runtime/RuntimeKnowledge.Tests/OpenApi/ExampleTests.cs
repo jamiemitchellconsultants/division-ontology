@@ -18,7 +18,7 @@ public sealed class ExampleTests
             .Concat(Descendants(spec).Where(p => p.Key is "examples")
                 .SelectMany(p => p.Value!.AsObject().Select(entry => entry.Value!["value"])))
             .ToArray();
-        Assert.Equal(5, examples.Length);
+        Assert.Equal(12, examples.Length);
         Assert.All(examples, e => Assert.Contains(allowed, a => JsonNode.DeepEquals(a, e)));
         foreach (var text in examples.SelectMany(Strings))
             if (Uri.TryCreate(text, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https")

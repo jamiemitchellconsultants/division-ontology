@@ -1,0 +1,174 @@
+@page "/impact"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject WorkspaceClient Api
+@inject AssessmentDraft Draft
+@inject NavigationManager Navigation
+
+<h1>Impact assessment</h1>
+
+<form @onsubmit="Search" @onsubmit:preventDefault>
+    <label for="impact-query">Change request description</label>
+    <input id="impact-query" type="search" required @bind="query" />
+    <button type="submit" disabled="@busy">Search</button>
+</form>
+@if (message is not null) { <p role="alert">@message</p> }
+<ApiError Error="error" ReturnRoute="impact" />
+
+@if (leads.Count > 0)
+{
+    <section aria-labelledby="impact-leads-heading">
+        <h2 id="impact-leads-heading">Leads</h2>
+        <p>Snapshot <code>@snapshotId</code></p>
+        <ImpactLeadList Leads="leads" Selected="selected" OnToggle="Toggle" />
+        <div class="actions">
+            @if (nextCursor is not null) { <button type="button" disabled="@busy" @onclick="LoadMore">Load more</button> }
+            <button type="button" disabled="@(busy || selected.Count == 0)" @onclick="Trace">Trace impact</button>
+        </div>
+        @if (ContinuesDraft)
+        {
+            <div class="continue-assessment">
+                <button type="button" disabled="@(busy || paths is null)" @onclick="UseInDraft">Use these paths in assessment @Draft.RequestId</button>
+            </div>
+        }
+        <form class="start-assessment" @onsubmit="StartAssessment" @onsubmit:preventDefault>
+            <label for="assessment-request-id">Change request id</label>
+            <input id="assessment-request-id" type="text" required @bind="requestId" />
+            <button type="submit" disabled="@(busy || string.IsNullOrWhiteSpace(requestId))">@(ContinuesDraft ? "Start a new assessment instead" : "Start assessment")</button>
+        </form>
+    </section>
+}
+
+@if (paths is not null)
+{
+    <section aria-labelledby="impact-paths-heading">
+        <h2 id="impact-paths-heading">Impact paths</h2>
+        <ImpactPathList Paths="paths.Paths" />
+    </section>
+    <GapList Gaps="paths.Gaps" NotFollowed="paths.NotFollowed" />
+}
+else if (searchGaps is not null)
+{
+    <GapList Gaps="searchGaps" />
+}
+
+@code {
+    private string query = "";
+
+    protected override void OnInitialized()
+    {
+        if (Draft.Record?["description"]?.GetValue<string>() is { } description) query = description.Trim();
+    }
+    private string? searchedQuery, snapshotId, nextCursor, message;
+    private readonly List<ImpactLead> leads = [];
+    private readonly HashSet<ImpactKey> selected = [];
+    private IReadOnlyList<ImpactGap>? searchGaps;
+    private ImpactPathsResult? paths;
+    // The starts the shown paths were traced from, kept with them so a later change of selection cannot mismatch them.
+    private IReadOnlyList<ImpactKey> tracedStarts = [];
+    private WorkspaceApiException? error;
+    private bool busy;
+
+    private Task Search()
+    {
+        Clear();
+        searchedQuery = query;
+        // A search made for a draft in progress is pinned to the draft's snapshot, so a newer one refuses it (B36).
+        var expected = Draft.Record is null ? null : Draft.SnapshotId;
+        return Run(async () => Show(await Api.ImpactSearch(new ImpactSearchRequest(searchedQuery, null, expected))));
+    }
+
+    private Task LoadMore() =>
+        Run(async () => Show(await Api.ImpactSearch(new ImpactSearchRequest(searchedQuery, null, snapshotId, nextCursor))));
+
+    [CascadingParameter] private Task<AuthenticationState>? Authentication { get; set; }
+    private string requestId = "";
+    private ImpactSearchResult? firstPage;
+
+    private Task Trace() => Run(async () =>
+    {
+        var starts = selected.ToList();
+        paths = await Api.ImpactPaths(new ImpactPathsRequest(snapshotId!, starts));
+        tracedStarts = starts;
+    });
+
+    // A draft in progress on this snapshot, such as one started from a saved assessment (B35), takes the
+    // traced paths without being replaced, so its request and backlink are kept.
+    private bool ContinuesDraft => Draft.Record is not null && Draft.SnapshotId == snapshotId;
+
+    private void UseInDraft()
+    {
+        if (paths is null || !ContinuesDraft) return;
+        if (TooManyStarts()) return;
+        if (!Draft.UsePaths(paths.Paths, tracedStarts))
+        {
+            message = $"Assessment {Draft.RequestId} already cites {AssessmentDraft.MaxTraces} traces, the most it can. Start another assessment for these paths.";
+            return;
+        }
+        Navigation.NavigateTo("assessments/draft");
+    }
+
+    private async Task StartAssessment()
+    {
+        if (firstPage is null || string.IsNullOrWhiteSpace(requestId)) return;
+        if (paths is not null && TooManyStarts()) return;
+        var user = Authentication is null ? null : (await Authentication).User;
+        var assessor = user?.FindFirst("name")?.Value ?? user?.FindFirst("sub")?.Value ?? "Workspace user";
+        Draft.Start(firstPage.SnapshotId, requestId.Trim(), searchedQuery ?? query, assessor, AssessmentDraft.Pins(firstPage));
+        if (paths is not null) Draft.UsePaths(paths.Paths, tracedStarts);
+        Navigation.NavigateTo("assessments/draft");
+    }
+
+    // ADR 0035: a trace an assessment cites has at most 20 starts.
+    private bool TooManyStarts()
+    {
+        if (tracedStarts.Count <= AssessmentDraft.MaxTraceStarts) return false;
+        message = $"An assessment can cite a trace of at most {AssessmentDraft.MaxTraceStarts} starts. This one has {tracedStarts.Count}: choose fewer leads and trace again.";
+        return true;
+    }
+
+    private void Toggle(ImpactKey key)
+    {
+        if (!selected.Remove(key)) selected.Add(key);
+    }
+
+    private void Show(ImpactSearchResult page)
+    {
+        firstPage ??= page;
+        snapshotId ??= page.SnapshotId;
+        leads.AddRange(page.Leads);
+        nextCursor = page.NextCursor;
+        searchGaps = page.Gaps;
+    }
+
+    private void Clear()
+    {
+        leads.Clear();
+        selected.Clear();
+        snapshotId = nextCursor = message = null;
+        firstPage = null;
+        searchGaps = null;
+        paths = null;
+        tracedStarts = [];
+        error = null;
+    }
+
+    private async Task Run(Func<Task> call)
+    {
+        if (busy) return;
+        busy = true;
+        error = null;
+        try { await call(); }
+        catch (WorkspaceApiException problem) when (problem.Code == "snapshotChanged")
+        {
+            Clear();
+            message = problem.Message;
+            if (Draft.Record is not null)
+            {
+                Draft.Discard();
+                message = "The workspace snapshot changed, so the draft in progress can no longer be saved. Exports you downloaded are unaffected.";
+            }
+        }
+        catch (WorkspaceApiException problem) { error = problem; }
+        finally { busy = false; }
+    }
+}

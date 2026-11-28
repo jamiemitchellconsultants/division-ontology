@@ -19,6 +19,18 @@ public sealed class AgentDecoratorsTests
         { "post", "/api/search", "searchWorkspace", "workspace_search", "none", true, true, "SearchRequest", "SearchResult" },
         { "post", "/api/traverse", "traverseGraph", "workspace_traverse_graph", "none", true, true, "TraversalRequest", "TraversalResult" },
         { "get", "/api/history", "listHistory", "workspace_list_history", "none", true, true, "parameters", "HistoryPage" },
+        { "post", "/api/impact/search", "searchImpact", "workspace_search_impact", "none", true, true, "ImpactSearchRequest", "ImpactSearchResult" },
+        { "post", "/api/impact/paths", "traceImpact", "workspace_trace_impact", "none", true, true, "ImpactPathsRequest", "ImpactPathsResult" },
+        { "post", "/api/impact/views", "viewC4", "workspace_view_c4", "none", true, true, "ImpactViewRequest", "C4ViewResult" },
+        { "post", "/api/assessments/preview", "previewAssessment", "workspace_preview_assessment", "none", true, true, "AssessmentDraftRequest", "AssessmentPreview" },
+        { "post", "/api/assessments", "saveAssessment", "workspace_save_assessment", "creates-assessment", false, false, "AssessmentDraftRequest", "AssessmentSaved" },
+        { "get", "/api/assessments", "assessmentList", "workspace_list_assessments", "none", true, true, "parameters", "AssessmentPage" },
+        { "get", "/api/assessments/{id}", "getAssessment", "workspace_get_assessment", "none", true, true, "parameters", "SavedAssessment" },
+        { "post", "/api/assessments/{id}/successor", "startAssessmentFrom", "workspace_start_assessment_from", "none", true, true, "parameters", "AssessmentSuccessor" },
+        { "get", "/api/assessments/{id}/revisions", "assessmentRevisions", "workspace_list_assessment_revisions", "none", true, true, "parameters", "AssessmentRevisionPage" },
+        { "get", "/api/assessments/{id}/revisions/{version}", "getAssessmentRevision", "workspace_get_assessment_revision", "none", true, true, "parameters", "AssessmentRevision" },
+        { "get", "/api/assessments/{id}/markdown", "getAssessmentMarkdown", "workspace_get_assessment_markdown", "none", true, true, "parameters", "none" },
+        { "put", "/api/assessments/{id}", "editAssessment", "workspace_edit_assessment", "updates-assessment", false, false, "AssessmentEditRequest", "AssessmentSaved" },
         { "post", "/api/contributions/annotations", "createAnnotation", "workspace_create_annotation", "creates-contribution", false, false, "CreateAnnotation", "ContributionResult" },
         { "post", "/api/contributions/relationships", "createRelationship", "workspace_create_relationship", "creates-contribution", false, false, "CreateRelationship", "ContributionResult" },
         { "put", "/api/contributions/{id}", "editContribution", "workspace_edit_contribution", "updates-contribution", false, false, "EditContributionRequest", "ContributionResult" },
@@ -68,7 +80,7 @@ public sealed class AgentDecoratorsTests
         Assert.Equal("/api/docs", (string)discovery["docs"]!);
         Assert.Equal("/health", (string)discovery["health"]!["path"]!);
         var tags = spec["tags"]!.AsArray().ToDictionary(t => (string)t!["name"]!, t => (string)t!["description"]!);
-        Assert.Equal(["Contributions", "Health", "Reading"], tags.Keys.Order(StringComparer.Ordinal));
+        Assert.Equal(["Assessments", "Contributions", "Health", "Impact", "Reading"], tags.Keys.Order(StringComparer.Ordinal));
         Assert.All(tags.Values, description => Assert.False(string.IsNullOrWhiteSpace(description)));
     }
 

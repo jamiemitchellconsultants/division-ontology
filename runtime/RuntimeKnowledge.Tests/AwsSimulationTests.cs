@@ -50,6 +50,8 @@ public sealed class AwsSimulationTests
         Assert.Equal("active", activated.State);
         Assert.Equal(1, activated.Position);
         Assert.Equal(activated, await Worker().ImportHandler(new ImportRequest(manifest), Context));
+        // ADR 0036: with no pending manifest the scheduled publisher only looks for missing models.
+        Assert.Equal(new ImportBatch("idle", null), await Worker().ImportHandler(new ImportRequest(null), Context));
         Assert.Equal(1, s3.ReadKeys.Count(key => key == $"manifests/{manifest}.json"));
         Assert.Equal(TitanEmbeddings.ModelId, bedrock.ModelId);
 

@@ -9,6 +9,8 @@
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",
+    "impact:build": "node -e \"import('./src/c4/engine.mjs').then(m => m.buildImpactCli())\"",
+    "pretest": "npm run impact:build",
     "acceptance:c4": "node test/acceptance/rerun.mjs",
     "acceptance:onboarding": "node test/acceptance/rerun.mjs onboarding",
     "build": "node src/cli.mjs build",
@@ -25,6 +27,7 @@
     "n3": "2.7.12"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.10.2",
     "playwright": "1.63.0",
     "yaml": "2.8.1"
   }

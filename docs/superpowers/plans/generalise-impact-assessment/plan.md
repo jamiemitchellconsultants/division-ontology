@@ -38,6 +38,7 @@ Each increment delivers its behaviours end to end. It leaves `npm test`, `dotnet
 | **I4. Workspace search and trace** | B15, B16, B28, B29 | Q1, Q2, Q6, Q7 | 22–27 | [i4-workspace-trace.md](../../../detailed-implementations/generalise-impact-assessment/i4-workspace-trace.md) |
 | **I5. Workspace drafts, saves and sharing** | B17, B18, B19, B20, B22, B23, B30, B31, B32, B33, B34, B36 | Q2, Q3, Q4, Q5, Q6 | 28–33 | [i5-workspace-assessments.md](../../../detailed-implementations/generalise-impact-assessment/i5-workspace-assessments.md) |
 | **I6. History and reuse** | B21, B35 | Q2, Q6 | 34–35 | [i6-history-and-reuse.md](../../../detailed-implementations/generalise-impact-assessment/i6-history-and-reuse.md) |
+| **I7. Review amendments** (PR #220 review; behaviours amended in PR #228, architecture in PR #230) | B39, B40 | Q1, Q3, Q4, Q5 | 36–46 | [i7-review-amendments.md](../../../detailed-implementations/generalise-impact-assessment/i7-review-amendments.md) |
 
 Ordering notes:
 - **I1 is the walking skeleton.** Sign-in, CI and the deployment baseline already exist. The skeleton proves the riskiest structural change first: the new engine, the bundle input and the CLI handover, all checked against a fixed baseline of today's outputs.
@@ -46,7 +47,8 @@ Ordering notes:
 - **B30 and B32 have command-line parts that land in I2.** Their workspace parts land in I5, where both behaviours are finished.
 - **B31's engine refusal already exists.** I5 adds the API and UI parts.
 
-Every behaviour id appears once above: B1–B3, B5–B38, which is 37 behaviours.
+Every behaviour id appears once above: B1–B3, B5–B40, which is 39 behaviours.
+- **I7 answers the PR #220 review.** It adds B39 and builds the refinements of B17, B30 and B34, which stay in I5, together with ADRs 0035 and 0036. It is planned in the build pull request, because it is review feedback on that pull request.
 
 ## Global constraints
 
@@ -343,3 +345,60 @@ Every behaviour id appears once above: B1–B3, B5–B38, which is 37 behaviours
 - [ ] Write failing tests: the successor route needs the manage role; the new draft holds only the request id and description on the active snapshot, with `startedFrom`; the UI action appears only for managers.
 - [ ] Implement.
 - [ ] Commit `feat: start a new assessment from a saved one` and push. **I6 ends: stop**, then run the build phase's closing steps.
+
+## I7. Review amendments
+
+### Task 36: The record lists its traces (ADR 0035, B17)
+- [ ] Write failing engine tests: a path from a depth 5 trace and one from an unconfirmed start validate when the record lists their traces; a record without traces keeps confirmed leads at depth 4; more than 5 traces (ADR 0035, amended in PR #231), more than 20 starts or a depth outside 1 to 6 is refused.
+- [ ] Implement `Assessments.CitablePaths(model, record)` and use it in the API and the command line.
+- [ ] Commit `feat: validate citations against the traces a record lists` and push.
+
+### Task 37: The draft records its traces (ADR 0035)
+- [ ] Write failing UI tests: starting a draft from a trace, and taking paths from a later trace, add each trace once to `traces`.
+- [ ] Implement in `AssessmentDraft`.
+- [ ] Commit `feat: record the traces a draft takes paths from` and push.
+
+### Task 38: A reviewed-link crossing supports an impact (B39)
+- [ ] Write failing tests: an impact on the node a crossing arrives at validates with no evidence IRI; one that cites no such path still needs evidence; the export and the editor show the crossing as its support.
+- [ ] Implement in the engine, the renderer and the draft editor.
+- [ ] Commit `feat: accept a reviewed-link crossing as an impact's support` and push.
+
+### Task 39: Freeze every cited excerpt (B34)
+- [ ] Write failing tests: code and ordinary-document lines are frozen and shown on the saved page; the export still prints page lines only.
+- [ ] Implement in freezing. Recapture the corpus in its own commit if frozen digests change.
+- [ ] Commit `feat: freeze every cited excerpt` and push.
+
+### Task 40: Carry the search gaps of the record's leads (B30)
+- [ ] Write failing tests: a page-metadata gap on a confirmed or rejected lead's page is frozen even when no cited path carries it.
+- [ ] Implement in freezing.
+- [ ] Commit `feat: carry the search gaps of an assessment's leads` and push.
+
+### Task 41: Repair a missing impact model on import (ADR 0036)
+- [ ] Write failing store tests: a snapshot staged without its model gains it when staged again and when activated; a present model is not rebuilt.
+- [ ] Implement in staging and activation.
+- [ ] Commit `fix: repair a missing impact model on import` and push.
+
+### Task 42: Measure the worst-case preview (Q1)
+- [ ] Add a performance test that previews a record listing 5 traces of 20 starts on the Q1 fixture, within API Gateway's 30 s, and record the result. A 20-trace cap measured 37.8 s and was lowered to 5 in PR #231.
+- [ ] Commit `test: measure preview with five traces` and push. **I7 ends: stop**, then rerun the build phase's closing steps.
+
+The PR #220 re-review added Tasks 43 to 46 to I7, after B40 (PR #235) and the ADR 0036 amendment (PR #237).
+
+### Task 43: Bound a trace at 500 paths (B40)
+- [ ] Write failing engine tests: a trace that finds more than 500 paths returns the first 500 in today's order, with one `paths-truncated` gap; a trace of 500 or fewer reports none; validation accepts only bounded paths.
+- [ ] Implement in the walk, which stops before emitting the 501st path.
+- [ ] Commit `feat: bound a trace at 500 paths` and push.
+
+### Task 44: Reuse traces within a request only (ADR 0035)
+- [ ] Replace the process-wide trace cache with a scope that one request (or one command) opens, so validation and freezing share traces and nothing is kept afterwards.
+- [ ] Commit `perf: reuse traces within a request only` and push.
+
+### Task 45: Publisher repair pass (ADR 0036, amended)
+- [ ] Write failing store tests: a pass builds the missing model of every activated snapshot whose manifest lists impact input, each in its own transaction; a pass with nothing missing changes nothing.
+- [ ] Run the pass from the publisher Lambda after any import and when idle, and from the operator's publisher command. Keep the AWS publisher schedule enabled, and update the Terraform test.
+- [ ] Commit `fix: repair missing impact models from the publisher` and push.
+
+### Task 46: Measure bounded traces at depth 6 (Q1)
+- [ ] Measure one bounded depth 6 trace and the worst-case preview (5 traces of 20 starts at depth 6) on the Q1 fixture, within 30 s and 1 GiB.
+- [ ] Commit `test: measure bounded traces at depth six` and push. **I7 ends: stop**, then rerun the build phase's closing steps.
+

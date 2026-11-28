@@ -1,0 +1,23 @@
+[
+  {
+    "argv": [
+      "search",
+      "--catalog-commit",
+      "3b10f42c582cfde494481f47f7236a868b18088b",
+      "--registry-commit",
+      "3b10f42c582cfde494481f47f7236a868b18088b",
+      "--checkout",
+      "$checkout:fixture/paging",
+      "--output",
+      "$output",
+      "--query",
+      "claim"
+    ],
+    "exit": 0,
+    "stderr": "",
+    "files": [
+      "candidates.json"
+    ],
+    "manifest": "6150cf3fedbdf81fb4217265689944b9147eb0b98dfdf5b06473c40ba2f35d18"
+  }
+]

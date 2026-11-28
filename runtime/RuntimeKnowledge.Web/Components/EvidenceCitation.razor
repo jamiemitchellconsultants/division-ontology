@@ -1,0 +1,32 @@
+@* One cited evidence record. Cited lines render as text, never as markup (Q4). *@
+<div class="evidence-citation">
+    <span>@Evidence.Path:@Evidence.StartLine-@Evidence.EndLine · @Evidence.Role · <code>@ShortCommit</code></span>
+    @if (Evidence.Page is { } page)
+    {
+        <span class="page-title">
+            @if (page.ConfluenceUrl is { } url)
+            {
+                <a href="@url" rel="noopener noreferrer" target="_blank">@(page.Title ?? "Untitled page")</a>
+            }
+            else
+            {
+                @(page.Title ?? "Untitled page")
+            }
+        </span>
+    }
+    @if (Evidence.Lines is { } lines)
+    {
+        <pre class="evidence-lines">@string.Join("\n", lines)</pre>
+    }
+    else
+    {
+        <p>Cited text unavailable</p>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public CitedEvidence Evidence { get; set; } = default!;
+    [Parameter] public string? Commit { get; set; }
+
+    private string ShortCommit => Commit is { Length: >= 12 } commit ? commit[..12] : Commit ?? "";
+}

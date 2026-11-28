@@ -115,9 +115,14 @@ internal static class Program
         {
             case ["stage", var manifest]:
                 Print(await importer.StageAsync(manifest, token));
+                Print(new { repairedModels = await importer.RepairModelsAsync(token) });
                 break;
             case ["activate", var manifest]:
                 Print(await importer.ActivateAsync(manifest, token));
+                Print(new { repairedModels = await importer.RepairModelsAsync(token) });
+                break;
+            case ["repair-models"]:
+                Print(new { repairedModels = await importer.RepairModelsAsync(token) });
                 break;
             case ["describe-current"]:
                 Print(await replay.DescribeCurrentAsync(token));

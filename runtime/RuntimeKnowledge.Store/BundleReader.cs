@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text.Json;
 using RuntimeKnowledge.Contracts;
+using RuntimeKnowledge.Impact.Bundle;
 
 namespace RuntimeKnowledge.Store;
 
@@ -17,14 +18,16 @@ internal sealed class BundleReader(IBundleObjects objects)
             var manifest = Deserialize<BundleManifest>(manifestBytes);
             var sources = ValidateManifest(manifest);
             PublishedProjection? projection = null;
+            var impactObjects = new Dictionary<string, byte[]>(StringComparer.Ordinal);
             foreach (var file in manifest.Files)
             {
                 var bytes = await ReadObjectAsync($"blobs/{file.Sha256}", file.Sha256, file.Bytes, cancellationToken);
                 if (file.Role == "projection") projection = Deserialize<PublishedProjection>(bytes);
+                if (ModelPackage.Roles.Contains(file.Role)) impactObjects.TryAdd(file.Sha256, bytes);
             }
 
             ValidateProjection(projection!, sources, id);
-            return new VerifiedBundle(id, manifest, projection!);
+            return new VerifiedBundle(id, manifest, projection!, manifestBytes, impactObjects);
         }
         catch (JsonException ex)
         {

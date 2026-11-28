@@ -1,0 +1,3025 @@
+{
+  "snapshotId": {
+    "catalogCommit": "3b10f42c582cfde494481f47f7236a868b18088b",
+    "catalogSha256": "f2b9729553292c8f6097f3c7a9149bb503d73a5a9476d006a771170d3bb70240",
+    "sources": [
+      {
+        "id": "fixture/paging",
+        "commit": "8d64e4df00783c6a03d65223788e072702746cfa"
+      }
+    ]
+  },
+  "registryCommit": "3b10f42c582cfde494481f47f7236a868b18088b",
+  "coverage": [
+    {
+      "sourceId": "fixture/paging",
+      "iri": "https://example.test/paging/graph#coverage",
+      "selector": "src/**",
+      "status": "covered",
+      "priority": 1
+    }
+  ],
+  "leads": [
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-000"
+      },
+      "matchedText": "Claim 000",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-001"
+      },
+      "matchedText": "Claim 001",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-002"
+      },
+      "matchedText": "Claim 002",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-003"
+      },
+      "matchedText": "Claim 003",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-004"
+      },
+      "matchedText": "Claim 004",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-005"
+      },
+      "matchedText": "Claim 005",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-006"
+      },
+      "matchedText": "Claim 006",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-007"
+      },
+      "matchedText": "Claim 007",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-008"
+      },
+      "matchedText": "Claim 008",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-009"
+      },
+      "matchedText": "Claim 009",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-010"
+      },
+      "matchedText": "Claim 010",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-011"
+      },
+      "matchedText": "Claim 011",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-012"
+      },
+      "matchedText": "Claim 012",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-013"
+      },
+      "matchedText": "Claim 013",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-014"
+      },
+      "matchedText": "Claim 014",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-015"
+      },
+      "matchedText": "Claim 015",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-016"
+      },
+      "matchedText": "Claim 016",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-017"
+      },
+      "matchedText": "Claim 017",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-018"
+      },
+      "matchedText": "Claim 018",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-019"
+      },
+      "matchedText": "Claim 019",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-020"
+      },
+      "matchedText": "Claim 020",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-021"
+      },
+      "matchedText": "Claim 021",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-022"
+      },
+      "matchedText": "Claim 022",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-023"
+      },
+      "matchedText": "Claim 023",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-024"
+      },
+      "matchedText": "Claim 024",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-025"
+      },
+      "matchedText": "Claim 025",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-026"
+      },
+      "matchedText": "Claim 026",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-027"
+      },
+      "matchedText": "Claim 027",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-028"
+      },
+      "matchedText": "Claim 028",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-029"
+      },
+      "matchedText": "Claim 029",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-030"
+      },
+      "matchedText": "Claim 030",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-031"
+      },
+      "matchedText": "Claim 031",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-032"
+      },
+      "matchedText": "Claim 032",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-033"
+      },
+      "matchedText": "Claim 033",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-034"
+      },
+      "matchedText": "Claim 034",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-035"
+      },
+      "matchedText": "Claim 035",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-036"
+      },
+      "matchedText": "Claim 036",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-037"
+      },
+      "matchedText": "Claim 037",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-038"
+      },
+      "matchedText": "Claim 038",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-039"
+      },
+      "matchedText": "Claim 039",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-040"
+      },
+      "matchedText": "Claim 040",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-041"
+      },
+      "matchedText": "Claim 041",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-042"
+      },
+      "matchedText": "Claim 042",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-043"
+      },
+      "matchedText": "Claim 043",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-044"
+      },
+      "matchedText": "Claim 044",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-045"
+      },
+      "matchedText": "Claim 045",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-046"
+      },
+      "matchedText": "Claim 046",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-047"
+      },
+      "matchedText": "Claim 047",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-048"
+      },
+      "matchedText": "Claim 048",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-049"
+      },
+      "matchedText": "Claim 049",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-050"
+      },
+      "matchedText": "Claim 050",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-051"
+      },
+      "matchedText": "Claim 051",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-052"
+      },
+      "matchedText": "Claim 052",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-053"
+      },
+      "matchedText": "Claim 053",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-054"
+      },
+      "matchedText": "Claim 054",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-055"
+      },
+      "matchedText": "Claim 055",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-056"
+      },
+      "matchedText": "Claim 056",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-057"
+      },
+      "matchedText": "Claim 057",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-058"
+      },
+      "matchedText": "Claim 058",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-059"
+      },
+      "matchedText": "Claim 059",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-060"
+      },
+      "matchedText": "Claim 060",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-061"
+      },
+      "matchedText": "Claim 061",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-062"
+      },
+      "matchedText": "Claim 062",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-063"
+      },
+      "matchedText": "Claim 063",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-064"
+      },
+      "matchedText": "Claim 064",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-065"
+      },
+      "matchedText": "Claim 065",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-066"
+      },
+      "matchedText": "Claim 066",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-067"
+      },
+      "matchedText": "Claim 067",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-068"
+      },
+      "matchedText": "Claim 068",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-069"
+      },
+      "matchedText": "Claim 069",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-070"
+      },
+      "matchedText": "Claim 070",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-071"
+      },
+      "matchedText": "Claim 071",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-072"
+      },
+      "matchedText": "Claim 072",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-073"
+      },
+      "matchedText": "Claim 073",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-074"
+      },
+      "matchedText": "Claim 074",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-075"
+      },
+      "matchedText": "Claim 075",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-076"
+      },
+      "matchedText": "Claim 076",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-077"
+      },
+      "matchedText": "Claim 077",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-078"
+      },
+      "matchedText": "Claim 078",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-079"
+      },
+      "matchedText": "Claim 079",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-080"
+      },
+      "matchedText": "Claim 080",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-081"
+      },
+      "matchedText": "Claim 081",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-082"
+      },
+      "matchedText": "Claim 082",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-083"
+      },
+      "matchedText": "Claim 083",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-084"
+      },
+      "matchedText": "Claim 084",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-085"
+      },
+      "matchedText": "Claim 085",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-086"
+      },
+      "matchedText": "Claim 086",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-087"
+      },
+      "matchedText": "Claim 087",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-088"
+      },
+      "matchedText": "Claim 088",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-089"
+      },
+      "matchedText": "Claim 089",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-090"
+      },
+      "matchedText": "Claim 090",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-091"
+      },
+      "matchedText": "Claim 091",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-092"
+      },
+      "matchedText": "Claim 092",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-093"
+      },
+      "matchedText": "Claim 093",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-094"
+      },
+      "matchedText": "Claim 094",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-095"
+      },
+      "matchedText": "Claim 095",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-096"
+      },
+      "matchedText": "Claim 096",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-097"
+      },
+      "matchedText": "Claim 097",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-098"
+      },
+      "matchedText": "Claim 098",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-099"
+      },
+      "matchedText": "Claim 099",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-100"
+      },
+      "matchedText": "Claim 100",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-101"
+      },
+      "matchedText": "Claim 101",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-102"
+      },
+      "matchedText": "Claim 102",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-103"
+      },
+      "matchedText": "Claim 103",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-104"
+      },
+      "matchedText": "Claim 104",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-105"
+      },
+      "matchedText": "Claim 105",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-106"
+      },
+      "matchedText": "Claim 106",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-107"
+      },
+      "matchedText": "Claim 107",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-108"
+      },
+      "matchedText": "Claim 108",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-109"
+      },
+      "matchedText": "Claim 109",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-110"
+      },
+      "matchedText": "Claim 110",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-111"
+      },
+      "matchedText": "Claim 111",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-112"
+      },
+      "matchedText": "Claim 112",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-113"
+      },
+      "matchedText": "Claim 113",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-114"
+      },
+      "matchedText": "Claim 114",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-115"
+      },
+      "matchedText": "Claim 115",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-116"
+      },
+      "matchedText": "Claim 116",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-117"
+      },
+      "matchedText": "Claim 117",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-118"
+      },
+      "matchedText": "Claim 118",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-119"
+      },
+      "matchedText": "Claim 119",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-120"
+      },
+      "matchedText": "Claim 120",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-121"
+      },
+      "matchedText": "Claim 121",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-122"
+      },
+      "matchedText": "Claim 122",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-123"
+      },
+      "matchedText": "Claim 123",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-124"
+      },
+      "matchedText": "Claim 124",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-125"
+      },
+      "matchedText": "Claim 125",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-126"
+      },
+      "matchedText": "Claim 126",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-127"
+      },
+      "matchedText": "Claim 127",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-128"
+      },
+      "matchedText": "Claim 128",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-129"
+      },
+      "matchedText": "Claim 129",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-130"
+      },
+      "matchedText": "Claim 130",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-131"
+      },
+      "matchedText": "Claim 131",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-132"
+      },
+      "matchedText": "Claim 132",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-133"
+      },
+      "matchedText": "Claim 133",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-134"
+      },
+      "matchedText": "Claim 134",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-135"
+      },
+      "matchedText": "Claim 135",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-136"
+      },
+      "matchedText": "Claim 136",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-137"
+      },
+      "matchedText": "Claim 137",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-138"
+      },
+      "matchedText": "Claim 138",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-139"
+      },
+      "matchedText": "Claim 139",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-140"
+      },
+      "matchedText": "Claim 140",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-141"
+      },
+      "matchedText": "Claim 141",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-142"
+      },
+      "matchedText": "Claim 142",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-143"
+      },
+      "matchedText": "Claim 143",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-144"
+      },
+      "matchedText": "Claim 144",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-145"
+      },
+      "matchedText": "Claim 145",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-146"
+      },
+      "matchedText": "Claim 146",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-147"
+      },
+      "matchedText": "Claim 147",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-148"
+      },
+      "matchedText": "Claim 148",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-149"
+      },
+      "matchedText": "Claim 149",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-150"
+      },
+      "matchedText": "Claim 150",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-151"
+      },
+      "matchedText": "Claim 151",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-152"
+      },
+      "matchedText": "Claim 152",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-153"
+      },
+      "matchedText": "Claim 153",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-154"
+      },
+      "matchedText": "Claim 154",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-155"
+      },
+      "matchedText": "Claim 155",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-156"
+      },
+      "matchedText": "Claim 156",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-157"
+      },
+      "matchedText": "Claim 157",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-158"
+      },
+      "matchedText": "Claim 158",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-159"
+      },
+      "matchedText": "Claim 159",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-160"
+      },
+      "matchedText": "Claim 160",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-161"
+      },
+      "matchedText": "Claim 161",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-162"
+      },
+      "matchedText": "Claim 162",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-163"
+      },
+      "matchedText": "Claim 163",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-164"
+      },
+      "matchedText": "Claim 164",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-165"
+      },
+      "matchedText": "Claim 165",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-166"
+      },
+      "matchedText": "Claim 166",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-167"
+      },
+      "matchedText": "Claim 167",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-168"
+      },
+      "matchedText": "Claim 168",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-169"
+      },
+      "matchedText": "Claim 169",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-170"
+      },
+      "matchedText": "Claim 170",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-171"
+      },
+      "matchedText": "Claim 171",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-172"
+      },
+      "matchedText": "Claim 172",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-173"
+      },
+      "matchedText": "Claim 173",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-174"
+      },
+      "matchedText": "Claim 174",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-175"
+      },
+      "matchedText": "Claim 175",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-176"
+      },
+      "matchedText": "Claim 176",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-177"
+      },
+      "matchedText": "Claim 177",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-178"
+      },
+      "matchedText": "Claim 178",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-179"
+      },
+      "matchedText": "Claim 179",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-180"
+      },
+      "matchedText": "Claim 180",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-181"
+      },
+      "matchedText": "Claim 181",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-182"
+      },
+      "matchedText": "Claim 182",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-183"
+      },
+      "matchedText": "Claim 183",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-184"
+      },
+      "matchedText": "Claim 184",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-185"
+      },
+      "matchedText": "Claim 185",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-186"
+      },
+      "matchedText": "Claim 186",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-187"
+      },
+      "matchedText": "Claim 187",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-188"
+      },
+      "matchedText": "Claim 188",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-189"
+      },
+      "matchedText": "Claim 189",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-190"
+      },
+      "matchedText": "Claim 190",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-191"
+      },
+      "matchedText": "Claim 191",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-192"
+      },
+      "matchedText": "Claim 192",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-193"
+      },
+      "matchedText": "Claim 193",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-194"
+      },
+      "matchedText": "Claim 194",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-195"
+      },
+      "matchedText": "Claim 195",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-196"
+      },
+      "matchedText": "Claim 196",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-197"
+      },
+      "matchedText": "Claim 197",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-198"
+      },
+      "matchedText": "Claim 198",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-199"
+      },
+      "matchedText": "Claim 199",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-200"
+      },
+      "matchedText": "Claim 200",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-201"
+      },
+      "matchedText": "Claim 201",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-202"
+      },
+      "matchedText": "Claim 202",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-203"
+      },
+      "matchedText": "Claim 203",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-204"
+      },
+      "matchedText": "Claim 204",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-205"
+      },
+      "matchedText": "Claim 205",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-206"
+      },
+      "matchedText": "Claim 206",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-207"
+      },
+      "matchedText": "Claim 207",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-208"
+      },
+      "matchedText": "Claim 208",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-209"
+      },
+      "matchedText": "Claim 209",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-210"
+      },
+      "matchedText": "Claim 210",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-211"
+      },
+      "matchedText": "Claim 211",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-212"
+      },
+      "matchedText": "Claim 212",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-213"
+      },
+      "matchedText": "Claim 213",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-214"
+      },
+      "matchedText": "Claim 214",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-215"
+      },
+      "matchedText": "Claim 215",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-216"
+      },
+      "matchedText": "Claim 216",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-217"
+      },
+      "matchedText": "Claim 217",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-218"
+      },
+      "matchedText": "Claim 218",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-219"
+      },
+      "matchedText": "Claim 219",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-220"
+      },
+      "matchedText": "Claim 220",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-221"
+      },
+      "matchedText": "Claim 221",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-222"
+      },
+      "matchedText": "Claim 222",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-223"
+      },
+      "matchedText": "Claim 223",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-224"
+      },
+      "matchedText": "Claim 224",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-225"
+      },
+      "matchedText": "Claim 225",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-226"
+      },
+      "matchedText": "Claim 226",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-227"
+      },
+      "matchedText": "Claim 227",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-228"
+      },
+      "matchedText": "Claim 228",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-229"
+      },
+      "matchedText": "Claim 229",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-230"
+      },
+      "matchedText": "Claim 230",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-231"
+      },
+      "matchedText": "Claim 231",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-232"
+      },
+      "matchedText": "Claim 232",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-233"
+      },
+      "matchedText": "Claim 233",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-234"
+      },
+      "matchedText": "Claim 234",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-235"
+      },
+      "matchedText": "Claim 235",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-236"
+      },
+      "matchedText": "Claim 236",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-237"
+      },
+      "matchedText": "Claim 237",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-238"
+      },
+      "matchedText": "Claim 238",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-239"
+      },
+      "matchedText": "Claim 239",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-240"
+      },
+      "matchedText": "Claim 240",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-241"
+      },
+      "matchedText": "Claim 241",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-242"
+      },
+      "matchedText": "Claim 242",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-243"
+      },
+      "matchedText": "Claim 243",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-244"
+      },
+      "matchedText": "Claim 244",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-245"
+      },
+      "matchedText": "Claim 245",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-246"
+      },
+      "matchedText": "Claim 246",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-247"
+      },
+      "matchedText": "Claim 247",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-248"
+      },
+      "matchedText": "Claim 248",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    },
+    {
+      "key": {
+        "sourceId": "fixture/paging",
+        "nodeIri": "https://example.test/paging/graph#claim-249"
+      },
+      "matchedText": "Claim 249",
+      "matchKind": "phrase",
+      "sourceCommit": "8d64e4df00783c6a03d65223788e072702746cfa",
+      "supported": true,
+      "reason": "Verified evidence: implementation",
+      "kind": "graph"
+    }
+  ],
+  "gaps": []
+}

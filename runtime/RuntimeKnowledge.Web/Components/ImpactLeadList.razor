@@ -1,0 +1,42 @@
+<ul class="impact-leads">
+    @foreach (var (lead, index) in Leads.Select((lead, index) => (lead, index)))
+    {
+        var id = $"impact-lead-{index}";
+        @* A graph node and a catalog concept can share a source and IRI; the kind tells them apart. *@
+        <li @key="(lead.Kind, lead.Key)">
+            <input type="checkbox" id="@id" checked="@Selected.Contains(lead.Key)" disabled="@(!lead.Supported)"
+                   @onchange="() => OnToggle.InvokeAsync(lead.Key)" />
+            <label for="@id">@lead.MatchedText · @lead.Key.SourceId</label>
+            <span>@(lead.Supported ? "Supported" : "Not supported")</span>
+            <span>@lead.Reason</span>
+            <span>@lead.MatchKind</span>
+            <span class="lead-identity"><code>@lead.Key.NodeIri</code>@if (lead.SourceCommit is { } commit) { <span> at <code>@Short(commit)</code></span> }</span>
+            @foreach (var pageEvidence in lead.PageEvidence ?? [])
+            {
+                <div class="evidence-citation">
+                    <span>@pageEvidence.Path:@pageEvidence.StartLine-@pageEvidence.EndLine</span>
+                    <span class="page-title">
+                        @if (pageEvidence.ConfluenceUrl is { } url)
+                        {
+                            <a href="@url" rel="noopener noreferrer" target="_blank">@(pageEvidence.Title ?? "Untitled page")</a>
+                        }
+                        else
+                        {
+                            @(pageEvidence.Title ?? "Untitled page")
+                        }
+                    </span>
+                    @if (pageEvidence.Lines is { } lines) { <pre class="evidence-lines">@string.Join("\n", lines)</pre> }
+                    else { <p>Cited text unavailable</p> }
+                </div>
+            }
+        </li>
+    }
+</ul>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<ImpactLead> Leads { get; set; } = [];
+    [Parameter, EditorRequired] public IReadOnlySet<ImpactKey> Selected { get; set; } = new HashSet<ImpactKey>();
+    [Parameter] public EventCallback<ImpactKey> OnToggle { get; set; }
+
+    private static string Short(string commit) => commit.Length >= 12 ? commit[..12] : commit;
+}

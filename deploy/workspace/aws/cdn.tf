@@ -12,7 +12,7 @@ resource "aws_cloudfront_function" "spa" {
   code    = <<-JS
     function handler(event) {
       var request = event.request;
-      if (/^\/(?:authentication|entity|graph|history|relationship)(?:\/|$)/.test(request.uri)) {
+      if (/^\/(?:assessments|authentication|entity|graph|history|impact|relationship)(?:\/|$)/.test(request.uri)) {
         request.uri = "/index.html";
       }
       return request;

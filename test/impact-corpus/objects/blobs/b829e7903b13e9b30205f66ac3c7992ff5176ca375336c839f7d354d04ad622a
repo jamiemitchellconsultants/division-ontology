@@ -1,0 +1,5 @@
+# Warehouse fulfilment
+
+Warehouse fulfilment contains Warehouse service, which contains Fulfilment processing.
+Shipment completion is sent to Accounting for sales invoicing.
+This is fabricated evidence for a synthetic acceptance fixture.

@@ -6,8 +6,10 @@ import { listAtCommit, readAtCommit } from '../c4/git.mjs';
 import { coverageGaps } from '../c4/graph.mjs';
 import { loadRegistries } from '../c4/registry.mjs';
 import { loadSnapshot } from '../c4/snapshot.mjs';
+import { buildImpactInput, impactInputBytes } from '../c4/impact-input.mjs';
+import { loadMasterList, MASTER_LIST_PATH } from '../c4/master-list.mjs';
 
-const hash = bytes => createHash('sha256').update(bytes).digest('hex');
+export const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const compare = (a, b) => a < b ? -1 : a > b ? 1 : 0;
 const digestPattern = /^[0-9a-f]{64}$/;
 const key = (sourceId, kind, identifier) => ({ sourceId, kind, identifier });
@@ -19,9 +21,9 @@ function ordered(value) {
   return Object.fromEntries(Object.keys(value).sort(compare).map(name => [name, ordered(value[name])]));
 }
 
-const jsonBytes = value => Buffer.from(JSON.stringify(ordered(value)) + '\n', 'utf8');
+export const jsonBytes = value => Buffer.from(JSON.stringify(ordered(value)) + '\n', 'utf8');
 
-function pinnedBytes(root, commit, path, required = true) {
+export function pinnedBytes(root, commit, path, required = true) {
   // The existing loader rejects unsafe paths, unavailable commits and symlinks.
   if (readAtCommit(root, commit, path) === null) {
     if (!required) return null;
@@ -176,6 +178,10 @@ export function buildBundle({ divisionRoot, catalogCommit, registryCommit = null
         pinnedBytes(source.checkout, source.commit, identityEvidence.path));
     }
   }
+  const masterList = loadMasterList({ divisionRoot, catalogCommit });
+  include('impactInput', 'division-core', 'impact-input.json',
+    impactInputBytes(buildImpactInput({ snapshot, registry, masterList })));
+  if (masterList) include('relationshipMasterList', 'division-core', MASTER_LIST_PATH, masterList.bytes);
   include('projection', 'division-core', 'projection.json', jsonBytes(project(snapshot, registry)));
   const manifest = { schemaVersion: 1, divisionCommit: catalogCommit, catalogSha256: hash(catalog),
     sources, registryCommit, files: [...files.entries()].sort(([a], [b]) => compare(a, b)).map(([, row]) => row) };
