@@ -53,4 +53,46 @@ public sealed class ImpactPerformanceTests(ITestOutputHelper output)
         Assert.True(searchP95 <= 2000, $"search p95 {searchP95:F0} ms exceeds 2000 ms");
         Assert.True(pathsP95 <= 5000, $"paths p95 {pathsP95:F0} ms exceeds 5000 ms");
     }
+
+    // ADR 0035: preview re-traces every listed trace, so its worst case is 20 traces of 20 starts each. Its budget is
+    // the paths route's, once per trace.
+    [Fact]
+    public async Task Preview_with_twenty_traces_of_twenty_starts_stays_within_twenty_path_budgets()
+    {
+        string? snapshot = null;
+        await using var api = await ApiFixture.OpenAsync("Keycloak", async scenario =>
+        {
+            var (manifest, blobs) = LargeModel.Bundle();
+            snapshot = scenario.Bundles.Add(manifest, blobs);
+            await scenario.Store.StageAsync(snapshot, CancellationToken.None);
+            await scenario.Store.ActivateAsync(snapshot, CancellationToken.None);
+        });
+        var reader = api.ClientWithToken(["ReadKnowledgeGraph"]);
+        var search = await (await reader.PostAsJsonAsync("api/impact/search", new ImpactSearchRequest("claim 4", null)))
+            .Content.ReadFromJsonAsync<ImpactSearchResult>(WorkspaceJson.Options);
+        var draft = new RuntimeKnowledge.Web.Services.AssessmentDraft();
+        draft.Start(snapshot!, "CR-42", "Twenty traces", "Analyst A", RuntimeKnowledge.Web.Services.AssessmentDraft.Pins(search!));
+        var traces = new System.Text.Json.Nodes.JsonArray();
+        for (var t = 0; t < 20; t++)
+            traces.Add(new System.Text.Json.Nodes.JsonObject
+            {
+                ["starts"] = new System.Text.Json.Nodes.JsonArray(Enumerable.Range(0, 20).Select(s => (System.Text.Json.Nodes.JsonNode)
+                    new System.Text.Json.Nodes.JsonObject { ["sourceId"] = LargeModel.SourceId, ["nodeIri"] = LargeModel.Base + $"n{t * 20 + s:D5}" }).ToArray()),
+                ["maxDepth"] = 4
+            });
+        draft.Record!["traces"] = traces;
+
+        var times = new List<double>();
+        for (var i = 0; i < 3; i++)
+        {
+            var watch = Stopwatch.StartNew();
+            using var response = await reader.PostAsJsonAsync("api/assessments/preview", new AssessmentDraftRequest(snapshot!, draft.Record));
+            await response.Content.ReadAsByteArrayAsync();
+            watch.Stop();
+            Assert.True(response.IsSuccessStatusCode, await response.Content.ReadAsStringAsync());
+            times.Add(watch.Elapsed.TotalMilliseconds);
+        }
+        output.WriteLine($"{{\"preview_20x20_max_ms\":{times.Max():F0}}}");
+        Assert.True(times.Max() <= 20 * 5000, $"preview {times.Max():F0} ms exceeds twenty paths budgets");
+    }
 }
