@@ -99,7 +99,7 @@ public static class CommandRunner
                         var views = viewInputs.Select(vi =>
                             JsonNode.Parse(ReadText(vi))!.AsObject()).ToList();
 
-                        var cited = CitablePaths(model, record);
+                        var cited = Assessments.CitablePaths(model, record);
                         var frozen = Assessments.Freeze(record, model, cited, views);
                         var markdown = record["schemaVersion"]?.GetValue<int>() == 2
                             ? AssessmentMarkdown.Render(frozen)
@@ -121,7 +121,7 @@ public static class CommandRunner
                         var record = JsonNode.Parse(ReadText(assessmentFile))!.AsObject();
                         var views = GetMultiFlag(args, "--view-input")
                             .Select(vi => JsonNode.Parse(ReadText(vi))!.AsObject()).ToList();
-                        var digest = Assessments.Validate(record, model, CitablePaths(model, record), views);
+                        var digest = Assessments.Validate(record, model, Assessments.CitablePaths(model, record), views);
                         var assessment = new JsonObject
                         {
                             ["requestId"] = record["requestId"]?.GetValue<string>() ?? "unknown",
@@ -168,12 +168,6 @@ public static class CommandRunner
             i += 2;
         }
         return result;
-    }
-
-    private static JsonArray CitablePaths(ImpactModel model, JsonObject record)
-    {
-        var starts = (record["confirmedLeads"] as JsonArray ?? []).Select(n => pair(n!.AsObject())).ToList();
-        return starts.Count > 0 ? Paths.Read(model, starts, 4)["paths"]!.AsArray() : new JsonArray();
     }
 
     // As the pilot's Number(): an integral decimal such as "4.0" is accepted; anything else is out of range.

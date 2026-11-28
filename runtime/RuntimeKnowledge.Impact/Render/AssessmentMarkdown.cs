@@ -58,6 +58,15 @@ public static class AssessmentMarkdown
                       "; evidence " + List(x["evidenceIris"], e) +
                       "; views " + List(x["viewIds"], e));
 
+        if (record["traces"] is JsonArray traces)
+        {
+            lines.Add("");
+            lines.Add("## Cited traces");
+            foreach (var trace in traces)
+                lines.Add("- depth " + Str(trace!["maxDepth"]) + " from " +
+                          string.Join(", ", (trace["starts"] as JsonArray ?? []).Select(k => Key(k, e))));
+        }
+
         lines.Add("");
         lines.Add("## Cited paths");
         foreach (var path in frozen["paths"] as JsonArray ?? [])

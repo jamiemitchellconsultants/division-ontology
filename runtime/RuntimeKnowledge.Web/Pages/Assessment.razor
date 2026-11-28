@@ -50,6 +50,14 @@
         <ul>@foreach (var impact in record["likelyImpacts"] as JsonArray ?? []) { <li>@Text(impact!["key"]?["nodeIri"]) — @Text(impact["reason"])</li> }</ul>
     </section>
 
+    @if (record["traces"] is JsonArray traces)
+    {
+        <section aria-labelledby="assessment-traces">
+            <h2 id="assessment-traces">Cited traces</h2>
+            <ul>@foreach (var trace in traces) { <li>Depth @Text(trace!["maxDepth"]) from @string.Join(", ", (trace["starts"] as JsonArray ?? []).Select(k => $"{Text(k!["sourceId"])}: {Text(k["nodeIri"])}"))</li> }</ul>
+        </section>
+    }
+
     <section aria-labelledby="assessment-paths">
         <h2 id="assessment-paths">Cited paths</h2>
         <ImpactPathList Paths="paths" />

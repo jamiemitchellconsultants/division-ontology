@@ -136,9 +136,7 @@ internal static class AssessmentRoutes
             throw new WorkspaceException("invalidAssessment", "The workspace accepts schema 2 records only");
         try
         {
-            var starts = (record["confirmedLeads"] as JsonArray ?? [])
-                .Select(k => (k!["sourceId"]!.GetValue<string>(), k["nodeIri"]!.GetValue<string>())).ToList();
-            var paths = starts.Count == 0 ? new JsonArray() : Paths.Read(model, starts)["paths"]!.AsArray();
+            var paths = Impact.Engine.Assessments.CitablePaths(model, record);
             var frozen = Impact.Engine.Assessments.Freeze(record, model, paths, views ?? []);
             return (frozen, AssessmentMarkdown.Render(frozen));
         }

@@ -44,6 +44,42 @@ public static class Assessments
         }
     };
 
+    private const int MaxTraces = 20, MaxTraceStarts = 20;
+
+    /// <summary>ADR 0035: the paths a record may cite, the union of the paths of every trace it lists, each once,
+    /// in trace order. Without `traces`, its confirmed leads at depth 4, as the pilot traced them.</summary>
+    public static JsonArray CitablePaths(ImpactModel model, JsonObject record)
+    {
+        var cited = new JsonArray();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var (starts, depth) in Traces(record))
+            foreach (var path in Paths.Read(model, starts, depth)["paths"]!.AsArray())
+                if (seen.Add(path!["id"]!.GetValue<string>())) cited.Add(path.DeepClone());
+        return cited;
+    }
+
+    private static List<(List<(string SourceId, string NodeIri)> Starts, int Depth)> Traces(JsonObject record)
+    {
+        static (string, string) Key(JsonNode? key) =>
+            key?["sourceId"] is JsonValue s && s.TryGetValue<string>(out var source) && source.Length > 0 &&
+            key["nodeIri"] is JsonValue n && n.TryGetValue<string>(out var iri) && iri.Length > 0
+                ? (source, iri) : throw new ImpactException("invalid traces");
+
+        if (record["traces"] is not { } listed)
+        {
+            var leads = (record["confirmedLeads"] as JsonArray ?? []).Select(Key).ToList();
+            return leads.Count == 0 ? [] : [(leads, 4)];
+        }
+        if (listed is not JsonArray traces || traces.Count > MaxTraces) throw new ImpactException("invalid traces");
+        return traces.Select(trace =>
+        {
+            if (trace?["starts"] is not JsonArray starts || starts.Count is 0 or > MaxTraceStarts ||
+                trace["maxDepth"] is not JsonValue d || !d.TryGetValue<int>(out var depth) || depth is < 1 or > 6)
+                throw new ImpactException("invalid traces");
+            return (starts.Select(Key).ToList(), depth);
+        }).ToList();
+    }
+
     /// <summary>Validates the record and returns its assessment digest: for schema 2 the digest of its frozen form,
     /// and for schema 1 the pilot's digest of the canonical record, so existing schema 1 feedback still validates (B37).</summary>
     public static string Validate(JsonObject record, ImpactModel model, JsonArray paths, IReadOnlyList<JsonObject> views)
@@ -68,6 +104,7 @@ public static class Assessments
             default: throw new ImpactException("invalid assessment");
         }
 
+        if (schema == 2) Traces(record);
         CheckContent(record, model, paths, views);
 
         if (schema == 1 ? record.ContainsKey("approved") || record.ContainsKey("approvalStatus") : ClaimsApproval(record))
