@@ -46,7 +46,24 @@ public static class Paths
             };
     }
 
+    // Validating and freezing one record re-trace the same traces (ADR 0035), so recent results are kept per model.
+    // The model is immutable, so a result for the same starts and depth never changes; callers get a copy.
+    private const int RecentTraces = 64;
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<ImpactModel,
+        System.Collections.Concurrent.ConcurrentDictionary<string, JsonObject>> Recent = new();
+
     public static JsonObject Read(ImpactModel model, IReadOnlyList<(string SourceId, string NodeIri)> starts, int maxDepth = 4)
+    {
+        var key = maxDepth + "\u0000" + string.Join("\u0001", starts.Select(Key).Order(StringComparer.Ordinal));
+        var recent = Recent.GetOrCreateValue(model);
+        if (recent.TryGetValue(key, out var known)) return known.DeepClone().AsObject();
+        var result = Trace(model, starts, maxDepth);
+        if (recent.Count >= RecentTraces) recent.Clear();
+        recent.TryAdd(key, result);
+        return result.DeepClone().AsObject();
+    }
+
+    private static JsonObject Trace(ImpactModel model, IReadOnlyList<(string SourceId, string NodeIri)> starts, int maxDepth)
     {
         if (!starts.Any())
             throw new ImpactException("at least one start is required");
