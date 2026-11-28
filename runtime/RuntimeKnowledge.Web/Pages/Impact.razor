@@ -24,10 +24,16 @@
             @if (nextCursor is not null) { <button type="button" disabled="@busy" @onclick="LoadMore">Load more</button> }
             <button type="button" disabled="@(busy || selected.Count == 0)" @onclick="Trace">Trace impact</button>
         </div>
+        @if (ContinuesDraft)
+        {
+            <div class="continue-assessment">
+                <button type="button" disabled="@(busy || paths is null)" @onclick="UseInDraft">Use these paths in assessment @Draft.RequestId</button>
+            </div>
+        }
         <form class="start-assessment" @onsubmit="StartAssessment" @onsubmit:preventDefault>
             <label for="assessment-request-id">Change request id</label>
             <input id="assessment-request-id" type="text" required @bind="requestId" />
-            <button type="submit" disabled="@(busy || string.IsNullOrWhiteSpace(requestId))">Start assessment</button>
+            <button type="submit" disabled="@(busy || string.IsNullOrWhiteSpace(requestId))">@(ContinuesDraft ? "Start a new assessment instead" : "Start assessment")</button>
         </form>
     </section>
 }
@@ -38,7 +44,7 @@
         <h2 id="impact-paths-heading">Impact paths</h2>
         <ImpactPathList Paths="paths.Paths" />
     </section>
-    <GapList Gaps="paths.Gaps" />
+    <GapList Gaps="paths.Gaps" NotFollowed="paths.NotFollowed" />
 }
 else if (searchGaps is not null)
 {
@@ -47,11 +53,18 @@ else if (searchGaps is not null)
 
 @code {
     private string query = "";
+
+    protected override void OnInitialized()
+    {
+        if (Draft.Record?["description"]?.GetValue<string>() is { } description) query = description.Trim();
+    }
     private string? searchedQuery, snapshotId, nextCursor, message;
     private readonly List<ImpactLead> leads = [];
     private readonly HashSet<ImpactKey> selected = [];
     private IReadOnlyList<ImpactGap>? searchGaps;
     private ImpactPathsResult? paths;
+    // The starts the shown paths were traced from, kept with them so a later change of selection cannot mismatch them.
+    private IReadOnlyList<ImpactKey> tracedStarts = [];
     private WorkspaceApiException? error;
     private bool busy;
 
@@ -71,9 +84,21 @@ else if (searchGaps is not null)
 
     private Task Trace() => Run(async () =>
     {
-        paths = await Api.ImpactPaths(new ImpactPathsRequest(snapshotId!, selected.ToList()));
-        if (Draft.SnapshotId == snapshotId) Draft.UsePaths(paths.Paths, selected.ToList());
+        var starts = selected.ToList();
+        paths = await Api.ImpactPaths(new ImpactPathsRequest(snapshotId!, starts));
+        tracedStarts = starts;
     });
+
+    // A draft in progress on this snapshot, such as one started from a saved assessment (B35), takes the
+    // traced paths without being replaced, so its request and backlink are kept.
+    private bool ContinuesDraft => Draft.Record is not null && Draft.SnapshotId == snapshotId;
+
+    private void UseInDraft()
+    {
+        if (paths is null || !ContinuesDraft) return;
+        Draft.UsePaths(paths.Paths, tracedStarts);
+        Navigation.NavigateTo("assessments/draft");
+    }
 
     private async Task StartAssessment()
     {
@@ -81,7 +106,7 @@ else if (searchGaps is not null)
         var user = Authentication is null ? null : (await Authentication).User;
         var assessor = user?.FindFirst("name")?.Value ?? user?.FindFirst("sub")?.Value ?? "Workspace user";
         Draft.Start(firstPage.SnapshotId, requestId.Trim(), searchedQuery ?? query, assessor, AssessmentDraft.Pins(firstPage));
-        if (paths is not null) Draft.UsePaths(paths.Paths, selected.ToList());
+        if (paths is not null) Draft.UsePaths(paths.Paths, tracedStarts);
         Navigation.NavigateTo("assessments/draft");
     }
 
@@ -107,6 +132,7 @@ else if (searchGaps is not null)
         firstPage = null;
         searchGaps = null;
         paths = null;
+        tracedStarts = [];
         error = null;
     }
 

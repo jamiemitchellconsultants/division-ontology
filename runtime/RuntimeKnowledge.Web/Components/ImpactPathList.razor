@@ -11,6 +11,31 @@
             {
                 <li>
                     <span class="impact-step">@StepText(step)</span>
+                    @if (step.Type == "assertion")
+                    {
+                        <span class="impact-step-support">Assertion <code>@step.AssertionIri</code></span>
+                    }
+                    else if (step.Type == "reviewedLinkCrossing")
+                    {
+                        <ul class="impact-step-support">
+                            @foreach (var link in step.Links ?? [])
+                            {
+                                <li>Reviewed link in @link.Source: <code>@link.Local</code> @link.Relation <code>@link.Shared</code></li>
+                            }
+                            <li>Catalog commit <code>@Short(step.CatalogCommit)</code></li>
+                        </ul>
+                    }
+                    else if (step.Type == "binding")
+                    {
+                        <ul class="impact-step-support">
+                            <li>Registry commit <code>@Short(step.RegistryCommit)</code></li>
+                            @if (step.IdentityEvidence is { } identity)
+                            {
+                                <li>Identity evidence: @Text(identity["sourceId"]) @Text(identity["path"]):@Text(identity["startLine"])-@Text(identity["endLine"])
+                                    @if (Text(identity["reason"]) is { Length: > 0 } reason) { <span> · @reason</span> }</li>
+                            }
+                        </ul>
+                    }
                     @foreach (var evidence in step.Evidence ?? [])
                     {
                         <EvidenceCitation Evidence="evidence" Commit="step.Commit" />
@@ -24,10 +49,16 @@
 @code {
     [Parameter, EditorRequired] public IReadOnlyList<ImpactPath> Paths { get; set; } = [];
 
-    private static string Node(ImpactKey? key) => key?.NodeIri ?? "";
+    private static string Node(ImpactKey? key) => key is null ? "" : $"{key.SourceId}: {key.NodeIri}";
+    private static string Short(string? commit) => commit is { Length: >= 12 } c ? c[..12] : commit ?? "";
+    private static string Text(System.Text.Json.Nodes.JsonNode? node) =>
+        node is System.Text.Json.Nodes.JsonValue value ? value.ToString() : "";
 
+    // An object-to-subject step is traversed from the assertion's object, so the arrow starts there (B6).
     private static string StepText(ImpactStep step) => step.Type switch
     {
+        "assertion" when step.Direction == "object-to-subject" =>
+            $"{Node(step.Object)} —{step.Relationship} ({step.Direction})→ {Node(step.Subject)}",
         "assertion" => $"{Node(step.Subject)} —{step.Relationship} ({step.Direction})→ {Node(step.Object)}",
         "binding" => $"Reviewed C4 binding: {Node(step.From)} → {Node(step.To)}",
         "reviewedLinkCrossing" => $"Reviewed link crossing through {step.SharedTerm}: {Node(step.From)} → {Node(step.To)}",

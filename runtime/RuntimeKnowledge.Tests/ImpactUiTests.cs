@@ -43,14 +43,140 @@ public sealed class ImpactUiTests
     }
 
     private static (BunitContext Context, IRenderedComponent<ImpactPage> Page, Api Handler) Render(
-        Func<string, JsonObject, int, (HttpStatusCode, object)> respond)
+        Func<string, JsonObject, int, (HttpStatusCode, object)> respond, AssessmentDraft? draft = null)
     {
         var context = new BunitContext();
         context.JSInterop.Mode = JSRuntimeMode.Loose;
         var handler = new Api(respond);
         context.Services.AddSingleton(new WorkspaceClient(new HttpClient(handler) { BaseAddress = new Uri("https://workspace.test") }));
-        context.Services.AddSingleton<AssessmentDraft>();
+        context.Services.AddSingleton(draft ?? new AssessmentDraft());
         return (context, context.Render<ImpactPage>(), handler);
+    }
+
+    private static Func<string, JsonObject, int, (HttpStatusCode, object)> SearchThen(ImpactSearchResult search, ImpactPathsResult paths) =>
+        (path, _, _) => path == "api/impact/search" ? (HttpStatusCode.OK, search) : (HttpStatusCode.OK, paths);
+
+    private static void Choose(IRenderedComponent<ImpactPage> page, int index, bool on = true) =>
+        page.FindAll("li input[type=checkbox]")[index].Change(on);
+
+    private static void Click(IRenderedComponent<ImpactPage> page, string name) =>
+        page.FindAll("button").Single(b => b.TextContent.Trim() == name).Click();
+
+    [Fact]
+    public void Start_assessment_uses_the_starts_the_shown_paths_were_traced_from()        // B17 (PR #220 review 4)
+    {
+        var draft = new AssessmentDraft();
+        var (context, page, _) = Render(SearchThen(SearchPage([Lead("a"), Lead("b")]), PathsResult(new ImpactPath("p1", [AssertionStep("a", "c")]))), draft);
+        using var _ = context;
+        SearchFor(page, "claim");
+        page.WaitForAssertion(() => Assert.Equal(2, page.FindAll("li input[type=checkbox]").Count));
+        Choose(page, 0);
+        Click(page, "Trace impact");
+        page.WaitForAssertion(() => Assert.Contains("Impact paths", page.Markup));
+        Choose(page, 0, on: false);
+        Choose(page, 1);
+        page.Find("#assessment-request-id").Change("CR-4");
+        page.Find("form.start-assessment").Submit();
+        Assert.Equal([Key("a")], draft.Starts);
+        Assert.Equal("p1", Assert.Single(draft.Paths).Id);
+    }
+
+    [Fact]
+    public void A_draft_in_progress_takes_traced_paths_and_keeps_its_backlink()             // B35 (PR #220 review 26)
+    {
+        var draft = new AssessmentDraft();
+        var earlier = Guid.NewGuid();
+        draft.Start(Snapshot, "CR-5", "Claim threshold", "Analyst A", AssessmentDraft.Pins(SearchPage([])), earlier);
+        var (context, page, _) = Render(SearchThen(SearchPage([Lead("a")]), PathsResult(new ImpactPath("p1", [AssertionStep("a", "c")]))), draft);
+        using var _ = context;
+        Assert.Equal("Claim threshold", page.Find("#impact-query").GetAttribute("value"));
+        page.Find("form").Submit();
+        page.WaitForAssertion(() => Assert.Single(page.FindAll("li input[type=checkbox]")));
+        Choose(page, 0);
+        Click(page, "Trace impact");
+        page.WaitForAssertion(() => Assert.Contains("Impact paths", page.Markup));
+        Click(page, "Use these paths in assessment CR-5");
+        Assert.Equal(earlier.ToString("D"), (string)draft.Record!["startedFrom"]!["assessmentId"]!);
+        Assert.Equal("CR-5", draft.RequestId);
+        Assert.Equal([Key("a")], draft.Starts);
+        Assert.Equal("p1", Assert.Single(draft.Paths).Id);
+    }
+
+    [Fact]
+    public void A_graph_lead_and_a_catalog_concept_with_the_same_key_both_render()          // B1 (PR #220 review 24)
+    {
+        var concept = Lead("a") with { Kind = "concept", SourceCommit = null, Reason = "Catalog concept" };
+        var (context, page, _) = Render(SearchThen(SearchPage([Lead("a"), concept]), PathsResult()));
+        using var _ = context;
+        SearchFor(page, "claim");
+        page.WaitForAssertion(() => Assert.Equal(2, page.FindAll("li input[type=checkbox]").Count));
+        Choose(page, 0);
+        page.WaitForAssertion(() => Assert.True(page.FindAll("li input[type=checkbox]")[0].HasAttribute("checked")));
+    }
+
+    [Fact]
+    public void A_lead_shows_its_node_iri_source_commit_and_page_evidence()                  // B1, B25 (PR #220 review 9)
+    {
+        var lead = Lead("a") with { PageEvidence = [new LeadPageEvidence("https://example.test/claims/graph#ev", "pages/claim.md", 5, 6,
+            "Claim policy", "https://confluence.example.test/pages/1", ["A claim affects its case."])] };
+        var (context, page, _) = Render(SearchThen(SearchPage([lead]), PathsResult()));
+        using var _ = context;
+        SearchFor(page, "claim");
+        page.WaitForAssertion(() => Assert.Contains(Key("a").NodeIri, page.Find(".lead-identity").TextContent));
+        Assert.Contains(new string('c', 12), page.Find(".lead-identity").TextContent);
+        Assert.Contains("pages/claim.md:5-6", page.Markup);
+        Assert.Equal("https://confluence.example.test/pages/1", page.Find(".impact-leads a").GetAttribute("href"));
+        Assert.Equal("A claim affects its case.", page.Find(".impact-leads pre.evidence-lines").TextContent);
+    }
+
+    [Fact]
+    public void An_object_to_subject_step_is_drawn_from_the_object()                         // B6 (PR #220 review 8)
+    {
+        var reverse = AssertionStep("a", "b") with { Direction = "object-to-subject" };
+        var (context, page) = Traced(PathsResult(new ImpactPath("p1", [reverse])));
+        using var _ = context;
+        var text = page.Find(".impact-step").TextContent;
+        Assert.StartsWith($"example-claims: {Key("b").NodeIri}", text);
+        Assert.EndsWith($"example-claims: {Key("a").NodeIri}", text);
+    }
+
+    [Fact]
+    public void Crossings_and_bindings_show_what_supports_them()                              // B11, B14 (PR #220 review 31)
+    {
+        var crossing = new ImpactStep("reviewedLinkCrossing", From: Key("a"), To: new ImpactKey("example-ledger", "https://example.test/ledger#claim"),
+            SharedTerm: "https://example.test/core#Claim", CatalogCommit: new string('a', 40),
+            Links: [new LinkCitation("example-claims", "https://example.test/claims#Claim", "https://example.test/core#Claim", "exact"),
+                    new LinkCitation("example-ledger", "https://example.test/ledger#Claim", "https://example.test/core#Claim", "exact")]);
+        var binding = new ImpactStep("binding", From: Key("b"), To: Key("c"), RegistryCommit: new string('e', 40),
+            IdentityEvidence: new JsonObject { ["sourceId"] = "example-claims", ["path"] = "src/b.ts", ["startLine"] = 2, ["endLine"] = 4, ["reason"] = "reviewed" });
+        var (context, page) = Traced(PathsResult(new ImpactPath("p1", [crossing, binding])));
+        using var _ = context;
+        Assert.Contains("Reviewed link in example-ledger:", page.Markup);
+        Assert.Contains("https://example.test/claims#Claim", page.Markup);
+        Assert.Contains(new string('a', 12), page.Markup);
+        Assert.Contains(new string('e', 12), page.Markup);
+        Assert.Contains("example-claims src/b.ts:2-4", page.Markup);
+        Assert.Contains("example-ledger: https://example.test/ledger#claim", page.Markup);
+    }
+
+    [Fact]
+    public void Gaps_name_their_relationship_nodes_and_count_and_not_followed_is_shown()    // B7, B8 (PR #220 review 32)
+    {
+        var result = PathsResult() with
+        {
+            NotFollowed = [new NotFollowed("https://example.test/rel#mentions", 3)],
+            Gaps = [new ImpactGap("unlisted-relationship", "Impact unknown", Relationship: "https://example.test/rel#archives",
+                        Nodes: [new GapNode("example-claims", Key("a").NodeIri)], Assertions: 2),
+                    new ImpactGap("unlisted-relationship", "Impact unknown", Relationship: "https://example.test/rel#owns", Assertions: 1)]
+        };
+        var (context, page) = Traced(result);
+        using var _ = context;
+        Assert.Contains("Relationship: https://example.test/rel#archives", page.Markup);
+        Assert.Contains("Relationship: https://example.test/rel#owns", page.Markup);
+        Assert.Contains("Assertions skipped: 2", page.Markup);
+        Assert.Contains($"Met at: example-claims: {Key("a").NodeIri}", page.Markup);
+        Assert.Contains("https://example.test/rel#mentions", page.Markup);
+        Assert.Contains("3 assertions not followed", page.Markup);
     }
 
     private static void SearchFor(IRenderedComponent<ImpactPage> page, string query)
@@ -122,7 +248,7 @@ public sealed class ImpactUiTests
         using var _ = context;
         var steps = page.FindAll(".impact-path ol > li .impact-step").Select(s => s.TextContent).ToList();
         Assert.Equal(2, steps.Count);
-        Assert.StartsWith(Key("a").NodeIri, steps[0]);
+        Assert.StartsWith($"example-claims: {Key("a").NodeIri}", steps[0]);
         Assert.EndsWith(Key("c").NodeIri, steps[1]);
         Assert.Contains("(outgoing)", steps[0]);
         Assert.Equal("return <b>x</b>;", page.FindAll("pre.evidence-lines")[0].TextContent);

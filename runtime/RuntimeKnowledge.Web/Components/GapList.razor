@@ -1,15 +1,31 @@
 <section aria-labelledby="impact-gaps">
     <h2 id="impact-gaps">Limits of this result</h2>
-    @if (Gaps.Count == 0)
+    @if (Gaps.Count == 0 && NotFollowed.Count == 0)
     {
         <p>No gaps were reported.</p>
     }
-    else
+    @if (Gaps.Count > 0)
     {
         <ul>
             @foreach (var gap in Gaps)
             {
-                <li><code>@gap.Code</code> @gap.Reason</li>
+                <li>
+                    <code>@gap.Code</code> @gap.Reason
+                    @if (Details(gap) is { Count: > 0 } details)
+                    {
+                        <ul class="gap-details">@foreach (var detail in details) { <li>@detail</li> }</ul>
+                    }
+                </li>
+            }
+        </ul>
+    }
+    @if (NotFollowed.Count > 0)
+    {
+        <h3>Relationships defined as carrying no impact</h3>
+        <ul>
+            @foreach (var item in NotFollowed)
+            {
+                <li><code>@item.Relationship</code>: @item.Assertions @(item.Assertions == 1 ? "assertion" : "assertions") not followed</li>
             }
         </ul>
     }
@@ -17,4 +33,23 @@
 
 @code {
     [Parameter, EditorRequired] public IReadOnlyList<ImpactGap> Gaps { get; set; } = [];
+    [Parameter] public IReadOnlyList<NotFollowed> NotFollowed { get; set; } = [];
+
+    // What tells one gap from another of the same code: its relationship, nodes, count and provenance.
+    private static List<string> Details(ImpactGap gap)
+    {
+        var details = new List<string>();
+        if (gap.Relationship is { } relationship) details.Add($"Relationship: {relationship}");
+        if (gap.Assertions is { } count) details.Add($"Assertions skipped: {count}");
+        if (gap.Term is { } term) details.Add($"Term: {term}");
+        if (gap.SharedTerm is { } shared) details.Add($"Shared term: {shared}");
+        if (gap.SourceId is { } source) details.Add($"Source: {source}");
+        if (gap.NodeIri is { } node) details.Add($"Node: {node}");
+        if (gap.Path is { } path) details.Add($"File: {path}");
+        if (gap.Selector is { } selector) details.Add($"Selector: {selector}");
+        if (gap.EvidenceIri is { } evidence) details.Add($"Evidence: {evidence}");
+        if (gap.CoverageIri is { } coverage) details.Add($"Coverage record: {coverage}");
+        foreach (var n in gap.Nodes ?? []) details.Add($"Met at: {n.SourceId}: {n.NodeIri}");
+        return details;
+    }
 }
