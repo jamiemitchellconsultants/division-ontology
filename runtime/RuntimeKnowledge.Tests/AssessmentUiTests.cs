@@ -177,6 +177,34 @@ public sealed class AssessmentUiTests
     }
 
     [Fact]
+    public void Each_trace_a_draft_takes_paths_from_is_recorded_once_and_its_paths_stay_citable() // ADR 0035
+    {
+        var draft = new AssessmentDraft();
+        StartDraft(draft);
+        draft.UsePaths([new ImpactPath("p3", [Step("c", "d", "https://example.test/claims/graph#e4")])], [Key("c")], 5);
+        draft.UsePaths([new ImpactPath("p3", [Step("c", "d", "https://example.test/claims/graph#e4")])], [Key("c")], 5);
+        Assert.Equal(["p1", "p2", "p3"], draft.Paths.Select(p => p.Id));
+        Assert.Equal([Key("a"), Key("c")], draft.Starts);
+        var traces = draft.Record!["traces"]!.AsArray();
+        Assert.Equal(2, traces.Count);
+        Assert.Equal(4, (int)traces[0]!["maxDepth"]!);
+        Assert.Equal(Key("a").NodeIri, (string)traces[0]!["starts"]![0]!["nodeIri"]!);
+        Assert.Equal(5, (int)traces[1]!["maxDepth"]!);
+    }
+
+    [Fact]
+    public void A_record_without_traces_keeps_its_confirmed_lead_trace_when_another_is_added()   // ADR 0035
+    {
+        var draft = new AssessmentDraft();
+        draft.Start(Snapshot, "CR-1", "x", "Analyst A", Pins);
+        draft.Confirm(Key("a"));
+        Assert.Null(draft.Record!["traces"]);
+        draft.UsePaths([], [Key("c")]);
+        var traces = draft.Record["traces"]!.AsArray();
+        Assert.Equal([Key("a").NodeIri, Key("c").NodeIri], traces.Select(t => (string)t!["starts"]![0]!["nodeIri"]!));
+    }
+
+    [Fact]
     public void Preview_shows_markdown_as_text()                                                // Q4
     {
         var (context, draft, _) = Context(canManage: false, (_, _, _) => (HttpStatusCode.OK, Preview("# Impact\n<script>alert(1)</script>\n")));

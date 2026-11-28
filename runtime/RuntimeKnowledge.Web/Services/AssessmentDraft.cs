@@ -70,11 +70,37 @@ public sealed class AssessmentDraft
         Changed?.Invoke();
     }
 
-    public void UsePaths(IReadOnlyList<ImpactPath> paths, IReadOnlyList<ImpactKey>? starts = null)
+    /// <summary>Takes the paths of one trace into the draft. Paths from earlier traces stay citable, and the trace
+    /// is recorded once in the record's `traces`, so validation re-traces exactly what was shown (ADR 0035).</summary>
+    public void UsePaths(IReadOnlyList<ImpactPath> paths, IReadOnlyList<ImpactKey>? starts = null, int maxDepth = 4)
     {
-        Paths = paths;
-        if (starts is not null) Starts = starts;
+        var known = Paths.Select(p => p.Id).ToHashSet(StringComparer.Ordinal);
+        Paths = [.. Paths, .. paths.Where(p => known.Add(p.Id))];
+        if (starts is { Count: > 0 })
+        {
+            Starts = [.. Starts, .. starts.Where(s => !Starts.Contains(s))];
+            if (Record is { } record) AddTrace(record, starts, maxDepth);
+        }
         Changed?.Invoke();
+    }
+
+    private static void AddTrace(JsonObject record, IReadOnlyList<ImpactKey> starts, int maxDepth)
+    {
+        static JsonObject Trace(IEnumerable<ImpactKey> keys, int depth) => new()
+        {
+            ["starts"] = new JsonArray(keys.Select(k => (JsonNode)KeyNode(k)).ToArray()),
+            ["maxDepth"] = depth
+        };
+        if (record["traces"] is not JsonArray traces)
+        {
+            // A record without traces cites its confirmed leads at depth 4; keep that trace when listing others.
+            traces = [];
+            var confirmed = Keys(record["confirmedLeads"]);
+            if (confirmed.Count > 0) traces.Add(Trace(confirmed, 4));
+            record["traces"] = traces;
+        }
+        var trace = Trace(starts, maxDepth);
+        if (!traces.Any(t => JsonNode.DeepEquals(t, trace))) traces.Add(trace);
     }
 
     public void Confirm(ImpactKey key)
