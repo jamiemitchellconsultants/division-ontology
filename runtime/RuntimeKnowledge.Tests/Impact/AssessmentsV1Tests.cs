@@ -144,6 +144,16 @@ public sealed class AssessmentsV1Tests
     }
 
     [Fact]
+    public void A_nested_sign_off_is_refused_in_schema_1_too()                              // B31 (re-review 13)
+    {
+        var model = TestModels.MakeModel();
+        var record = NewV1(model, "CR-1", "Change");
+        record["unresolved"] = new JsonArray(new JsonObject { ["code"] = "owner-unknown", ["reason"] = "Who owns it?", ["signOff"] = "manager" });
+        Assert.Equal("approval is not supported",
+            Assert.Throws<ImpactException>(() => Assessments.Validate(record, model, new JsonArray(), Array.Empty<JsonObject>())).Message);
+    }
+
+    [Fact]
     public void Feedback_separate_qualitative_records_misses_and_uncertainty()
     {
         var assessment = new JsonObject

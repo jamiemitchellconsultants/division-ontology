@@ -95,7 +95,7 @@ public static class AssessmentMarkdown
             lines.Add("  Page: " + (page["title"] is null ? "untitled" : t(Str(page["title"]))) +
                       " (" + (page["confluenceUrl"] is null ? "no Confluence address" : e(Str(page["confluenceUrl"]))) + ")");
             foreach (var line in ev["lines"] as JsonArray ?? [])
-                lines.Add("      " + e(Str(line)));
+                lines.Add("      " + t(Str(line)));
         }
 
         lines.Add("");
@@ -161,10 +161,13 @@ public static class AssessmentMarkdown
     private static string LineStart(string line)
     {
         if (line.StartsWith("    ", StringComparison.Ordinal)) return "&#32;" + line[1..];
-        if (line.Length > 0 && line[0] is '-' or '+' or '=') return "\\" + line;
-        var digits = 0;
+        // Up to three leading spaces still open a list, so the marker after them is escaped too.
+        var at = 0;
+        while (at < line.Length && line[at] == ' ') at++;
+        if (at < line.Length && line[at] is '-' or '+' or '=') return line[..at] + "\\" + line[at..];
+        var digits = at;
         while (digits < line.Length && char.IsAsciiDigit(line[digits])) digits++;
-        if (digits > 0 && digits < line.Length && line[digits] is '.' or ')') return line[..digits] + "\\" + line[digits..];
+        if (digits > at && digits < line.Length && line[digits] is '.' or ')') return line[..digits] + "\\" + line[digits..];
         return line;
     }
 

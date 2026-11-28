@@ -128,4 +128,28 @@ public sealed class TracesTests
         Assert.Equal(["export const api = 1;"], evidence["lines"]!.AsArray().Select(l => l!.GetValue<string>()));
         Assert.DoesNotContain("export const api", RuntimeKnowledge.Impact.Render.AssessmentMarkdown.Render(frozen));
     }
+
+    [Fact]
+    public void Only_traces_that_supplied_a_cited_path_contribute_their_gaps()            // B30 (re-review 7)
+    {
+        var model = Deep();
+        var path = PathTo(model, "system", 4, "code");
+        // A trace from the leaf x2 finds no paths, so it reports unknown-paths; it supplies nothing cited.
+        var record = Record(model, "code", path, new JsonArray(Trace("system", 4), Trace("x2", 4)));
+        var frozen = Assessments.Freeze(record, model, Assessments.CitablePaths(model, record), []);
+        var codes = frozen["gaps"]!["traces"]!.AsArray().Select(g => g!["code"]!.GetValue<string>()).ToList();
+        Assert.DoesNotContain("unknown-paths", codes);
+        Assert.Contains("no-relationship-master-list", codes);
+    }
+
+    [Fact]
+    public void Page_excerpt_lines_stay_literal_in_the_export()                              // Q4 (re-review 14)
+    {
+        var model = ImpactModel.Build(RuntimeKnowledge.Impact.Bundle.ImpactBundle.Open(CorpusPaths.Objects, CorpusPaths.FirstManifest("confluence", "assessment-render")));
+        var record = JsonNode.Parse(File.ReadAllText(Path.Combine(CorpusPaths.Corpus, "confluence", "inputs", "007", "assessment-input.json")))!.AsObject();
+        var frozen = Assessments.Freeze(record, model, Assessments.CitablePaths(model, record), []);
+        frozen["evidence"]![0]!["lines"] = new JsonArray("Read *this* and [that](https://x.test) `now`");
+        var md = RuntimeKnowledge.Impact.Render.AssessmentMarkdown.Render(frozen);
+        Assert.Contains("      Read \\*this\\* and \\[that\\](https://x.test) \\`now\\`\n", md);
+    }
 }

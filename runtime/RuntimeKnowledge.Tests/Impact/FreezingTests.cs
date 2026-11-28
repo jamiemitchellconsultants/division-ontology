@@ -135,6 +135,8 @@ public sealed class FreezingTests
     [InlineData("- not a list\n", "\\- not a list ")]
     [InlineData("1. not a list\n", "1\\. not a list ")]
     [InlineData("    not code\n", "&#32;   not code ")]
+    [InlineData("  - not a list\n", "  \\- not a list ")]
+    [InlineData("   2. not a list\n", "   2\\. not a list ")]
     [InlineData("*not* [a](link) `code` _x_\n", "\\*not\\* \\[a\\](link) \\`code\\` \\_x\\_ ")]
     public void A_description_stays_literal_text(string description, string line)
     {

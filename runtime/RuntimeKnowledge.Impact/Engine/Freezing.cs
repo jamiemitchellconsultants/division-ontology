@@ -168,16 +168,24 @@ public static class Freezing
             .ToList();
     }
 
-    // B30: the gaps of the traces the record cites (ADR 0035), and the gaps every trace carries even when it has none.
+    // B30: the gaps of the traces that supplied a path a likely impact cites (ADR 0035), and the gaps every trace
+    // carries, which are kept whether or not any trace contributes.
     private static IEnumerable<JsonObject> TraceGaps(JsonObject record, ImpactModel model)
     {
-        var traces = Assessments.Traces(record);
-        if (traces.Count == 0) return Paths.ModelGaps(model);
+        var cited = (record["likelyImpacts"] as JsonArray ?? [])
+            .SelectMany(i => i!["pathIds"] as JsonArray ?? []).Select(id => id!.GetValue<string>())
+            .ToHashSet(StringComparer.Ordinal);
         var gaps = new List<JsonObject>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var (starts, depth) in traces)
-            foreach (var gap in Paths.Read(model, starts, depth)["gaps"]!.AsArray().Select(g => g!.AsObject()))
+        foreach (var (starts, depth) in Assessments.Traces(record))
+        {
+            var trace = Paths.Read(model, starts, depth);
+            if (!trace["paths"]!.AsArray().Any(p => cited.Contains(p!["id"]!.GetValue<string>()))) continue;
+            foreach (var gap in trace["gaps"]!.AsArray().Select(g => g!.AsObject()))
                 if (seen.Add(EcmaJson.Stringify(gap))) gaps.Add(gap);
+        }
+        foreach (var gap in Paths.ModelGaps(model))
+            if (seen.Add(EcmaJson.Stringify(gap))) gaps.Add(gap);
         return gaps;
     }
 

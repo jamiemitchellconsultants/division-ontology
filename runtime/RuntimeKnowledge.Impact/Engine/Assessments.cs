@@ -114,7 +114,8 @@ public static class Assessments
         if (schema == 2) Traces(record);
         CheckContent(record, model, paths, views);
 
-        if (schema == 1 ? record.ContainsKey("approved") || record.ContainsKey("approvalStatus") : ClaimsApproval(record))
+        // B31 applies to both schemas; schema 1 records carrying no such field render as the pilot did (B37).
+        if (ClaimsApproval(record))
             throw new ImpactException("approval is not supported");
 
         return Freezing.Freeze(record, model, paths, views);
