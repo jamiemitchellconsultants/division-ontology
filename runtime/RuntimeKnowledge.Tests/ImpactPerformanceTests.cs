@@ -54,8 +54,8 @@ public sealed class ImpactPerformanceTests(ITestOutputHelper output)
         Assert.True(pathsP95 <= 5000, $"paths p95 {pathsP95:F0} ms exceeds 5000 ms");
     }
 
-    // ADR 0035: preview re-traces every listed trace, so its worst case is 5 traces of 20 starts each. It must finish
-    // within the 30 s API Gateway allows on AWS.
+    // ADR 0035: preview re-traces every listed trace, so its worst case is 5 traces of 20 starts each at depth 6. It
+    // must finish within the 30 s API Gateway allows on AWS, inside a 1 GiB Lambda.
     [Fact]
     public async Task Preview_with_five_traces_of_twenty_starts_stays_within_the_gateway_limit()
     {
@@ -78,7 +78,7 @@ public sealed class ImpactPerformanceTests(ITestOutputHelper output)
             {
                 ["starts"] = new System.Text.Json.Nodes.JsonArray(Enumerable.Range(0, 20).Select(s => (System.Text.Json.Nodes.JsonNode)
                     new System.Text.Json.Nodes.JsonObject { ["sourceId"] = LargeModel.SourceId, ["nodeIri"] = LargeModel.Base + $"n{t * 20 + s:D5}" }).ToArray()),
-                ["maxDepth"] = 4
+                ["maxDepth"] = 6
             });
         draft.Record!["traces"] = traces;
 
@@ -92,7 +92,34 @@ public sealed class ImpactPerformanceTests(ITestOutputHelper output)
             Assert.True(response.IsSuccessStatusCode, await response.Content.ReadAsStringAsync());
             times.Add(watch.Elapsed.TotalMilliseconds);
         }
-        output.WriteLine($"{{\"preview_5x20_max_ms\":{times.Max():F0}}}");
+        var heap = GC.GetGCMemoryInfo().HeapSizeBytes;
+        output.WriteLine($"{{\"preview_5x20_depth6_max_ms\":{times.Max():F0},\"heap_mb\":{heap / 1048576}}}");
+        Assert.True(heap < 1024L * 1048576, $"heap {heap / 1048576} MB exceeds 1 GiB");
         Assert.True(times.Max() <= 30000, $"preview {times.Max():F0} ms exceeds the 30 s gateway limit");
+    }
+
+    // B40: one trace at the deepest supported depth stays within the AWS response limit and the Q1 time.
+    [Fact]
+    public async Task A_bounded_depth_6_trace_fits_the_response_limit()
+    {
+        string? snapshot = null;
+        await using var api = await ApiFixture.OpenAsync("Keycloak", async scenario =>
+        {
+            var (manifest, blobs) = LargeModel.Bundle();
+            snapshot = scenario.Bundles.Add(manifest, blobs);
+            await scenario.Store.StageAsync(snapshot, CancellationToken.None);
+            await scenario.Store.ActivateAsync(snapshot, CancellationToken.None);
+        });
+        var reader = api.ClientWithToken(["ReadKnowledgeGraph"]);
+        var request = new ImpactPathsRequest(snapshot!, [new ImpactKey(LargeModel.SourceId, LargeModel.Base + "n00042")], 6);
+        var watch = Stopwatch.StartNew();
+        using var response = await reader.PostAsJsonAsync("api/impact/paths", request);
+        var body = await response.Content.ReadAsByteArrayAsync();
+        watch.Stop();
+        response.EnsureSuccessStatusCode();
+        output.WriteLine($"{{\"paths_depth6_ms\":{watch.ElapsedMilliseconds},\"paths_depth6_bytes\":{body.Length}}}");
+        Assert.Contains("paths-truncated", System.Text.Encoding.UTF8.GetString(body));
+        Assert.True(body.Length < 6 * 1048576, $"response {body.Length} bytes exceeds 6 MiB");
+        Assert.True(watch.ElapsedMilliseconds <= 5000, $"depth 6 trace {watch.ElapsedMilliseconds} ms exceeds 5000 ms");
     }
 }
