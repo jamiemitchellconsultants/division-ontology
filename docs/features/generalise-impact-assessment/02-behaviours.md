@@ -25,6 +25,10 @@ sources: [01-vision.md]
 - B17, B30 and B34 are refined, and keep their meaning.
 - U21 to U23 are added.
 
+**Amended** on 28 November 2026 in answer to the developer's pushback on #200, raised by the PR #220 re-review (finding 37):
+- B40 is added: a trace returns at most 500 paths, and says when more exist.
+- U24 is added.
+
 An **assessor** is the architect or analyst carrying out an assessment. A **reader** holds `ReadKnowledgeGraph`. A **manager** holds `ManageKnowledgeGraph`. The **Confluence fixture** is a test source shaped like a Confluence group graph. Its nodes and assertions cite `selected-document` evidence: line ranges of exported pages. It has no C4 mappings. The **C4 fixtures** are the existing C4 pilot fixtures, used with the same inputs as today, including the design-record fixtures.
 
 Evidence **cites a node** in two cases: the node carries the evidence itself, as a design record does, or the node is the subject or object of an assertion that carries the evidence. An **exported page** is a Markdown file, cited by `selected-document` evidence, that opens with a front-matter metadata block. Any other file cited by `selected-document` evidence is an **ordinary document**.
@@ -149,6 +153,12 @@ A result reports one `unlinked-term` gap for each source and denoted term, howev
 **Priority:** P1
 
 **Given** a traced path whose step arriving at node N is a ReviewedLinkCrossing (B11, B12), **when** an assessor records a likely impact on N that cites that path, **then** the impact is valid without citing any evidence IRI: the crossing's two reviewed links and its catalog commit are its support. The preview, the saved assessment and the export show those links and that commit as the impact's support. An impact on N that cites no such path still cites evidence from its paths, as B17 says. The command line applies the same rule.
+
+#### B40 — A trace is bounded, and says when it is
+
+**Priority:** P1
+
+**Given** starts and a depth from 1 to 6, **when** paths are traced, in the workspace or on the command line, **then** the result holds at most 500 ImpactPaths: the first 500 in the order the trace finds them, the same order as today. When more paths exist, the result also reports one `paths-truncated` gap. Its reason states that more paths exist than are shown, and that fewer starts or a lower depth narrows the trace. A trace that finds 500 paths or fewer reports no such gap. An assessment may cite only paths in the bounded result, so the workspace and the command line accept the same citations (B17, B23).
 
 ### Outcome 4 — Analysts assess in the workspace, and readers open the result
 
@@ -337,6 +347,7 @@ A result reports one `unlinked-term` gap for each source and denoted term, howev
 | U21 | Can a reviewed-link crossing support a likely impact? It carries two reviewed links and a catalog commit, but no evidence IRI. | Yes. When the cited path's step arriving at the impacted node is a crossing, its links and catalog commit are the support, and no evidence IRI is needed (B39). The C4 fixtures have no reviewed links, so B37 is unaffected. | User, 28 Nov 2026 (pushback) |
 | U22 | Which excerpts does a saved assessment keep? | Every cited excerpt shown during the trace, of pages, code and ordinary documents, is frozen and shown on the saved assessment in the signed-in workspace. The export still prints page lines only (B34, B28, B38, B29). | User, 28 Nov 2026 (pushback) |
 | U23 | A record cites paths, never a search. Which search gaps does an assessment carry (B30)? | The gaps search reports about its confirmed and rejected leads, recomputed at its pinned snapshot. No search query is recorded, and the record is unchanged. Gaps every trace carries are kept even with no confirmed lead (B30). | User, 28 Nov 2026 (pushback) |
+| U24 | How large can a trace be? On the Q1 fixture one trace finds 780 paths (2 MB) at depth 4, 3,905 (12 MB) at depth 5 and 19,530 (74 MB) at depth 6, against a 6 MiB response limit on AWS. | Every trace, on the command line and in the workspace, returns at most its first 500 paths, and reports `paths-truncated` when more exist (B40). Depths 1 to 6 stay. Serving larger payloads through signed S3 URLs, which could lift the cap, is parked as #234. The C4 fixtures find far fewer than 500 paths, so B37 is unaffected. | User, 28 Nov 2026 (pushback) |
 
 ## Terms
 

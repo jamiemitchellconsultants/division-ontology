@@ -82,6 +82,9 @@ This document records what was asked, what was decided, why, and what followed.
 | [72](#entry-docs-feature-correct-task-12-s-confluence-capture-expectations-198) | 2026-11-27 | docs(feature): correct Task 12's confluence capture expectations (#198) | product | The plan now guards `likelyImpacts` on a found path, which leaves it empty until B3 lands. |
 | [73](#entry-docs-feature-amend-impact-assessment-behaviours-for-the-pr-220-review-pu) | 2026-11-28 | docs(feature): amend impact assessment behaviours for the PR #220 review pushback (#200) | product | - A reviewed-link crossing substantiates a likely impact on the node it arrives at. Its links and catalog commit are the support, and no evidence IRI is needed (B39). |
 | [74](#entry-docs-feature-lower-the-assessment-trace-cap-to-five-201) | 2026-11-28 | docs(feature): lower the assessment trace cap to five (#201) | product | - A record lists at most 5 traces, each with at most 20 starts. That puts the worst case at about 10 s. The owner chose this over keeping 20 traces and accepting that worst-case previews fail on AWS. |
+| [75](#entry-docs-feature-require-build-commit-messages-to-match-their-diffs-198) | 2026-11-28 | docs(feature): require build commit messages to match their diffs (#198) | product | Section 7 of the prompt now requires the executor to find every change it describes in the staged diff before committing, and to check `git show --stat HEAD` afterwards. |
+| [76](#entry-docs-feature-bound-a-trace-at-500-paths-200) | 2026-11-28 | docs(feature): bound a trace at 500 paths (#200) | product | - Every trace, on the command line and in the workspace, returns at most its first 500 paths, in today's order. It reports one `paths-truncated` gap when more exist (B40). - Assessments cite only paths in the bounded result. |
+| [77](#entry-docs-feature-bound-traces-and-repair-models-from-the-publisher-201) | 2026-11-28 | docs(feature): bound traces and repair models from the publisher (#201) | product | - **Publisher repair pass (ADR 0036, amended).** On AWS the publisher's schedule stays enabled. Each run, after any import, rebuilds the missing model of every activated snapshot, in its own short transaction outside the journal lock. |
 
 ---
 
@@ -2035,3 +2038,99 @@ ADR 0035 lets a record list the traces its cited paths came from, and validation
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
 AI-Fingerprint: sha256:c89bdd1248e9
+
+---
+
+<a id="entry-docs-feature-require-build-commit-messages-to-match-their-diffs-198"></a>
+
+## Entry 75 — 2026-11-28 — docs(feature): require build commit messages to match their diffs (#198)
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The opencode executor pushed two commits whose messages described changes that were not in the diff. In f64e5f0 the message says the scenario's `architect` field and `try/catch` were removed, but the commit only deletes one expected file. As a result, the corpus disagreed with itself, and the PR body's narrative and the task tracking, which both read commit subjects, could not be trusted.
+
+## Decision
+
+Section 7 of the prompt now requires the executor to find every change it describes in the staged diff before committing, and to check `git show --stat HEAD` afterwards. Section 9 adds a stop condition: a pushed commit whose message does not match its diff is reported, not amended. `AI-Fingerprint:` lines are banned from commit messages, because they belong only in the PR body.
+
+## Consequences
+
+The executor's commit messages can be read as a record of what changed. A mismatch now stops the build instead of passing unnoticed.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+AI-Fingerprint: sha256:7fea5a9f8613
+
+---
+
+<a id="entry-docs-feature-bound-a-trace-at-500-paths-200"></a>
+
+## Entry 76 — 2026-11-28 — docs(feature): bound a trace at 500 paths (#200)
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+B16 promised every path, at any depth from 1 to 6. On the Q1 fixture, one trace from one start finds:
+- 780 paths (2 MB) at depth 4;
+- 3,905 paths (12 MB) at depth 5;
+- 19,530 paths (74 MB) at depth 6.
+
+The deployed API returns at most 6 MiB. The re-review also ran out of a 1 GiB heap previewing one 20-start trace at depth 6.
+
+## Decision
+
+- Every trace, on the command line and in the workspace, returns at most its first 500 paths, in today's order. It reports one `paths-truncated` gap when more exist (B40).
+- Assessments cite only paths in the bounded result.
+- Depths 1 to 6 stay.
+- The user chose this over lowering the maximum depth to 4, and over paging paths by cursor.
+- Serving larger payloads through signed S3 URLs is parked as #234.
+
+## Consequences
+
+- Traces at depth 5 and 6 fit the AWS response limit.
+- A truncated trace says so and suggests narrowing it.
+- The architecture must place the bound in the engine, so that enumeration stops at the cap, and trace B40.
+- The C4 fixtures find far fewer than 500 paths, so B37 is unaffected.
+
+---
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+AI-Fingerprint: sha256:f9ba4b1f8529
+
+---
+
+<a id="entry-docs-feature-bound-traces-and-repair-models-from-the-publisher-201"></a>
+
+## Entry 77 — 2026-11-28 — docs(feature): bound traces and repair models from the publisher (#201)
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+**Repairing missing models.** ADR 0036 relied on the scheduled import running again for a manifest it had already activated. On AWS the publisher's schedule is disabled once the pending manifest is cleared. So a model that an older worker left missing for an activated snapshot is never rebuilt. Replay builds models for every activated snapshot, so the checksums then disagree. The indexer runs everywhere, but on AWS it deliberately has no bundle access.
+
+**Bounding traces.** B40 (PR #235) bounds every trace at 500 paths. The re-review also found that the process-wide trace cache retained full trace results.
+
+## Decision
+
+- **Publisher repair pass (ADR 0036, amended).** On AWS the publisher's schedule stays enabled. Each run, after any import, rebuilds the missing model of every activated snapshot, in its own short transaction outside the journal lock. An idle run does one query, about $0.25 a month. On Mac and home lab, the installer re-activates on each deploy, and the operator's `publisher` command runs the same pass.
+  - The user chose this over a one-off operator command in the rollout.
+  - Giving the indexer bucket access was ruled out.
+- **The bound in the engine (B40).** The walk stops before emitting the 501st path, and reports `paths-truncated`. The command line, the paths route and citation validation share the bound.
+- **Trace reuse.** Traces are reused within a request only. No cache is kept between requests.
+
+## Consequences
+
+- Activated snapshots always regain their model, so no upgrade step is needed.
+- The publisher Lambda runs every minute on AWS.
+- A depth 6 trace is about 2 MB on the Q1 fixture. The developer measures the bounded worst-case preview against the 30 s gateway limit and the 1 GiB Lambda.
+
+---
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+AI-Fingerprint: sha256:bd998fb868f9

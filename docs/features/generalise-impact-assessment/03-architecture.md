@@ -25,6 +25,10 @@ sources: [01-vision.md, 02-behaviours.md]
 - saved assessments freeze every cited excerpt, and carry the search gaps of their own leads;
 - three corrections found by the review are recorded: saved-assessment revisions are read in cursor pages, schema 1 assessments keep the pilot's digest, and the replay checksum covers only models of activated snapshots.
 
+**Amended** on 28 November 2026, in answer to the developer's pushback on #201 from the PR #220 re-review (finding 22), and to trace the behaviours amendment (PR #235):
+- a trace stops at 500 paths and reports `paths-truncated` (B40), and a request reuses each trace it runs instead of a process-wide cache;
+- the publisher's schedule stays enabled on AWS, and each run repairs any activated snapshot's missing model (ADR 0036, amended).
+
 **Amended** on 28 November 2026, in answer to the developer's pushback on #201 from the I7 build: a record lists at most 5 traces, not 20, because a worst-case preview at 20 took 37.8 s on the Q1 fixture, above API Gateway's 30 s limit (ADR 0035, amended).
 
 The shape in one line: **Node verifies and packages, .NET assesses and renders.** The existing Node loaders keep checking checkouts, graphs, evidence and registries, and they package what they verified into the snapshot bundle. A single .NET impact engine reads that bundle. The command-line tool and the workspace both run it, so both produce the same output.
@@ -34,7 +38,7 @@ The shape in one line: **Node verifies and packages, .NET assesses and renders.*
 | Component | Responsibility | Behaviours |
 | --- | --- | --- |
 | **Pinned input packager** (Node: `src/c4/snapshot.mjs`, `graph.mjs`, `registry.mjs`, `git.mjs`, `src/workspace/bundle.mjs`) | Verifies checkouts, source graphs, evidence and C4 registries at their pinned commits, as today. Reads the relationship master list and the catalog's reviewed links at the catalog commit. Writes the verified facts into the bundle as two new file roles, `impactInput` and `relationshipMasterList`, next to the cited evidence bytes the bundle already holds. It makes no impact decisions. | B1, B37, B10, B11–B14, B24, B25, B32, Q3 |
-| **Impact engine** (new `runtime/RuntimeKnowledge.Impact` library, with no database or network dependencies) | Builds an immutable **impact model** from a verified bundle. Runs candidate search, support rules, impact paths with master-list directions, reviewed-link crossings and C4 bindings, and C4 views. Raises every AssessmentGap. Validates, freezes and renders assessment records to Markdown. Extracts evidence excerpts and page metadata. It is the only implementation of these rules. | B1–B14, B17, B23, B25–B28, B30–B35, B37–B39, Q3, Q4 |
+| **Impact engine** (new `runtime/RuntimeKnowledge.Impact` library, with no database or network dependencies) | Builds an immutable **impact model** from a verified bundle. Runs candidate search, support rules, impact paths with master-list directions, reviewed-link crossings and C4 bindings, and C4 views. Raises every AssessmentGap. Validates, freezes and renders assessment records to Markdown. Extracts evidence excerpts and page metadata. It is the only implementation of these rules. | B1–B14, B17, B23, B25–B28, B30–B35, B37–B40, Q3, Q4 |
 | **Impact command line** (new `runtime/RuntimeKnowledge.Impact.Cli`, run through `npm run c4`) | Keeps today's commands, flags, output file names and safety checks. The Node front end parses the arguments and verifies the checkouts. It builds the bundle into a private temporary directory outside every repository, runs the .NET tool against it, and removes the bundle afterwards. The tool writes the output files. | B37, B5, B23, B24, B33 |
 | **Snapshot impact import** (`RuntimeKnowledge.Worker` `BundleImport`, and replay) | When a candidate snapshot is projected, builds the impact model from the bundle with the engine. Stores the model, compressed, together with its evidence excerpts in `workspace_projection.impact_models`, in the same transaction as the rest of the candidate. Staging and activation both repair a missing model (ADR 0036). Replay rebuilds it from the bundle. A bundle without `impactInput` has no model, and impact routes report `impactUnavailable` for it. | B15, B16, B25–B29, Q1, Q5, Q7 |
 | **Impact and assessment API** (`RuntimeKnowledge.Api`, new `/api/impact/*` and `/api/assessments/*` routes) | Serves search, paths, C4 views, draft validation, preview and Markdown export to readers, and save and edit to managers. Every request names the snapshot it expects, and any other snapshot is refused with `snapshotChanged`. Keeps one impact model per process in memory, keyed by snapshot id. Pages search and saved-assessment lists with cursors. | B15–B22, B31, B33, B35, B36, Q1, Q2, Q7 |
@@ -97,6 +101,8 @@ All ordering uses ordinal string comparison, as the Node code does today.
   - a C4 binding step, as today (B14);
   - reviewed-link crossing steps.
 
+  **Bound (B40).** The walk keeps a count of the paths it has emitted, and stops when it would emit the 501st. The first 500 paths stay in today's order, and the result then carries one `paths-truncated` gap. Enumeration therefore never builds more than 500 paths, whatever the depth. On the Q1 fixture that is about 2 MB at depth 6. The command line, the paths route and citation validation (ADR 0035) all use the same bound, so they accept the same citations. A request reuses each trace it has already run, such as validation followed by freezing. No trace result is kept between requests, so memory follows the bounded output of one request.
+
   With no master list, every assertion is followed from subject to object, and the result carries one `no-relationship-master-list` gap. Relationships listed as `none` are counted for each relationship IRI and are not followed. An unlisted relationship produces one `unlisted-relationship` gap, with the nodes it was met at and a skip count. Candidate ordering, the visited-set rule and path ids stay as today. A path id is the SHA-256 of the steps serialised exactly as ECMAScript `JSON.stringify` does. This keeps the ids of today's C4 paths stable (B37).
 - **Crossings (B11–B13).** For a node whose denoted term T has reviewed links, the engine finds each shared term S that T links to. A node that denotes S directly counts as linked `exact`.
   - If T's link to S is `exact`, the path crosses to every node in another source whose term links to S, whether `exact` or `specializes`.
@@ -121,7 +127,7 @@ Every route sits under the existing authenticated `/api` group. Writes also need
 | Route | Role | Purpose |
 | --- | --- | --- |
 | `POST /api/impact/search` | read | Leads for a description or an exact IRI. The page size is at most 100, with an opaque cursor binding the snapshot, a query digest and the last sort key (rank, source, IRI, kind). The cursor follows ADRs 0019 and 0020. |
-| `POST /api/impact/paths` | read | Paths from one or more starts, at depth 1 to 6 (default 4), with gaps and the master-list identity. |
+| `POST /api/impact/paths` | read | Paths from one or more starts, at depth 1 to 6 (default 4), with gaps and the master-list identity. At most 500 paths, with `paths-truncated` when more exist (B40). |
 | `POST /api/impact/views` | read | A C4 view for a focus and level. |
 | `POST /api/assessments/preview` | read | Validate and freeze a draft record. Returns the frozen assessment and its Markdown. Nothing is stored. |
 | `POST /api/assessments` | manage | Save a draft record. Returns the id, version and link. |
@@ -152,7 +158,7 @@ New migration `006_impact.sql`:
 - **AWS.** The engine is included in the existing API and worker Lambda packages (`deploy/workspace/aws/package.sh`). The model cache lives for the life of a Lambda execution environment. A cold start reads and decompresses one model row. Q1 is measured on the reference container, and the developer records the cold-load time too. If the API Lambda's memory limit, or provisioned concurrency, needs to change to meet Q1, that is a Terraform change in `application.tf`, and the plan should record it.
 - **Web.** The new pages ship in the existing Blazor static assets, on Caddy and on S3 with CloudFront.
 - **Snapshot activation.** The model is written with the candidate projection. Activation stays a pointer change plus a journal record (ADR 0004), so an activated snapshot always has its model when its bundle has `impactInput`.
-- **Mixed-version workers.** During an upgrade, a worker from before this feature can stage a new bundle without its model. The next import of that manifest by a current worker, whether it stages or activates it, builds the missing model (ADR 0036). No upgrade ordering is needed.
+- **Mixed-version workers.** During an upgrade, a worker from before this feature can stage or activate a new bundle without its model. A current worker builds the missing model when it next stages or activates that manifest. On AWS, the publisher's repair pass also runs every minute: its schedule now stays enabled, and an idle run does one query. On Mac and home lab, the installer re-activates on each deploy. Together these cover every activated snapshot (ADR 0036). No upgrade ordering is needed.
 - **Old bundles.** A bundle built before this feature has no `impactInput`. Its snapshot still activates, and the impact routes return `impactUnavailable` until a new bundle is published.
 
 ## Traceability
@@ -197,11 +203,12 @@ New migration `006_impact.sql`:
 | B36 | `snapshotId` on every request; the page discards its draft on `snapshotChanged` (ADR 0034) |
 | B38 | Engine evidence display: ordinary documents get no front-matter reading, no page-metadata gap and no Markdown excerpt; assessment pages show their cited lines |
 | B39 | Engine validation accepts a crossing as an impact's support; freezing, the renderer and the assessment pages show its links and catalog commit; the draft editor offers it |
-| Q1 | In-memory impact model for each snapshot in each process; adjacency index; measured on the reference container, with the cold-load time recorded |
+| B40 | Engine walk stops at 500 paths with `paths-truncated`; the same bound in the command line, the paths route and citation validation |
+| Q1 | In-memory impact model for each snapshot in each process; adjacency index; traces bounded at 500 paths (B40) and reused within a request; measured on the reference container, with the cold-load time recorded |
 | Q2 | Authenticated `/api` group; `ManagePolicy` on save and edit; API tests for every route |
 | Q3 | One engine; canonical serialisation; ordinal ordering; deterministic bundles |
 | Q4 | One renderer escaping descriptions, reasons, labels and page excerpts; injection fixture |
-| Q5 | Journal events with the frozen body and Markdown; single-transaction writes; replay copies verbatim; checksum over activated snapshots' models; missing models repaired on import (ADR 0036) |
+| Q5 | Journal events with the frozen body and Markdown; single-transaction writes; replay copies verbatim; checksum over activated snapshots' models; missing models repaired on import and by the publisher's repair pass (ADR 0036) |
 | Q6 | Assessment pages built with native controls; axe and keyboard checks in `WorkspaceUiTests` and the browser verification scripts |
 | Q7 | Publication guard over `dist/`, unauthenticated responses and OpenAPI examples |
 
@@ -220,5 +227,5 @@ New migration `006_impact.sql`:
 ## Notes for the developer
 
 - **Order of work.** First, capture today's Node outputs on the C4 fixtures as the conformance corpus. Then build the engine against that corpus. Only then remove `candidates.mjs`, `paths.mjs`, `project.mjs`, `render.mjs`, `assessment.mjs`, `feedback.mjs` and `code-evidence.mjs`. Feedback rendering and code supplements move to the engine with the rest.
-- **Risk: path enumeration.** Path enumeration at depth 4 or more on 50,000 assertions can grow combinatorially. If the Q1 fixture shows that it cannot meet 5 seconds without bounding the paths returned, raise pushback to the analyst. Do not truncate silently.
+- **Path enumeration.** Path enumeration at depth 4 or more on 50,000 assertions grows combinatorially. B40 now bounds every trace at 500 paths, and reports the bound with `paths-truncated`. Measure the bounded depth 6 trace and the worst-case preview (5 traces of 20 starts at depth 6) in the Q1 fixture, against the 30 s gateway limit and the 1 GiB Lambda.
 - **Dependency on #205.** ADR 0032 fixes the master list's location and the minimum the engine reads from it. #205 owns everything else.
