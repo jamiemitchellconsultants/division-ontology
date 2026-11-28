@@ -69,8 +69,7 @@ internal static class Program
             case ["index-once"] or ["index-loop"]:
                 await RunIndex(settings.GetSection("Workspace:Embeddings"), db, args[0] == "index-loop", token);
                 return;
-            case ["stage", _] or ["activate", _] or ["describe-current"] or ["writes", "pause" or "resume"]
-                or ["replay", "--through", _] or ["activate-replay", "--generation", _, "--expect-position", _]:
+            case var _ when WorkerCommands.IsBundleCommand(args):
                 await BundleCommand(settings, db, args, token);
                 return;
             default:
