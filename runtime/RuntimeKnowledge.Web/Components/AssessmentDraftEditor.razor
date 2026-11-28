@@ -16,6 +16,7 @@
 else
 {
     <p>Request <code>@Draft.RequestId</code> · snapshot <code>@Draft.SnapshotId</code>@(Draft.EditingId is null ? "" : $" · editing version {Draft.ExpectedVersion}")</p>
+    <p><a href="impact">Search and trace impact for this assessment</a></p>
 
     <section aria-labelledby="draft-leads">
         <h2 id="draft-leads">Leads</h2>
@@ -39,7 +40,7 @@ else
     <section aria-labelledby="draft-impacts">
         <h2 id="draft-impacts">Likely impacts</h2>
         <label for="impact-node">Impacted node</label>
-        <select id="impact-node" @bind="impactNode">
+        <select id="impact-node" value="@impactNode" @onchange="ChooseNode">
             <option value="">Choose a node on a traced path</option>
             @foreach (var node in PathNodes())
             {
@@ -71,9 +72,10 @@ else
             <button type="button" disabled="@(string.IsNullOrWhiteSpace(impactReason) || chosenPaths.Count == 0 || chosenEvidence.Count == 0)" @onclick="AddImpact">Add likely impact</button>
         }
         <ul>
-            @foreach (var impact in record["likelyImpacts"]!.AsArray())
+            @foreach (var (impact, index) in record["likelyImpacts"]!.AsArray().Select((impact, index) => (impact, index)))
             {
-                <li>@impact!["key"]!["nodeIri"] — @impact["reason"]</li>
+                <li>@impact!["key"]!["nodeIri"] — @impact["reason"]
+                    <button type="button" @onclick="() => Draft.RemoveImpact(index)">Remove</button></li>
             }
         </ul>
     </section>
@@ -120,6 +122,11 @@ else
     private string? message;
     private bool canManage, busy;
 
+    private const string Pinned = "A newer snapshot is active, so this assessment can no longer be edited. Start a new assessment from it.";
+
+    // Bumped on every draft change, so a preview requested for an earlier draft is never shown or downloaded.
+    private int draftVersion;
+
     protected override async Task OnInitializedAsync()
     {
         Draft.Changed += Refresh;
@@ -129,7 +136,20 @@ else
 
     public void Dispose() => Draft.Changed -= Refresh;
 
-    private void Refresh() => InvokeAsync(StateHasChanged);
+    private void Refresh()
+    {
+        draftVersion++;
+        preview = null;
+        InvokeAsync(StateHasChanged);
+    }
+
+    // The paths and evidence chosen belong to one node; choosing another starts again.
+    private void ChooseNode(ChangeEventArgs e)
+    {
+        impactNode = e.Value?.ToString() ?? "";
+        chosenPaths.Clear();
+        chosenEvidence.Clear();
+    }
 
     private static string LeadStatus(JsonObject record, ImpactKey lead)
     {
@@ -188,7 +208,13 @@ else
         Convert.ToBase64String(Encoding.UTF8.GetBytes(preview?.Markdown ?? ""));
 
     private Task Preview() => Run(async () =>
-        preview = await Api.PreviewAssessment(new AssessmentDraftRequest(Draft.SnapshotId!, Draft.Record!)));
+    {
+        // A failed preview must not leave an earlier one downloadable.
+        preview = null;
+        var requested = draftVersion;
+        var result = await Api.PreviewAssessment(new AssessmentDraftRequest(Draft.SnapshotId!, Draft.Record!));
+        if (requested == draftVersion) preview = result;
+    });
 
     private Task Save() => Run(async () =>
     {
@@ -211,6 +237,12 @@ else
             Draft.Discard();
             preview = null;
             message = Discarded;
+        }
+        catch (WorkspaceApiException problem) when (problem.Code == "snapshotMismatch" && Draft.EditingId is not null)
+        {
+            Draft.Discard();
+            preview = null;
+            message = Pinned;
         }
         catch (WorkspaceApiException problem) when (problem.Status == System.Net.HttpStatusCode.Forbidden) { message = ReaderSave; }
         catch (WorkspaceApiException problem) { error = problem; }

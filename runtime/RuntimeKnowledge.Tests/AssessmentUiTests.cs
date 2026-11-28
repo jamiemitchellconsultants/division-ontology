@@ -108,6 +108,75 @@ public sealed class AssessmentUiTests
     }
 
     [Fact]
+    public void Choosing_another_node_clears_its_paths_and_evidence_and_impacts_can_be_removed() // B17 (PR #220 review 10)
+    {
+        var (context, draft, _) = Context(canManage: false, (_, _, _) => (HttpStatusCode.OK, new { }));
+        using var _ = context;
+        StartDraft(draft);
+        var page = context.Render<AssessmentDraftPage>();
+        page.Find("#impact-node").Change($"{Key("b").SourceId}\n{Key("b").NodeIri}");
+        page.Find("#impact-path-0").Change(true);
+        page.Find("#impact-evidence-0").Change(true);
+        page.Find("#impact-reason").Change("Claims change");
+        page.Find("#impact-node").Change($"{Key("c").SourceId}\n{Key("c").NodeIri}");
+        Assert.All(page.FindAll("input[id^=impact-path-]"), box => Assert.False(box.HasAttribute("checked")));
+        Assert.Empty(page.FindAll("input[id^=impact-evidence-]"));
+        Assert.True(Buttons(page, "Add likely impact").Single().HasAttribute("disabled"));
+
+        page.Find("#impact-path-0").Change(true);
+        page.Find("#impact-evidence-0").Change(true);
+        Buttons(page, "Add likely impact").Single().Click();
+        Assert.Single(draft.Record!["likelyImpacts"]!.AsArray());
+        Buttons(page, "Remove").Single().Click();
+        Assert.Empty(draft.Record!["likelyImpacts"]!.AsArray());
+    }
+
+    [Fact]
+    public void A_change_to_the_draft_withdraws_the_preview_and_a_late_preview_is_ignored()   // B17, B18 (PR #220 review 11)
+    {
+        var calls = 0;
+        AssessmentDraft? shared = null;
+        var (context, draft, _) = Context(canManage: false, (_, _, _) =>
+        {
+            // The second preview's draft changes while its request is in flight.
+            if (++calls == 2) shared!.AddGap("owner-unknown", "Who owns it?");
+            return (HttpStatusCode.OK, Preview($"# preview {calls}\n"));
+        });
+        shared = draft;
+        using var _ = context;
+        StartDraft(draft);
+        var page = context.Render<AssessmentDraftPage>();
+        Buttons(page, "Preview").Single().Click();
+        page.WaitForAssertion(() => Assert.NotNull(page.Find("a[download]")));
+        draft.Confirm(Key("a"));
+        page.WaitForAssertion(() => Assert.Empty(page.FindAll("a[download]")));
+
+        Buttons(page, "Preview").Single().Click();
+        page.WaitForAssertion(() => Assert.Equal(2, calls));
+        page.WaitForAssertion(() => Assert.False(page.FindAll("button").Single(b => b.TextContent == "Preview").HasAttribute("disabled")));
+        Assert.Empty(page.FindAll("a[download]"));
+    }
+
+    [Fact]
+    public void A_snapshot_mismatch_on_an_open_edit_discards_it_with_its_own_message()        // B33 (PR #220 review 25)
+    {
+        var (context, draft, _) = Context(canManage: true, (method, _, _) => method == "PUT"
+            ? (HttpStatusCode.Conflict, new { code = "snapshotMismatch", title = "This assessment is pinned to an earlier snapshot and cannot be edited." })
+            : (HttpStatusCode.OK, Preview("# x\n")));
+        using var _ = context;
+        var saved = Saved(pinned: false);
+        var record = saved.Frozen["record"]!.AsObject();
+        foreach (var field in new[] { "confirmedLeads", "rejectedLeads", "unresolved" }) record[field] = new JsonArray();
+        draft.LoadForEdit(saved);
+        var page = context.Render<AssessmentDraftPage>();
+        page.WaitForAssertion(() => Assert.Single(Buttons(page, "Save")));
+        Buttons(page, "Save").Single().Click();
+        page.WaitForAssertion(() => Assert.Contains(
+            "A newer snapshot is active, so this assessment can no longer be edited. Start a new assessment from it.", page.Markup));
+        Assert.Null(draft.Record);
+    }
+
+    [Fact]
     public void Preview_shows_markdown_as_text()                                                // Q4
     {
         var (context, draft, _) = Context(canManage: false, (_, _, _) => (HttpStatusCode.OK, Preview("# Impact\n<script>alert(1)</script>\n")));

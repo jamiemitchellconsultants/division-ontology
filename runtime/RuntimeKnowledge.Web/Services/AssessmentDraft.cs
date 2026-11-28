@@ -107,6 +107,12 @@ public sealed class AssessmentDraft
         Changed?.Invoke();
     }
 
+    public void RemoveImpact(int index)
+    {
+        Require()["likelyImpacts"]!.AsArray().RemoveAt(index);
+        Changed?.Invoke();
+    }
+
     public void AddGap(string code, string reason)
     {
         Require()["unresolved"]!.AsArray().Add(new JsonObject { ["code"] = code, ["reason"] = reason });
