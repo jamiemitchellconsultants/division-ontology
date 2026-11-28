@@ -26,7 +26,9 @@ async function searchAndTrace(page, origin) {
   await tabTo(page, box, 'Space', 'a supported lead');
   assert.ok(await box.isChecked(), 'Space chooses the focused lead');
   await tabTo(page, page.getByRole('button', { name: 'Trace impact' }), 'Enter', 'Trace impact');
-  await page.getByRole('heading', { name: 'Limits of this result' }).waitFor();
+  // Search already shows its own limits, so only the paths heading and a step prove the trace itself succeeded.
+  await page.getByRole('heading', { name: 'Impact paths' }).waitFor();
+  await page.locator('.impact-path .impact-step').first().waitFor();
 }
 
 // Q6: the impact pages work from the keyboard and have no serious or critical WCAG 2.2 AA violations.
