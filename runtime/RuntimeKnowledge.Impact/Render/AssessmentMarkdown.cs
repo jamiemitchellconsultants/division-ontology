@@ -52,11 +52,19 @@ public static class AssessmentMarkdown
 
         lines.Add("");
         lines.Add("## Likely impacts");
+        var frozenPaths = (frozen["paths"] as JsonArray ?? []).Select(p => p!.AsObject())
+            .ToDictionary(p => Str(p["id"])!, StringComparer.Ordinal);
         foreach (var x in record["likelyImpacts"]!.AsArray())
-            lines.Add("- " + Key(x!["key"], e) + " — " + t(Str(x["reason"])) +
+        {
+            var crossings = (x!["pathIds"] as JsonArray ?? []).Select(id => frozenPaths.GetValueOrDefault(Str(id) ?? ""))
+                .OfType<JsonObject>().Select(p => Engine.Assessments.CrossingSupport(p, x["key"]!)).OfType<JsonObject>()
+                .Select(c => "; reviewed links through " + e(Str(c["sharedTerm"])) + " at catalog " + e(Str(c["catalogCommit"])))
+                .Distinct(StringComparer.Ordinal);
+            lines.Add("- " + Key(x["key"], e) + " — " + t(Str(x["reason"])) +
                       "; paths " + List(x["pathIds"], e) +
                       "; evidence " + List(x["evidenceIris"], e) +
-                      "; views " + List(x["viewIds"], e));
+                      "; views " + List(x["viewIds"], e) + string.Concat(crossings));
+        }
 
         if (record["traces"] is JsonArray traces)
         {

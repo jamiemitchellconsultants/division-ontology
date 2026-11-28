@@ -205,6 +205,26 @@ public sealed class AssessmentUiTests
     }
 
     [Fact]
+    public void A_path_arriving_by_a_crossing_lets_an_impact_be_added_without_evidence()       // B39
+    {
+        var (context, draft, _) = Context(canManage: false, (_, _, _) => (HttpStatusCode.OK, new { }));
+        using var _ = context;
+        draft.Start(Snapshot, "CR-1", "x", "Analyst A", Pins);
+        var ledger = new ImpactKey("example-ledger", "https://example.test/ledger#claim");
+        var crossing = new ImpactStep("reviewedLinkCrossing", From: Key("a"), To: ledger, SharedTerm: "https://example.test/core#Claim",
+            CatalogCommit: new string('a', 40), Links: []);
+        draft.UsePaths([new ImpactPath("px", [crossing])], [Key("a")]);
+        var page = context.Render<AssessmentDraftPage>();
+        page.Find("#impact-node").Change($"{ledger.SourceId}\n{ledger.NodeIri}");
+        page.Find("#impact-path-0").Change(true);
+        page.Find("#impact-reason").Change("Shares the claim term");
+        Assert.Contains("Supported by reviewed links through", page.Markup);
+        Buttons(page, "Add likely impact").Single().Click();
+        var impact = Assert.Single(draft.Record!["likelyImpacts"]!.AsArray())!;
+        Assert.Empty(impact["evidenceIris"]!.AsArray());
+    }
+
+    [Fact]
     public void Preview_shows_markdown_as_text()                                                // Q4
     {
         var (context, draft, _) = Context(canManage: false, (_, _, _) => (HttpStatusCode.OK, Preview("# Impact\n<script>alert(1)</script>\n")));

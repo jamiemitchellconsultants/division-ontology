@@ -47,7 +47,15 @@
         <h3>Not expected to be affected</h3>
         <ul>@foreach (var lead in saved.Frozen["leads"]?["rejected"] as JsonArray ?? []) { <li>@Text(lead!["key"]?["nodeIri"]) — @Text(lead["reason"])</li> }</ul>
         <h3>Likely impacts</h3>
-        <ul>@foreach (var impact in record["likelyImpacts"] as JsonArray ?? []) { <li>@Text(impact!["key"]?["nodeIri"]) — @Text(impact["reason"])</li> }</ul>
+        <ul>@foreach (var impact in record["likelyImpacts"] as JsonArray ?? [])
+            {
+                <li>@Text(impact!["key"]?["nodeIri"]) — @Text(impact["reason"])
+                    @foreach (var crossing in CrossingSupport(impact))
+                    {
+                        <span class="impact-support"> · supported by reviewed links through <code>@Text(crossing["sharedTerm"])</code> at catalog <code>@Text(crossing["catalogCommit"])</code></span>
+                    }
+                </li>
+            }</ul>
     </section>
 
     @if (record["traces"] is JsonArray traces)
@@ -158,6 +166,17 @@
         Convert.ToBase64String(Encoding.UTF8.GetBytes(saved?.Markdown ?? ""));
 
     private static string Text(JsonNode? node) => node is JsonValue value ? value.ToString() : "";
+
+    // B39: the frozen crossing steps that arrive at an impact's node, through the paths it cites.
+    private IEnumerable<JsonObject> CrossingSupport(JsonNode impact)
+    {
+        var cited = (impact["pathIds"] as JsonArray ?? []).Select(id => Text(id)).ToHashSet(StringComparer.Ordinal);
+        return (saved!.Frozen["paths"] as JsonArray ?? []).Select(p => p!.AsObject()).Where(p => cited.Contains(Text(p["id"])))
+            .SelectMany(p => p["steps"] as JsonArray ?? []).Select(s => s!.AsObject())
+            .Where(s => Text(s["type"]) == "reviewedLinkCrossing" && Text(s["to"]?["sourceId"]) == Text(impact["key"]?["sourceId"]) &&
+                        Text(s["to"]?["nodeIri"]) == Text(impact["key"]?["nodeIri"]))
+            .DistinctBy(c => Text(c["sharedTerm"]) + " " + Text(c["catalogCommit"]));
+    }
 
     private void Edit()
     {

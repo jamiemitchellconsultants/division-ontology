@@ -44,6 +44,13 @@ public static class Assessments
         }
     };
 
+    /// <summary>B39: the reviewed-link crossing step of a path that arrives at the given node, if there is one.</summary>
+    public static JsonObject? CrossingSupport(JsonObject path, JsonNode key) =>
+        path["steps"]!.AsArray().Select(s => s!.AsObject()).FirstOrDefault(s =>
+            s["type"]?.GetValue<string>() == "reviewedLinkCrossing" &&
+            s["to"]?["sourceId"]?.GetValue<string>() == key["sourceId"]?.GetValue<string>() &&
+            s["to"]?["nodeIri"]?.GetValue<string>() == key["nodeIri"]?.GetValue<string>());
+
     private const int MaxTraces = 20, MaxTraceStarts = 20;
 
     /// <summary>ADR 0035: the paths a record may cite, the union of the paths of every trace it lists, each once,
@@ -207,7 +214,7 @@ public static class Assessments
 
             if (pathIds.Count > 0)
             {
-                if (!nodeExists(imp["key"]!.AsObject()) || evidenceIris.Count == 0)
+                if (!nodeExists(imp["key"]!.AsObject()))
                     throw new ImpactException("invalid path impact");
 
                 var selected = new List<JsonObject?>();
@@ -240,6 +247,9 @@ public static class Assessments
 
                 if (!impactPresent)
                     throw new ImpactException("impact is not present in a cited path");
+                // B39: a crossing that arrives at the impact's node is support enough, with no evidence IRI.
+                if (evidenceIris.Count == 0 && !selected.Any(p => CrossingSupport(p!, imp["key"]!.AsObject()) != null))
+                    throw new ImpactException("invalid path impact");
 
                 var evidence = new HashSet<string>();
                 foreach (var p in selected)

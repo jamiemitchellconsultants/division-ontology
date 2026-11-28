@@ -67,9 +67,13 @@ else
                     <label for="@id">@iri</label></div>
                 }
             </fieldset>
+            @foreach (var crossing in CrossingSupport(chosen))
+            {
+                <p class="impact-support">Supported by reviewed links through <code>@crossing.SharedTerm</code> at catalog <code>@crossing.CatalogCommit</code></p>
+            }
             <label for="impact-reason">Reason</label>
             <input id="impact-reason" type="text" @bind="impactReason" />
-            <button type="button" disabled="@(string.IsNullOrWhiteSpace(impactReason) || chosenPaths.Count == 0 || chosenEvidence.Count == 0)" @onclick="AddImpact">Add likely impact</button>
+            <button type="button" disabled="@(string.IsNullOrWhiteSpace(impactReason) || chosenPaths.Count == 0 || (chosenEvidence.Count == 0 && !CrossingSupport(chosen).Any()))" @onclick="AddImpact">Add likely impact</button>
         }
         <ul>
             @foreach (var (impact, index) in record["likelyImpacts"]!.AsArray().Select((impact, index) => (impact, index)))
@@ -182,6 +186,10 @@ else
     // B17: only evidence on the paths chosen for this impact can be cited.
     private IEnumerable<string> OfferedEvidence() => Draft.Paths.Where(p => chosenPaths.Contains(p.Id))
         .SelectMany(p => p.Steps).SelectMany(s => s.EvidenceIris ?? []).Distinct();
+
+    // B39: a chosen path whose step into the node is a reviewed-link crossing supports the impact on its own.
+    private IEnumerable<ImpactStep> CrossingSupport(ImpactKey node) => Draft.Paths.Where(p => chosenPaths.Contains(p.Id))
+        .SelectMany(p => p.Steps).Where(s => s.Type == "reviewedLinkCrossing" && s.To == node).DistinctBy(s => (s.SharedTerm, s.CatalogCommit));
 
     private static void Toggle(HashSet<string> set, string value)
     {
