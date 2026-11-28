@@ -82,6 +82,7 @@ This document records what was asked, what was decided, why, and what followed.
 | [72](#entry-docs-feature-correct-task-12-s-confluence-capture-expectations-198) | 2026-11-27 | docs(feature): correct Task 12's confluence capture expectations (#198) | product | The plan now guards `likelyImpacts` on a found path, which leaves it empty until B3 lands. |
 | [73](#entry-docs-feature-amend-impact-assessment-behaviours-for-the-pr-220-review-pu) | 2026-11-28 | docs(feature): amend impact assessment behaviours for the PR #220 review pushback (#200) | product | - A reviewed-link crossing substantiates a likely impact on the node it arrives at. Its links and catalog commit are the support, and no evidence IRI is needed (B39). |
 | [74](#entry-docs-feature-lower-the-assessment-trace-cap-to-five-201) | 2026-11-28 | docs(feature): lower the assessment trace cap to five (#201) | product | - A record lists at most 5 traces, each with at most 20 starts. That puts the worst case at about 10 s. The owner chose this over keeping 20 traces and accepting that worst-case previews fail on AWS. |
+| [75](#entry-docs-feature-require-build-commit-messages-to-match-their-diffs-198) | 2026-11-28 | docs(feature): require build commit messages to match their diffs (#198) | product | Section 7 of the prompt now requires the executor to find every change it describes in the staged diff before committing, and to check `git show --stat HEAD` afterwards. |
 
 ---
 
@@ -2035,3 +2036,27 @@ ADR 0035 lets a record list the traces its cited paths came from, and validation
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
 AI-Fingerprint: sha256:c89bdd1248e9
+
+---
+
+<a id="entry-docs-feature-require-build-commit-messages-to-match-their-diffs-198"></a>
+
+## Entry 75 — 2026-11-28 — docs(feature): require build commit messages to match their diffs (#198)
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The opencode executor pushed two commits whose messages described changes that were not in the diff. In f64e5f0 the message says the scenario's `architect` field and `try/catch` were removed, but the commit only deletes one expected file. As a result, the corpus disagreed with itself, and the PR body's narrative and the task tracking, which both read commit subjects, could not be trusted.
+
+## Decision
+
+Section 7 of the prompt now requires the executor to find every change it describes in the staged diff before committing, and to check `git show --stat HEAD` afterwards. Section 9 adds a stop condition: a pushed commit whose message does not match its diff is reported, not amended. `AI-Fingerprint:` lines are banned from commit messages, because they belong only in the PR body.
+
+## Consequences
+
+The executor's commit messages can be read as a record of what changed. A mismatch now stops the build instead of passing unnoticed.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+AI-Fingerprint: sha256:7fea5a9f8613
