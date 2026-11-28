@@ -81,6 +81,22 @@ public sealed class FreezingTests
     }
 
     [Fact]
+    public void A_leads_page_gap_is_carried_even_when_no_cited_path_carries_it()            // B30 (PR #220 review 7)
+    {
+        var model = Confluence();
+        foreach (var field in new[] { "confirmedLeads", "rejectedLeads" })
+        {
+            var record = Assessments.New(model, "CR-40", "x");
+            record["assessor"] = "Analyst A";
+            var key = new JsonObject { ["sourceId"] = "fixture/policies", ["nodeIri"] = P + "approval" };
+            record[field] = new JsonArray(field == "confirmedLeads" ? key : new JsonObject { ["key"] = key, ["reason"] = "Out of scope" });
+            var gaps = Freezing.Freeze(record, model, [], [])["gaps"]!["evidence"]!.AsArray();
+            Assert.Contains(gaps, g => g!["code"]!.GetValue<string>() == "page-metadata-missing" &&
+                                       g["path"]!.GetValue<string>() == "pages/approval-process.md");
+        }
+    }
+
+    [Fact]
     public void Init_writes_schema_2_with_pins()                                     // B32 (command line)
     {
         var record = Assessments.New(Confluence(), "CR-9", "x");

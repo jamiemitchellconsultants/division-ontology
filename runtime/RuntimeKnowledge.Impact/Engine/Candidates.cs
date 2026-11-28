@@ -11,6 +11,19 @@ namespace RuntimeKnowledge.Impact.Engine;
 /// <summary>Port of findCandidates from the Node C4 pilot.</summary>
 public static class Candidates
 {
+    private static IEnumerable<CitedText> PageEvidence(ImpactModel model, SourceModel source, string nodeIri) =>
+        source.CitingEvidence(nodeIri)
+            .Where(e => e["role"]?.GetValue<string>() == EvidenceText.PageRole)
+            .Select(e => EvidenceText.Read(model, source.Id, e));
+
+    /// <summary>The gaps search reports about one graph lead: those of its page evidence (B30).</summary>
+    public static IEnumerable<JsonObject> LeadGaps(ImpactModel model, string sourceId, string nodeIri)
+    {
+        var source = model.Source(sourceId);
+        if (source == null || !model.IsSupported(sourceId, nodeIri)) return [];
+        return PageEvidence(model, source, nodeIri).Select(c => c.Gap).OfType<JsonObject>();
+    }
+
     /// <summary>Finds candidate nodes matching the query or exact IRI.
     /// Lower-casing is JavaScript's, through EcmaText.ToLower.</summary>
     public static JsonObject Find(ImpactModel model, string query = "", string? exactIri = null)
@@ -128,10 +141,8 @@ public static class Candidates
             if (kind == "graph" && supported && source != null)
             {
                 var pages = new JsonArray();
-                foreach (var evidence in source.CitingEvidence(nodeIri))
+                foreach (var cited in PageEvidence(model, source, nodeIri))
                 {
-                    if (evidence["role"]?.GetValue<string>() != EvidenceText.PageRole) continue;
-                    var cited = EvidenceText.Read(model, sourceId, evidence);
                     if (cited.Gap != null) evidenceGaps.TryAdd(EcmaJson.Stringify(cited.Gap), cited.Gap);
                     if (cited.Page != null) pages.Add(EvidenceText.LeadPage(cited));
                 }

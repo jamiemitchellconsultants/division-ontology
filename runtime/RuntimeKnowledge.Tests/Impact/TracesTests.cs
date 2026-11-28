@@ -106,4 +106,17 @@ public sealed class TracesTests
         Assert.DoesNotContain("## Cited traces", RuntimeKnowledge.Impact.Render.AssessmentMarkdown.Render(
             Assessments.Freeze(Record(model, "code", PathTo(model, "system", 4, "code"), null), model, Assessments.CitablePaths(model, Record(model, "code", path, null)), [])));
     }
+
+    [Fact]
+    public void Code_excerpts_are_frozen_but_not_exported()                                // B34, B28 (PR #220 review 6)
+    {
+        var model = Deep();
+        var path = PathTo(model, "system", 4, "code");
+        var record = Record(model, "code", path, null);
+        var frozen = Assessments.Freeze(record, model, Assessments.CitablePaths(model, record), []);
+        var evidence = Assert.Single(frozen["evidence"]!.AsArray())!;
+        Assert.Equal("implementation", evidence["role"]!.GetValue<string>());
+        Assert.Equal(["export const api = 1;"], evidence["lines"]!.AsArray().Select(l => l!.GetValue<string>()));
+        Assert.DoesNotContain("export const api", RuntimeKnowledge.Impact.Render.AssessmentMarkdown.Render(frozen));
+    }
 }

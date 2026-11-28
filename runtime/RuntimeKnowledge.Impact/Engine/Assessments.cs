@@ -65,7 +65,7 @@ public static class Assessments
         return cited;
     }
 
-    private static List<(List<(string SourceId, string NodeIri)> Starts, int Depth)> Traces(JsonObject record)
+    internal static List<(List<(string SourceId, string NodeIri)> Starts, int Depth)> Traces(JsonObject record)
     {
         static (string, string) Key(JsonNode? key) =>
             key?["sourceId"] is JsonValue s && s.TryGetValue<string>(out var source) && source.Length > 0 &&

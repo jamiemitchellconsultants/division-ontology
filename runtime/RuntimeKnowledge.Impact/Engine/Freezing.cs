@@ -31,7 +31,7 @@ public static class Freezing
         var snapshotGaps = Coverage.Gaps(model);
         var snapshotKeys = snapshotGaps.Select(g => EcmaJson.Stringify(g)).ToHashSet(StringComparer.Ordinal);
         var evidenceGaps = new SortedDictionary<string, JsonObject>(StringComparer.Ordinal);
-        foreach (var gap in evidence.Select(e => e.Gap).OfType<JsonObject>())
+        foreach (var gap in evidence.Select(e => e.Gap).OfType<JsonObject>().Concat(LeadGaps(record, model)))
             evidenceGaps.TryAdd(EcmaJson.Stringify(gap), gap);
 
         frozen["gaps"] = new JsonObject
@@ -147,21 +147,17 @@ public static class Freezing
                 ["endLine"] = evidence["endLine"]!.DeepClone(),
                 ["blobId"] = evidence["blobId"]?.DeepClone()
             };
-            JsonObject? gap = null;
-            // As on path steps, only page-role evidence is read; code and ordinary documents carry no text.
-            if (evidence["role"]?.GetValue<string>() == EvidenceText.PageRole)
+            // B34: every cited excerpt is frozen, whatever its role. The renderer prints page lines only (B28, B38).
+            var cited = EvidenceText.Read(model, source.Id, evidence);
+            var gap = cited.Gap;
+            if (cited.Lines != null)
+                frozen["lines"] = new JsonArray(cited.Lines.Select(l => (JsonNode)JsonValue.Create(l)!).ToArray());
+            if (cited.Page != null)
             {
-                var cited = EvidenceText.Read(model, source.Id, evidence);
-                gap = cited.Gap;
-                if (cited.Page != null)
-                {
-                    if (cited.Lines != null)
-                        frozen["lines"] = new JsonArray(cited.Lines.Select(l => (JsonNode)JsonValue.Create(l)!).ToArray());
-                    var page = new JsonObject();
-                    if (cited.Page.Title != null) page["title"] = cited.Page.Title;
-                    if (cited.Page.ConfluenceUrl != null) page["confluenceUrl"] = cited.Page.ConfluenceUrl;
-                    frozen["page"] = page;
-                }
+                var page = new JsonObject();
+                if (cited.Page.Title != null) page["title"] = cited.Page.Title;
+                if (cited.Page.ConfluenceUrl != null) page["confluenceUrl"] = cited.Page.ConfluenceUrl;
+                frozen["page"] = page;
             }
             result.Add((source.Id, iri, frozen, gap));
         }
@@ -172,12 +168,23 @@ public static class Freezing
             .ToList();
     }
 
+    // B30: the gaps of the traces the record cites (ADR 0035), and the gaps every trace carries even when it has none.
     private static IEnumerable<JsonObject> TraceGaps(JsonObject record, ImpactModel model)
     {
-        var starts = record["confirmedLeads"]!.AsArray()
-            .Select(k => (k!["sourceId"]!.GetValue<string>(), k["nodeIri"]!.GetValue<string>()))
-            .ToList();
-        if (starts.Count == 0) return Paths.ModelGaps(model);
-        return Paths.Read(model, starts)["gaps"]!.AsArray().Select(g => g!.AsObject());
+        var traces = Assessments.Traces(record);
+        if (traces.Count == 0) return Paths.ModelGaps(model);
+        var gaps = new List<JsonObject>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var (starts, depth) in traces)
+            foreach (var gap in Paths.Read(model, starts, depth)["gaps"]!.AsArray().Select(g => g!.AsObject()))
+                if (seen.Add(EcmaJson.Stringify(gap))) gaps.Add(gap);
+        return gaps;
     }
+
+    // B30: the gaps search reported about the record's confirmed and rejected leads.
+    private static IEnumerable<JsonObject> LeadGaps(JsonObject record, ImpactModel model) =>
+        (record["confirmedLeads"] as JsonArray ?? []).Select(k => k)
+            .Concat((record["rejectedLeads"] as JsonArray ?? []).Select(r => r?["key"]))
+            .OfType<JsonObject>()
+            .SelectMany(k => Candidates.LeadGaps(model, k["sourceId"]!.GetValue<string>(), k["nodeIri"]!.GetValue<string>()));
 }
