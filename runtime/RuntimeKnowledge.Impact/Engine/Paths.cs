@@ -15,6 +15,8 @@ public static class Paths
         public required int MaxDepth { get; init; }
         public List<JsonObject> Gaps { get; } = [];
         public List<JsonObject> Paths { get; } = [];
+        // B40: set when the walk stopped before emitting a path beyond MaxPaths.
+        public bool Truncated { get; set; }
         public SortedDictionary<string, JsonObject> EvidenceGaps { get; } = new(StringComparer.Ordinal);
         // B7: distinct assertion IRIs per relationship whose impact is none.
         public SortedDictionary<string, HashSet<string>> NotFollowed { get; } = new(StringComparer.Ordinal);
@@ -94,10 +96,19 @@ public static class Paths
                 continue;
             }
 
+            if (walk.Truncated) break;
             Step(walk, start, [], [Key(start)]);
         }
 
         gaps.InsertRange(evidenceGapsAt, walk.EvidenceGaps.Values.Concat(UnlistedGaps(walk)).Concat(TermGaps(walk)));
+
+        if (walk.Truncated)
+            gaps.Add(new JsonObject
+            {
+                ["code"] = "paths-truncated",
+                ["limit"] = MaxPaths,
+                ["reason"] = $"More paths exist than the {MaxPaths} shown; fewer starts or a lower depth narrows the trace"
+            });
 
         if (!walk.Paths.Any())
             gaps.Add(new JsonObject
@@ -211,8 +222,12 @@ public static class Paths
         return edges;
     }
 
+    /// <summary>B40: the most paths one trace returns, on the command line and in the workspace.</summary>
+    public const int MaxPaths = 500;
+
     private static void Step(Walk walk, (string SourceId, string NodeIri) current, IReadOnlyList<JsonObject> steps, HashSet<string> visited)
     {
+        if (walk.Truncated) return;
         // Term gaps are recorded for every visited node, including one the depth limit stops at.
         var crossings = Crossings(walk, current);
         // B7 and B8 apply to every node reached, so the depth limit stops steps, not the skipped-relationship counts.
@@ -309,6 +324,11 @@ public static class Paths
             var targetKey = TargetKey(target);
             if (visited.Contains(targetKey)) continue;
 
+            if (walk.Paths.Count == MaxPaths)
+            {
+                walk.Truncated = true;
+                return;
+            }
             var next = new List<JsonObject>(steps) { step };
             walk.Paths.Add(new JsonObject
             {
