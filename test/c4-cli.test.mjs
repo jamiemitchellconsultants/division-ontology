@@ -80,13 +80,16 @@ test('feedback rendering requires the assessment file',async()=>{
 });
 test('a run leaves no staging directory behind, on success or failure',async()=>{
  await withPilotFixture(async f=>{
-  const {readdirSync}=await import('node:fs');const {tmpdir}=await import('node:os');
-  const staged=()=>new Set(readdirSync(tmpdir()).filter(n=>n.startsWith('division-impact-')));
-  const before=staged();
+  const {readdirSync,mkdtempSync,rmSync}=await import('node:fs');const {tmpdir}=await import('node:os');
+  // A temp directory of its own, because other test files run the command line in parallel.
+  const saved=process.env.TMPDIR,own=mkdtempSync(join(tmpdir(),'cli-staging-test-'));process.env.TMPDIR=own;
+  try {
+  const staged=()=>readdirSync(own);
   const common=['--catalog-commit',f.catalogCommit,'--registry-commit',f.registryCommit,...[...f.checkouts].flatMap(([id,path])=>['--checkout',`${id}=${path}`]),'--output',f.outputDir];
   assert.equal(await runC4Cli(['search',...common,'--query','Alpha API'],{cwd:f.divisionRoot}),0);
   assert.notEqual(await runC4Cli(['paths',...common,'--start','fixture/Alpha=urn:missing','--max-depth','9'],{cwd:f.divisionRoot,stderr:{write(){}}}),0);
-  assert.deepEqual([...staged()].filter(n=>!before.has(n)),[]);
+  assert.deepEqual(staged(),[]);
+  } finally { if(saved===undefined) delete process.env.TMPDIR; else process.env.TMPDIR=saved; rmSync(own,{recursive:true,force:true}); }
  });
 });
 test('a relative description file resolves against the supplied working directory',async()=>{
