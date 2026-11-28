@@ -70,14 +70,35 @@ try {
         throw 'The fixture manifest is missing or its digest differs from its name.'
     }
     $Manifest = Get-Content -LiteralPath $ManifestFile -Raw | ConvertFrom-Json
+    $FixtureRebuilt = $false
+    if (-not @($Manifest.files | Where-Object { $_.role -eq 'impactInput' }).Count) {
+        # A fixture from before impact assessment has no impact input, so its snapshot answers impactUnavailable.
+        Write-Host 'The saved fixture predates impact assessment. Building a new fixture for this run.'
+        $FixtureName = 'fixture-' + [guid]::NewGuid().ToString('N')
+        $FixtureRoot = Join-Path $RunRoot $FixtureName
+        $BundleDir = Join-Path $FixtureRoot 'bundle'
+        New-Item -ItemType Directory -Path $FixtureRoot | Out-Null
+        $ManifestId = node src/workspace/seed-fixture.mjs (Join-Path $FixtureRoot 'checkouts') $BundleDir
+        if ($LASTEXITCODE -ne 0) { throw 'Fixture build failed.' }
+        if ($ManifestId -notmatch '^[a-f0-9]{64}$') { throw 'Expected a valid fixture manifest digest.' }
+        $ManifestFile = Join-Path $BundleDir "manifests/$ManifestId.json"
+        if ((Get-FileHash -LiteralPath $ManifestFile -Algorithm SHA256).Hash -ne $ManifestId) {
+            throw 'The rebuilt fixture manifest digest differs from its name.'
+        }
+        $Manifest = Get-Content -LiteralPath $ManifestFile -Raw | ConvertFrom-Json
+        if (-not @($Manifest.files | Where-Object { $_.role -eq 'impactInput' }).Count) {
+            throw 'The rebuilt fixture has no impact input.'
+        }
+        $FixtureRebuilt = $true
+    }
     $SourceIds = ($Manifest.sources.id | Sort-Object) -join ','
     if ($SourceIds -ne 'fixture/accounting,fixture/ecommerce,fixture/warehouse') {
         throw 'The bundle must contain the three synthetic Order Fulfilment sources.'
     }
-    if (-not (Test-Path -LiteralPath $FixtureState)) {
+    if ($FixtureRebuilt -or -not (Test-Path -LiteralPath $FixtureState)) {
         @{ directory = $FixtureName; manifestId = $ManifestId } | ConvertTo-Json |
             Set-Content -LiteralPath "$FixtureState.tmp" -Encoding UTF8
-        Move-Item -LiteralPath "$FixtureState.tmp" -Destination $FixtureState
+        Move-Item -LiteralPath "$FixtureState.tmp" -Destination $FixtureState -Force
     }
 
     $InstallArgs = $Preparation.InstallArgs
