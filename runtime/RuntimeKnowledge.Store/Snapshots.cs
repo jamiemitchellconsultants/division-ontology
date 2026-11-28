@@ -42,12 +42,13 @@ public sealed class SnapshotStore(Db db, IBundleObjects objects, TimeProvider? c
             SELECT EXISTS (SELECT FROM workspace_projection.snapshots WHERE generation = $1 AND snapshot_id = $2)
             """, cancellationToken, state.Generation, manifestId) is not true)
             throw new WorkspaceException("snapshotNotStaged", "Stage and validate the snapshot before activation.");
-        await RepairModelAsync(tx, state, manifestId, cancellationToken);
 
         var profile = await IndexRepository.ReadActiveProfileAsync(tx, cancellationToken);
         if (profile is not null && !await IndexRepository.BaselineReadyAsync(tx, state.Generation, manifestId,
             profile.Id, cancellationToken))
             throw new WorkspaceException("snapshotIndexPending", "The staged snapshot is waiting for its baseline search index.");
+        // Only once activation will go ahead, so a pending index never rebuilds the model under the lock.
+        await RepairModelAsync(tx, state, manifestId, cancellationToken);
 
         var position = await AppendAsync(tx, "snapshotActivated", manifestId, null, null, null,
             _clock.GetUtcNow(), new { manifestId }, cancellationToken);
