@@ -77,6 +77,9 @@ This document records what was asked, what was decided, why, and what followed.
 | [67](#entry-docs-feature-amend-impact-assessment-behaviours-for-pushback-200) | 2026-11-27 | docs(feature): amend impact assessment behaviours for pushback (#200) | product | - B4 is retired. B37 lists every allowed difference, including B30's gap sections for every assessment, schema 1 records included. The user chose this over exempting schema 1 records. |
 | [68](#entry-docs-feature-amend-impact-assessment-architecture-for-pushback-201) | 2026-11-27 | docs(feature): amend impact assessment architecture for pushback (#201) | product | - The traceability table now covers B37 and B38. Comparing against the C4 baseline fails on any difference outside B37's list. - The engine reports one `unlinked-term` gap for each source and term, listing the nodes in sorted order. |
 | [69](#entry-docs-feature-plan-generalised-impact-assessment-build-202) | 2026-11-27 | docs(feature): plan generalised impact assessment build (#202) | product | - **The walking skeleton is a fixed baseline.** I1 first captures today's Node outputs on every C4 fixture scenario, with Git dates and identities pinned so the capture is deterministic, under `test/impact-corpus/`. |
+| [70](#entry-docs-feature-forbid-re-running-the-baseline-capture-in-the-198-build-han) | 2026-11-27 | docs(feature): forbid re-running the baseline capture in the #198 build handover | product | The hard rules now forbid running `capture.mjs` after Task 1. |
+| [71](#entry-docs-feature-correct-task-12-s-confluence-capture-expectations-198) | 2026-11-27 | docs(feature): correct Task 12's confluence capture expectations (#198) | product | The plan now guards `likelyImpacts` on a found path, which leaves it empty until B3 lands. |
+| [72](#entry-docs-feature-amend-impact-assessment-behaviours-for-the-pr-220-review-pu) | 2026-11-28 | docs(feature): amend impact assessment behaviours for the PR #220 review pushback (#200) | product | - A reviewed-link crossing substantiates a likely impact on the node it arrives at. Its links and catalog commit are the support, and no evidence IRI is needed (B39). |
 
 ---
 
@@ -1892,3 +1895,86 @@ The architecture (#211, #215) settled on a single .NET engine that reads verifie
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
 AI-Fingerprint: sha256:be35fe70e880
+
+---
+
+<a id="entry-docs-feature-forbid-re-running-the-baseline-capture-in-the-198-build-han"></a>
+
+## Entry 70 — 2026-11-27 — docs(feature): forbid re-running the baseline capture in the #198 build handover
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+During Task 10 the opencode executor re-ran `capture.mjs`. That re-recorded the B37 baseline (45 files under `test/impact-corpus/`) from the broken front end, which then made the conformance failures impossible to diagnose. The prompt banned editing `expected/` by hand, but never mentioned the script that rewrites it.
+
+## Decision
+
+The hard rules now forbid running `capture.mjs` after Task 1. The only exceptions are the detailed plan's own capture steps: I2's baseline update procedure (Tasks 13, 14, 15 and 17) and the single-scenario captures in Tasks 12, 16 and 21, each with exactly the arguments the step gives. A failing baseline test means fix the code, or stop and report.
+
+## Consequences
+
+The executor can no longer turn a bug into the baseline by re-capturing. A baseline change happens only where the plan schedules it, and is reviewed against B37's list.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+AI-Fingerprint: sha256:e61863ef4fe9
+
+---
+
+<a id="entry-docs-feature-correct-task-12-s-confluence-capture-expectations-198"></a>
+
+## Entry 71 — 2026-11-27 — docs(feature): correct Task 12's confluence capture expectations (#198)
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+Task 12 said that the confluence capture records "steps 2 and 4 refused". In fact the engine returns exit 0 with an `unsupported-start` gap and no paths, as I1's pilot step 5 does. As a result, the scenario's `traced.paths.find(...)` returns `undefined`, and the unguarded `path.id` crashes before step 7. The executor worked around the crash, and also added `architect` to the render input. With an architect set, step 7 passes before B30 lands, so the baseline would never show B30 changing it.
+
+## Decision
+
+The plan now guards `likelyImpacts` on a found path, which leaves it empty until B3 lands. It also spells out what today's capture must record: steps 2–4 with exit 0 and `unsupported-start`, the view `unsupported-focus`, and step 7 with exit 1 because there is no `architect`. It says explicitly not to add `architect`. No behaviour, task or commit message changes.
+
+## Consequences
+
+A re-run of Task 12 no longer crashes. The confluence baseline shows B3 and B30 arriving as separate diffs in later tasks.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+AI-Fingerprint: sha256:a70963db5796
+
+---
+
+<a id="entry-docs-feature-amend-impact-assessment-behaviours-for-the-pr-220-review-pu"></a>
+
+## Entry 72 — 2026-11-28 — docs(feature): amend impact assessment behaviours for the PR #220 review pushback (#200)
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The PR #220 review found three cases the behaviours did not settle:
+- A path can reach a node through a reviewed-link crossing, which carries reviewed links and a catalog commit but no evidence IRI. B17's validation then refuses every likely impact on that node.
+- During a trace the workspace shows code and ordinary-document lines, but a saved assessment kept only page lines. B34 promises the evidence excerpts exactly as saved.
+- B30 says an assessment carries the gaps of the searches it cites, but a record cites paths, never a search.
+
+## Decision
+
+- A reviewed-link crossing substantiates a likely impact on the node it arrives at. Its links and catalog commit are the support, and no evidence IRI is needed (B39). The user chose this over requiring the assessor to trace on to an evidenced assertion.
+- A saved assessment freezes every cited excerpt shown during the trace: page, code and ordinary-document lines. The export still prints page lines only (B34). The user chose this over keeping page lines only.
+- The searches an assessment cites are the ones that returned its confirmed and rejected leads. It carries the gaps search reports about those leads, recomputed at its pinned snapshot, and the record is unchanged (B30). The user chose this over recording search queries in the record, and over dropping search gaps.
+
+## Consequences
+
+- The engine, the draft editor and the command line accept an impact supported only by a crossing, and show the crossing as its support.
+- Saved assessments grow by the cited code and ordinary-document lines. Those lines stay inside the signed-in workspace (B29).
+- Freezing recomputes lead gaps from the record's confirmed and rejected leads.
+- The C4 fixtures have no reviewed links, so B37's baseline is unaffected.
+- 03-architecture.md must trace B39 to the impact engine and the assessment pages.
+
+---
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+AI-Fingerprint: sha256:ded4efbaa3f5

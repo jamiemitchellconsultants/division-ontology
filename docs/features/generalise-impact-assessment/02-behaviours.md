@@ -20,6 +20,11 @@ sources: [01-vision.md]
 - U16 to U20 are added.
 - The ImpactPath definition is corrected.
 
+**Amended** on 28 November 2026 in answer to the developer's pushback on #200, raised while applying the PR #220 review (items 5, 6 and 7):
+- B39 is added: a reviewed-link crossing substantiates a likely impact.
+- B17, B30 and B34 are refined, and keep their meaning.
+- U21 to U23 are added.
+
 An **assessor** is the architect or analyst carrying out an assessment. A **reader** holds `ReadKnowledgeGraph`. A **manager** holds `ManageKnowledgeGraph`. The **Confluence fixture** is a test source shaped like a Confluence group graph. Its nodes and assertions cite `selected-document` evidence: line ranges of exported pages. It has no C4 mappings. The **C4 fixtures** are the existing C4 pilot fixtures, used with the same inputs as today, including the design-record fixtures.
 
 Evidence **cites a node** in two cases: the node carries the evidence itself, as a design record does, or the node is the subject or object of an assertion that carries the evidence. An **exported page** is a Markdown file, cited by `selected-document` evidence, that opens with a front-matter metadata block. Any other file cited by `selected-document` evidence is an **ordinary document**.
@@ -139,6 +144,12 @@ A result reports one `unlinked-term` gap for each source and denoted term, howev
 
 **Given** a reviewed C4 binding between nodes in two sources, **when** a path reaches the bound node, **then** it crosses the binding as it does today, citing the registry commit and the identity evidence.
 
+#### B39 — A reviewed-link crossing substantiates a likely impact
+
+**Priority:** P1
+
+**Given** a traced path whose step arriving at node N is a ReviewedLinkCrossing (B11, B12), **when** an assessor records a likely impact on N that cites that path, **then** the impact is valid without citing any evidence IRI: the crossing's two reviewed links and its catalog commit are its support. The preview, the saved assessment and the export show those links and that commit as the impact's support. An impact on N that cites no such path still cites evidence from its paths, as B17 says. The command line applies the same rule.
+
 ### Outcome 4 — Analysts assess in the workspace, and readers open the result
 
 #### B15 — A reader searches in the browser
@@ -157,7 +168,7 @@ A result reports one `unlinked-term` gap for each source and denoted term, howev
 
 **Priority:** P1
 
-**Given** a reader with traced paths, **when** they confirm leads, reject leads with reasons, record likely impacts citing paths and evidence, and add unresolved gaps, **then** the workspace shows a preview of the ImpactAssessment and offers its Markdown export, without saving anything. The same validation applies as on the command line: an impact must appear in a path it cites, it may cite only evidence from those paths, and a rejected lead needs a reason.
+**Given** a reader with traced paths, **when** they confirm leads, reject leads with reasons, record likely impacts citing paths and evidence, and add unresolved gaps, **then** the workspace shows a preview of the ImpactAssessment and offers its Markdown export, without saving anything. The same validation applies as on the command line: an impact must appear in a path it cites, it may cite only evidence from those paths, it cites at least one piece of that evidence unless B39 applies, and a rejected lead needs a reason.
 
 #### B18 — A manager saves an assessment
 
@@ -245,7 +256,7 @@ A result reports one `unlinked-term` gap for each source and denoted term, howev
 
 **Priority:** P1
 
-**Given** a snapshot with coverage gaps, and an assessment with unresolved gaps, **when** the assessment is previewed, saved, opened or exported, **then** it lists both: the snapshot's coverage gaps and the assessment's own unresolved gaps, each with its reason. It also carries every gap that the searches and path traces it cites reported, under B2 to B27.
+**Given** a snapshot with coverage gaps, and an assessment with unresolved gaps, **when** the assessment is previewed, saved, opened or exported, **then** it lists both: the snapshot's coverage gaps and the assessment's own unresolved gaps, each with its reason. It also carries every gap that the searches and path traces it cites reported, under B2 to B27. The searches it cites are the ones that returned its confirmed and rejected leads: it carries the gaps search reports about those leads, such as a `page-metadata-missing` or `evidence-text-unavailable` gap on a lead's page, recomputed at its pinned snapshot. The path traces it cites are the ones that produced the paths its likely impacts cite. The gaps that every trace carries, such as `no-relationship-master-list` (B9), are carried even when it has no confirmed lead.
 
 #### B31 — There is no approval state
 
@@ -273,7 +284,7 @@ A result reports one `unlinked-term` gap for each source and denoted term, howev
 
 **Priority:** P1
 
-**Given** a saved assessment, and a new snapshot activated since it was saved, **when** a reader opens or exports it, **then** they see its full saved content, including its leads, path steps and evidence excerpts, exactly as saved. It is marked as pinned to an earlier snapshot.
+**Given** a saved assessment, and a new snapshot activated since it was saved, **when** a reader opens or exports it, **then** they see its full saved content, including its leads, path steps and evidence excerpts, exactly as saved. Its evidence excerpts are every cited line range shown when its paths were traced: page lines (B25), code lines (B28) and ordinary-document lines (B38), each frozen when it is saved. Its exported Markdown prints page lines only, as B28 and B38 say. It is marked as pinned to an earlier snapshot.
 
 #### B35 — A new assessment can start from an earlier one
 
@@ -323,6 +334,9 @@ A result reports one `unlinked-term` gap for each source and denoted term, howev
 | U18 | What does it mean for evidence to cite a node (B1)? | The node carries the evidence itself, or it is the subject or object of an assertion that carries it. Without the second case, nodes in a Confluence-shaped graph could never be supported, because only design records carry node evidence. | Analyst's call (pushback) |
 | U19 | How often is `unlinked-term` reported? | Once for each source and denoted term in a result, naming the nodes it was met at. A node that denotes no term reports nothing (B13). | Analyst's call (pushback) |
 | U20 | Does `no-c4-mapping` replace `unsupported-focus`? | Only for a focus with no mapping at all. A focus mapped at the wrong level keeps `unsupported-focus` (B5). | Analyst's call (pushback) |
+| U21 | Can a reviewed-link crossing support a likely impact? It carries two reviewed links and a catalog commit, but no evidence IRI. | Yes. When the cited path's step arriving at the impacted node is a crossing, its links and catalog commit are the support, and no evidence IRI is needed (B39). The C4 fixtures have no reviewed links, so B37 is unaffected. | User, 28 Nov 2026 (pushback) |
+| U22 | Which excerpts does a saved assessment keep? | Every cited excerpt shown during the trace, of pages, code and ordinary documents, is frozen and shown on the saved assessment in the signed-in workspace. The export still prints page lines only (B34, B28, B38, B29). | User, 28 Nov 2026 (pushback) |
+| U23 | A record cites paths, never a search. Which search gaps does an assessment carry (B30)? | The gaps search reports about its confirmed and rejected leads, recomputed at its pinned snapshot. No search query is recorded, and the record is unchanged. Gaps every trace carries are kept even with no confirmed lead (B30). | User, 28 Nov 2026 (pushback) |
 
 ## Terms
 
