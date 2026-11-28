@@ -117,4 +117,21 @@ public sealed class ReplayTests
         }
         Assert.NotEqual(live.StateDigest, (await replay.DescribeCurrentAsync(CancellationToken.None)).StateDigest);
     }
+
+    [Fact]
+    [Trait("Category", "Database")]
+    public async Task A_staged_candidate_that_was_never_activated_does_not_block_cutover()
+    {
+        await using var scenario = await Scenario.OpenAsync();
+        var id = scenario.Bundles.AddCorpusBundle("confluence");
+        await scenario.Store.StageAsync(id, CancellationToken.None);
+        var position = await scenario.Store.ActivateAsync(id, CancellationToken.None);
+        var candidate = scenario.Bundles.AddCorpusBundle("confluence", ("fixture/policies", "inputs/999/marker.txt"));
+        await scenario.Store.StageAsync(candidate, CancellationToken.None);
+
+        var replay = new ReplayStore(scenario.Db, scenario.Bundles);
+        var live = await replay.DescribeCurrentAsync(CancellationToken.None);
+        var rebuilt = await replay.RebuildAsync(position, CancellationToken.None);
+        Assert.Equal(live.StateDigest, rebuilt.StateDigest);
+    }
 }

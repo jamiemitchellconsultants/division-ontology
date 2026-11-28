@@ -217,10 +217,14 @@ public sealed class ReplayStore(Db db, IBundleObjects objects)
         await AddRowsAsync("""
             SELECT to_jsonb(e)::text FROM workspace_journal.events e WHERE position <= $1 ORDER BY position
             """, position);
+        // Replay recreates only activated snapshots, so a staged candidate that was never activated is left out.
         await AddRowsAsync("""
-            SELECT package_sha256 FROM workspace_projection.impact_models
-              WHERE generation = $1 ORDER BY snapshot_id
-            """, state.Generation);
+            SELECT m.package_sha256 FROM workspace_projection.impact_models m
+              WHERE m.generation = $1 AND EXISTS (
+                SELECT FROM workspace_journal.events e
+                 WHERE e.event_type = 'snapshotActivated' AND e.snapshot_id = m.snapshot_id AND e.position <= $2)
+              ORDER BY m.snapshot_id
+            """, state.Generation, position);
         await AddRowsAsync("""
             SELECT concat_ws(' ', assessment_id, version, snapshot_id,
                              encode(sha256(frozen), 'hex'), encode(sha256(markdown), 'hex'))
