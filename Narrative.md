@@ -77,8 +77,11 @@ This document records what was asked, what was decided, why, and what followed.
 | [67](#entry-docs-feature-amend-impact-assessment-behaviours-for-pushback-200) | 2026-11-27 | docs(feature): amend impact assessment behaviours for pushback (#200) | product | - B4 is retired. B37 lists every allowed difference, including B30's gap sections for every assessment, schema 1 records included. The user chose this over exempting schema 1 records. |
 | [68](#entry-docs-feature-amend-impact-assessment-architecture-for-pushback-201) | 2026-11-27 | docs(feature): amend impact assessment architecture for pushback (#201) | product | - The traceability table now covers B37 and B38. Comparing against the C4 baseline fails on any difference outside B37's list. - The engine reports one `unlinked-term` gap for each source and term, listing the nodes in sorted order. |
 | [69](#entry-docs-feature-plan-generalised-impact-assessment-build-202) | 2026-11-27 | docs(feature): plan generalised impact assessment build (#202) | product | - **The walking skeleton is a fixed baseline.** I1 first captures today's Node outputs on every C4 fixture scenario, with Git dates and identities pinned so the capture is deterministic, under `test/impact-corpus/`. |
-| [70](#entry-docs-feature-forbid-re-running-the-baseline-capture-in-the-198-build-han) | 2026-11-27 | docs(feature): forbid re-running the baseline capture in the #198 build handover | product | The hard rules now forbid running `capture.mjs` after Task 1. |
-| [71](#entry-docs-feature-amend-impact-assessment-behaviours-for-the-pr-220-review-pu) | 2026-11-28 | docs(feature): amend impact assessment behaviours for the PR #220 review pushback (#200) | product | - A reviewed-link crossing substantiates a likely impact on the node it arrives at. Its links and catalog commit are the support, and no evidence IRI is needed (B39). |
+| [70](#entry-docs-feature-hand-the-198-build-to-opencode-with-a-local-model) | 2026-11-27 | docs(feature): hand the #198 build to opencode with a local model | product | The build is run by opencode with the local model Qwen 3.6 27B (Q6), from [build-handover-opencode.md](docs/detailed-implementations/generalise-impact-assessment/build-handover-opencode.md). |
+| [71](#entry-docs-feature-forbid-re-running-the-baseline-capture-in-the-198-build-han) | 2026-11-27 | docs(feature): forbid re-running the baseline capture in the #198 build handover | product | The hard rules now forbid running `capture.mjs` after Task 1. |
+| [72](#entry-docs-feature-correct-task-12-s-confluence-capture-expectations-198) | 2026-11-27 | docs(feature): correct Task 12's confluence capture expectations (#198) | product | The plan now guards `likelyImpacts` on a found path, which leaves it empty until B3 lands. |
+| [73](#entry-docs-feature-amend-impact-assessment-behaviours-for-the-pr-220-review-pu) | 2026-11-28 | docs(feature): amend impact assessment behaviours for the PR #220 review pushback (#200) | product | - A reviewed-link crossing substantiates a likely impact on the node it arrives at. Its links and catalog commit are the support, and no evidence IRI is needed (B39). |
+| [74](#entry-docs-feature-lower-the-assessment-trace-cap-to-five-201) | 2026-11-28 | docs(feature): lower the assessment trace cap to five (#201) | product | - A record lists at most 5 traces, each with at most 20 starts. That puts the worst case at about 10 s. The owner chose this over keeping 20 traces and accepting that worst-case previews fail on AWS. |
 
 ---
 
@@ -1897,9 +1900,35 @@ AI-Fingerprint: sha256:be35fe70e880
 
 ---
 
+<a id="entry-docs-feature-hand-the-198-build-to-opencode-with-a-local-model"></a>
+
+## Entry 70 — 2026-11-27 — docs(feature): hand the #198 build to opencode with a local model
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+The #198 plan (PR #218) left open who would execute the build: Claude through feature-dev, or another agent working from the detailed plans.
+
+## Decision
+
+The build is run by opencode with the local model Qwen 3.6 27B (Q6), from [build-handover-opencode.md](docs/detailed-implementations/generalise-impact-assessment/build-handover-opencode.md). The prompt keeps it to the plan: one task per commit, test first, one increment per session, a fixed BLOCKED report instead of improvising, and no merging. The developer role only verifies the result (feature-dev build step 3).
+
+## Consequences
+
+- Build sessions start from this prompt. Its hard rules bind the executor alongside AGENTS.md.
+- The executor opens a draft build PR on its first push so CI runs, posts each increment handoff on #198, and ticks #203 at the end.
+- Blocked tasks come back to a person to decide, rather than becoming pushback raised by the executor.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+AI-Fingerprint: sha256:478639c32762
+
+---
+
 <a id="entry-docs-feature-forbid-re-running-the-baseline-capture-in-the-198-build-han"></a>
 
-## Entry 70 — 2026-11-27 — docs(feature): forbid re-running the baseline capture in the #198 build handover
+## Entry 71 — 2026-11-27 — docs(feature): forbid re-running the baseline capture in the #198 build handover
 
 *Kind: product. Status: accepted.*
 
@@ -1921,9 +1950,33 @@ AI-Fingerprint: sha256:e61863ef4fe9
 
 ---
 
+<a id="entry-docs-feature-correct-task-12-s-confluence-capture-expectations-198"></a>
+
+## Entry 72 — 2026-11-27 — docs(feature): correct Task 12's confluence capture expectations (#198)
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+Task 12 said that the confluence capture records "steps 2 and 4 refused". In fact the engine returns exit 0 with an `unsupported-start` gap and no paths, as I1's pilot step 5 does. As a result, the scenario's `traced.paths.find(...)` returns `undefined`, and the unguarded `path.id` crashes before step 7. The executor worked around the crash, and also added `architect` to the render input. With an architect set, step 7 passes before B30 lands, so the baseline would never show B30 changing it.
+
+## Decision
+
+The plan now guards `likelyImpacts` on a found path, which leaves it empty until B3 lands. It also spells out what today's capture must record: steps 2–4 with exit 0 and `unsupported-start`, the view `unsupported-focus`, and step 7 with exit 1 because there is no `architect`. It says explicitly not to add `architect`. No behaviour, task or commit message changes.
+
+## Consequences
+
+A re-run of Task 12 no longer crashes. The confluence baseline shows B3 and B30 arriving as separate diffs in later tasks.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+AI-Fingerprint: sha256:a70963db5796
+
+---
+
 <a id="entry-docs-feature-amend-impact-assessment-behaviours-for-the-pr-220-review-pu"></a>
 
-## Entry 71 — 2026-11-28 — docs(feature): amend impact assessment behaviours for the PR #220 review pushback (#200)
+## Entry 73 — 2026-11-28 — docs(feature): amend impact assessment behaviours for the PR #220 review pushback (#200)
 
 *Kind: product. Status: accepted.*
 
@@ -1953,3 +2006,32 @@ The PR #220 review found three cases the behaviours did not settle:
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
 AI-Fingerprint: sha256:ded4efbaa3f5
+
+---
+
+<a id="entry-docs-feature-lower-the-assessment-trace-cap-to-five-201"></a>
+
+## Entry 74 — 2026-11-28 — docs(feature): lower the assessment trace cap to five (#201)
+
+*Kind: product. Status: accepted.*
+
+## Context
+
+ADR 0035 lets a record list the traces its cited paths came from, and validation re-traces each one. Task 42 measured the worst case on the Q1 fixture. A first preview of 20 traces of 20 starts took 37.8 s. That was after each trace had been limited to one run per request. One trace of 20 starts takes about 1.9 s. The time is inside the ADR's budget of 100 s, but above the 30 s that API Gateway allows on AWS.
+
+## Decision
+
+- A record lists at most 5 traces, each with at most 20 starts. That puts the worst case at about 10 s. The owner chose this over keeping 20 traces and accepting that worst-case previews fail on AWS.
+- A draft at 5 traces does not take paths from a sixth. The page says so, and the assessor starts another assessment for the rest. This is the architect's call.
+
+## Consequences
+
+- The engine refuses more than 5 traces as `invalidAssessment`.
+- The draft page stops at 5 traces.
+- The Q1 performance test measures previews at 5 traces of 20 starts.
+
+---
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+AI-Fingerprint: sha256:c89bdd1248e9
