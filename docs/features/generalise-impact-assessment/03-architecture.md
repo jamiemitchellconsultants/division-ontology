@@ -9,7 +9,7 @@ sources: [01-vision.md, 02-behaviours.md]
 
 **Feature:** [#198](https://github.com/jamiemitchellconsultants/division-ontology/issues/198) · **Phase:** [#201, Architect structure](https://github.com/jamiemitchellconsultants/division-ontology/issues/201)
 
-**Accepted by the user on 26 November 2026.** The phase completes when its pull request is reviewed and merged. This design serves the [accepted behaviours](02-behaviours.md) and the [product vision](01-vision.md). ADRs 0028 to 0034 record the decisions. ADR 0028 supersedes ADR 0001, the local C4 pilot.
+**Accepted by the user on 26 November 2026.** The phase completes when its pull request is reviewed and merged. This design serves the [accepted behaviours](02-behaviours.md) and the [product vision](01-vision.md). ADRs 0028 to 0036 record the decisions. ADR 0028 supersedes ADR 0001, the local C4 pilot.
 
 **Amended** on 27 November 2026, in answer to the developer's pushback on #201 that followed the behaviours amendment (PR #213):
 - traceability now covers B37, in place of the retired B4, and B38;
@@ -18,6 +18,13 @@ sources: [01-vision.md, 02-behaviours.md]
 - page metadata is read only for exported pages (ADR 0031, amended);
 - the successor route needs the manage role.
 
+**Amended** on 28 November 2026, in answer to the developer's pushback on #201 from the PR #220 review (items 4 and 22), and to trace the behaviours amendment (PR #228):
+- a schema 2 record can list the traces its cited paths came from, and validation re-traces them (ADR 0035);
+- importing a snapshot always repairs a missing impact model, so workers from different versions can overlap (ADR 0036);
+- traceability covers B39, a reviewed-link crossing supporting a likely impact, and the refined B17, B30 and B34;
+- saved assessments freeze every cited excerpt, and carry the search gaps of their own leads;
+- three corrections found by the review are recorded: saved-assessment revisions are read in cursor pages, schema 1 assessments keep the pilot's digest, and the replay checksum covers only models of activated snapshots.
+
 The shape in one line: **Node verifies and packages, .NET assesses and renders.** The existing Node loaders keep checking checkouts, graphs, evidence and registries, and they package what they verified into the snapshot bundle. A single .NET impact engine reads that bundle. The command-line tool and the workspace both run it, so both produce the same output.
 
 ## Components
@@ -25,12 +32,12 @@ The shape in one line: **Node verifies and packages, .NET assesses and renders.*
 | Component | Responsibility | Behaviours |
 | --- | --- | --- |
 | **Pinned input packager** (Node: `src/c4/snapshot.mjs`, `graph.mjs`, `registry.mjs`, `git.mjs`, `src/workspace/bundle.mjs`) | Verifies checkouts, source graphs, evidence and C4 registries at their pinned commits, as today. Reads the relationship master list and the catalog's reviewed links at the catalog commit. Writes the verified facts into the bundle as two new file roles, `impactInput` and `relationshipMasterList`, next to the cited evidence bytes the bundle already holds. It makes no impact decisions. | B1, B37, B10, B11–B14, B24, B25, B32, Q3 |
-| **Impact engine** (new `runtime/RuntimeKnowledge.Impact` library, with no database or network dependencies) | Builds an immutable **impact model** from a verified bundle. Runs candidate search, support rules, impact paths with master-list directions, reviewed-link crossings and C4 bindings, and C4 views. Raises every AssessmentGap. Validates, freezes and renders assessment records to Markdown. Extracts evidence excerpts and page metadata. It is the only implementation of these rules. | B1–B14, B17, B23, B25–B28, B30–B33, B35, B37, B38, Q3, Q4 |
+| **Impact engine** (new `runtime/RuntimeKnowledge.Impact` library, with no database or network dependencies) | Builds an immutable **impact model** from a verified bundle. Runs candidate search, support rules, impact paths with master-list directions, reviewed-link crossings and C4 bindings, and C4 views. Raises every AssessmentGap. Validates, freezes and renders assessment records to Markdown. Extracts evidence excerpts and page metadata. It is the only implementation of these rules. | B1–B14, B17, B23, B25–B28, B30–B35, B37–B39, Q3, Q4 |
 | **Impact command line** (new `runtime/RuntimeKnowledge.Impact.Cli`, run through `npm run c4`) | Keeps today's commands, flags, output file names and safety checks. The Node front end parses the arguments and verifies the checkouts. It builds the bundle into a private temporary directory outside every repository, runs the .NET tool against it, and removes the bundle afterwards. The tool writes the output files. | B37, B5, B23, B24, B33 |
-| **Snapshot impact import** (`RuntimeKnowledge.Worker` `BundleImport`, and replay) | When a candidate snapshot is projected, builds the impact model from the bundle with the engine. Stores the model, compressed, together with its evidence excerpts in `workspace_projection.impact_models`, in the same transaction as the rest of the candidate. Replay rebuilds it from the bundle. A bundle without `impactInput` has no model, and impact routes report `impactUnavailable` for it. | B15, B16, B25–B29, Q1, Q5, Q7 |
+| **Snapshot impact import** (`RuntimeKnowledge.Worker` `BundleImport`, and replay) | When a candidate snapshot is projected, builds the impact model from the bundle with the engine. Stores the model, compressed, together with its evidence excerpts in `workspace_projection.impact_models`, in the same transaction as the rest of the candidate. Staging and activation both repair a missing model (ADR 0036). Replay rebuilds it from the bundle. A bundle without `impactInput` has no model, and impact routes report `impactUnavailable` for it. | B15, B16, B25–B29, Q1, Q5, Q7 |
 | **Impact and assessment API** (`RuntimeKnowledge.Api`, new `/api/impact/*` and `/api/assessments/*` routes) | Serves search, paths, C4 views, draft validation, preview and Markdown export to readers, and save and edit to managers. Every request names the snapshot it expects, and any other snapshot is refused with `snapshotChanged`. Keeps one impact model per process in memory, keyed by snapshot id. Pages search and saved-assessment lists with cursors. | B15–B22, B31, B33, B35, B36, Q1, Q2, Q7 |
 | **Assessment store** (`RuntimeKnowledge.Store`: journal events, plus the `assessments` and `assessment_revisions` projections) | Appends `assessmentSaved` and `assessmentRevised` events, each carrying the frozen assessment and its rendered Markdown. Updates the current and revision views in the same transaction. Checks the active snapshot and the expected version inside that transaction. Replay copies frozen content verbatim. | B18–B22, B32–B35, Q5 |
-| **Assessment pages** (`RuntimeKnowledge.Web`: new search, paths, draft, saved-list and saved-assessment pages) | Hold the draft in browser memory, bound to its snapshot. Render leads, step-by-step paths, evidence with excerpts and page metadata, and gaps. Offer Markdown export of a draft or a saved assessment. Show save and edit controls only to managers, and never show an approve or sign-off control. | B15–B22, B25–B28, B30, B31, B34–B36, B38, Q6 |
+| **Assessment pages** (`RuntimeKnowledge.Web`: new search, paths, draft, saved-list and saved-assessment pages) | Hold the draft in browser memory, bound to its snapshot. Render leads, step-by-step paths, evidence with excerpts and page metadata, and gaps. Record in the draft each trace it takes paths from. Offer Markdown export of a draft or a saved assessment. Show save and edit controls only to managers, and never show an approve or sign-off control. | B15–B22, B25–B28, B30, B31, B34–B36, B38, B39, Q6 |
 | **Publication guard** (catalog build tests and API contract tests) | Proves that no cited text reaches `dist/`, unauthenticated responses or the OpenAPI examples. The catalog builder itself is unchanged. | B29, Q7 |
 
 ## Structure
@@ -100,9 +107,10 @@ All ordering uses ordinal string comparison, as the Node code does today.
 
 ### Assessment records, freezing and rendering
 
-- **Record schema 2** replaces `architect` with `assessor`. It pins the snapshot id, the master-list identity (catalog commit and SHA-256, or `none`) and the C4 registry commit and digests. It can carry `startedFrom`, the id of an earlier saved assessment (B35). Schema 1 records are still read and rendered, so the C4 fixtures render as before (B37). Fields named `approved`, `approvalStatus` or anything with `signOff` in it are refused at the JSON boundary and by the engine (B31).
-- **Freezing (B34).** Before an assessment is saved or rendered, the engine resolves the record against the model into a **frozen assessment**. That holds the record, the details of the confirmed and rejected leads, every cited path with its steps, every cited evidence record with its excerpt and page metadata, the snapshot's coverage gaps, the search and path gaps, and the unresolved gaps (B30). The Markdown is rendered from the frozen assessment alone, through one renderer with today's escaping, extended to page text (Q4). Page excerpts are written as indented, escaped lines, so injected markup stays inert.
-- **Digest.** The assessment digest is the SHA-256 of the canonical frozen assessment, which keeps outputs deterministic (Q3).
+- **Record schema 2** replaces `architect` with `assessor`. It pins the snapshot id, the master-list identity (catalog commit and SHA-256, or `none`) and the C4 registry commit and digests. It can carry `startedFrom`, the id of an earlier saved assessment (B35). It can also carry `traces`, the traces its cited paths came from, each with its starts and depth (ADR 0035). Schema 1 records are still read and rendered, so the C4 fixtures render as before (B37). Fields named `approved`, `approvalStatus` or anything with `signOff` in it are refused at the JSON boundary and by the engine (B31).
+- **Citable paths (B17, ADR 0035).** Validation re-traces each of the record's `traces` against its snapshot, and the union of their paths is what the record may cite. A record without `traces` re-traces its confirmed leads at depth 4, as the pilot did. A likely impact cites at least one evidence IRI from its paths, unless a cited path's step arriving at its node is a ReviewedLinkCrossing. Then the crossing's links and catalog commit are its support (B39), and the frozen assessment, the pages and the Markdown show them as such.
+- **Freezing (B34).** Before an assessment is saved or rendered, the engine resolves the record against the model into a **frozen assessment**. That holds the record, the details of the confirmed and rejected leads, every cited path with its steps, every cited evidence record with its excerpt and page metadata, the snapshot's coverage gaps, the search and path gaps, and the unresolved gaps (B30). Each cited evidence record is resolved in the source of the path step that cites it. Its cited lines are frozen whatever its role: page, code or ordinary document. The search gaps are those search reports about the record's confirmed and rejected leads, recomputed against the model. The gaps every trace carries, such as `no-relationship-master-list`, are frozen even with no confirmed lead. The Markdown is rendered from the frozen assessment alone, through one renderer with today's escaping, extended to page text (Q4). Page excerpts are written as indented, escaped lines, so injected markup stays inert. Code and ordinary-document excerpts are not written into Markdown (B28, B38), so they stay inside the signed-in workspace (B29).
+- **Digest.** A schema 2 assessment's digest is the SHA-256 of the canonical frozen assessment, which keeps outputs deterministic (Q3). A schema 1 assessment keeps the pilot's digest, the SHA-256 of its canonical record, so feedback written against it still validates (B37).
 
 ### Workspace API surface
 
@@ -117,7 +125,9 @@ Every route sits under the existing authenticated `/api` group. Writes also need
 | `POST /api/assessments` | manage | Save a draft record. Returns the id, version and link. |
 | `PUT /api/assessments/{id}` | manage | Edit with `expectedVersion`, only while the assessment's snapshot is active. |
 | `GET /api/assessments` | read | Saved assessments, newest first, at most 50 a page. The cursor is (saved time, id). |
-| `GET /api/assessments/{id}` | read | The frozen content, the revision history and whether the assessment is pinned to an earlier snapshot. |
+| `GET /api/assessments/{id}` | read | The current frozen content and Markdown, and whether the assessment is pinned to an earlier snapshot. Revisions are not included, so the response stays bounded however often it is edited. |
+| `GET /api/assessments/{id}/revisions` | read | Revision metadata (version, editor, time), oldest first, at most 50 a page. The cursor is (assessment id, version). |
+| `GET /api/assessments/{id}/revisions/{version}` | read | One revision's frozen content and Markdown, as saved (B22). |
 | `GET /api/assessments/{id}/markdown` | read | The stored Markdown bytes, as saved. |
 | `POST /api/assessments/{id}/successor` | manage | A new draft record on the active snapshot, holding the same request id and description and `startedFrom`. Nothing is stored. |
 
@@ -130,6 +140,7 @@ New migration `006_impact.sql`:
 - **`workspace_projection.impact_models`** `(generation, snapshot_id, model bytea, model_sha256)`. The model is serialised with the engine's own canonical format and compressed. The API can read it. The publisher writes it during candidate projection. It is rebuildable from bundles (ADR 0008).
 - **`workspace_projection.assessments`** `(generation, assessment_id, version, snapshot_id, request_id, author, saved_at, frozen jsonb, markdown bytea, started_from)`, with an index on `(generation, saved_at DESC, assessment_id)` for listing.
 - **`workspace_projection.assessment_revisions`** `(generation, assessment_id, version, editor, edited_at, frozen jsonb, markdown bytea)`. It keeps every earlier version (B22).
+- **State checksum.** Replay's checksum covers `impact_models` rows only for snapshots activated in the journal prefix, because replay rebuilds only those. A staged candidate that was never activated does not block cutover.
 - **Journal**: event types `assessmentSaved` and `assessmentRevised` in `workspace_journal.events`, each with the full frozen body and Markdown, appended in the same transaction as the projection rows (ADR 0005). The `workspace_api` role gets `INSERT` on the assessment tables and `SELECT` on `impact_models`.
 
 ## Deployment and runtime
@@ -139,6 +150,7 @@ New migration `006_impact.sql`:
 - **AWS.** The engine is included in the existing API and worker Lambda packages (`deploy/workspace/aws/package.sh`). The model cache lives for the life of a Lambda execution environment. A cold start reads and decompresses one model row. Q1 is measured on the reference container, and the developer records the cold-load time too. If the API Lambda's memory limit, or provisioned concurrency, needs to change to meet Q1, that is a Terraform change in `application.tf`, and the plan should record it.
 - **Web.** The new pages ship in the existing Blazor static assets, on Caddy and on S3 with CloudFront.
 - **Snapshot activation.** The model is written with the candidate projection. Activation stays a pointer change plus a journal record (ADR 0004), so an activated snapshot always has its model when its bundle has `impactInput`.
+- **Mixed-version workers.** During an upgrade, a worker from before this feature can stage a new bundle without its model. The next import of that manifest by a current worker, whether it stages or activates it, builds the missing model (ADR 0036). No upgrade ordering is needed.
 - **Old bundles.** A bundle built before this feature has no `impactInput`. Its snapshot still activates, and the impact routes return `impactUnavailable` until a new bundle is published.
 
 ## Traceability
@@ -161,12 +173,12 @@ New migration `006_impact.sql`:
 | B14 | Engine C4 binding step, unchanged |
 | B15 | Search route with cursor; assessment pages; impact model in PostgreSQL |
 | B16 | Paths route; assessment pages' step-by-step path display |
-| B17 | Preview route; engine validation and freezing; draft in browser memory (ADR 0034) |
+| B17 | Preview route; engine validation against the record's traces (ADR 0035) and freezing; draft in browser memory, recording its traces (ADR 0034) |
 | B18 | Save route; assessment store (single transaction) (ADR 0033) |
 | B19 | `ManagePolicy` on writes; browser draft and export kept |
 | B20 | Read route; frozen content (ADR 0033) |
 | B21 | List route with the (saved time, id) cursor |
-| B22 | Edit route; `assessment_revisions`; `assessmentRevised` event |
+| B22 | Edit route; `assessment_revisions`; `assessmentRevised` event; revision routes, in cursor pages |
 | B23 | One engine and renderer (ADR 0028); byte-identical bundles from one packager (ADR 0029) |
 | B24 | Impact command line through `npm run c4` |
 | B25 | Engine excerpts; page metadata from front matter (ADR 0031); evidence held in the model (ADR 0030) |
@@ -174,19 +186,20 @@ New migration `006_impact.sql`:
 | B27 | Engine excerpt extraction (`evidence-text-unavailable`) |
 | B28 | Engine evidence fields; assessment pages show code excerpts |
 | B29 | Model and excerpts only behind authenticated `/api` (ADR 0030); publication guard |
-| B30 | Engine freezing gathers snapshot, search, path and unresolved gaps |
+| B30 | Engine freezing gathers snapshot gaps, the search gaps of the record's leads, the gaps of the traces it cites, and unresolved gaps |
 | B31 | Engine and JSON boundary refuse approval fields (`approvalNotSupported`); no control in the pages |
 | B32 | Record schema 2 pins; frozen assessment display |
 | B33 | API snapshot check in the write transaction (`snapshotChanged`); command-line mismatch errors, as today |
-| B34 | Frozen content and stored Markdown, copied verbatim on replay (ADR 0033) |
+| B34 | Frozen content, with every cited excerpt, and stored Markdown, copied verbatim on replay (ADR 0033) |
 | B35 | Successor route, under `ManagePolicy`; `startedFrom` |
 | B36 | `snapshotId` on every request; the page discards its draft on `snapshotChanged` (ADR 0034) |
 | B38 | Engine evidence display: ordinary documents get no front-matter reading, no page-metadata gap and no Markdown excerpt; assessment pages show their cited lines |
+| B39 | Engine validation accepts a crossing as an impact's support; freezing, the renderer and the assessment pages show its links and catalog commit; the draft editor offers it |
 | Q1 | In-memory impact model for each snapshot in each process; adjacency index; measured on the reference container, with the cold-load time recorded |
 | Q2 | Authenticated `/api` group; `ManagePolicy` on save and edit; API tests for every route |
 | Q3 | One engine; canonical serialisation; ordinal ordering; deterministic bundles |
 | Q4 | One renderer escaping descriptions, reasons, labels and page excerpts; injection fixture |
-| Q5 | Journal events with the frozen body and Markdown; single-transaction writes; replay copies verbatim |
+| Q5 | Journal events with the frozen body and Markdown; single-transaction writes; replay copies verbatim; checksum over activated snapshots' models; missing models repaired on import (ADR 0036) |
 | Q6 | Assessment pages built with native controls; axe and keyboard checks in `WorkspaceUiTests` and the browser verification scripts |
 | Q7 | Publication guard over `dist/`, unauthenticated responses and OpenAPI examples |
 
@@ -199,6 +212,8 @@ New migration `006_impact.sql`:
 - [ADR 0032: Pin the relationship master list to the catalog commit](../../adr/0032-pin-the-relationship-master-list-to-the-catalog-commit.md)
 - [ADR 0033: Freeze saved assessments in the journal with their Markdown](../../adr/0033-freeze-saved-assessments-in-the-journal.md)
 - [ADR 0034: Keep assessment drafts in browser memory, bound to the snapshot](../../adr/0034-keep-assessment-drafts-in-browser-memory.md)
+- [ADR 0035: Record the traces an assessment cites](../../adr/0035-record-the-traces-an-assessment-cites.md)
+- [ADR 0036: Repair a missing impact model whenever a snapshot is imported](../../adr/0036-repair-missing-impact-models-on-import.md)
 
 ## Notes for the developer
 
