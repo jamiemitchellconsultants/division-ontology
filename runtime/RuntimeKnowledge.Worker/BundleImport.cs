@@ -10,4 +10,6 @@ public sealed class BundleImport(SnapshotStore snapshots)
 
     public Task<long> ActivateAsync(string manifestId, CancellationToken cancellationToken) =>
         snapshots.ActivateAsync(manifestId, cancellationToken);
+
+    public Task<int> RepairModelsAsync(CancellationToken cancellationToken) => snapshots.RepairModelsAsync(cancellationToken);
 }

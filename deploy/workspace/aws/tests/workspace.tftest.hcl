@@ -81,8 +81,8 @@ run "private_database_and_serverless_api" {
     error_message = "Authenticated API routes must keep their own CloudFront behavior."
   }
   assert {
-    condition     = aws_cloudwatch_event_rule.worker["publisher"].state == "DISABLED" && aws_cloudwatch_event_rule.worker["indexer"].state == "ENABLED"
-    error_message = "The publisher should remain idle until a reviewed manifest is supplied."
+    condition     = aws_cloudwatch_event_rule.worker["publisher"].state == "ENABLED" && aws_cloudwatch_event_rule.worker["indexer"].state == "ENABLED" && jsondecode(aws_cloudwatch_event_target.worker["publisher"].input).manifestId == null
+    error_message = "With no reviewed manifest, the publisher still runs, with no manifest, to repair missing impact models (ADR 0036)."
   }
   assert {
     condition     = !strcontains(aws_iam_role_policy.workload["api"].policy, "s3:PutObject") && !strcontains(aws_iam_role_policy.workload["publisher"].policy, "bedrock:InvokeModel")

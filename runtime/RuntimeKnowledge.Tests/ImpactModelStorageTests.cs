@@ -82,6 +82,32 @@ public sealed class ImpactModelStorageTests
     }
 
     [Fact]
+    public async Task The_repair_pass_restores_every_activated_snapshots_model_and_replay_agrees()   // ADR 0036, amended (re-review 22)
+    {
+        await using var scenario = await Scenario.OpenAsync();
+        var older = scenario.Bundles.AddCorpusBundle("confluence");
+        await scenario.Store.StageAsync(older, CancellationToken.None);
+        await scenario.Store.ActivateAsync(older, CancellationToken.None);
+        var newer = scenario.Bundles.AddCorpusBundle("confluence", ("fixture/policies", "inputs/999/marker.txt"));
+        await scenario.Store.StageAsync(newer, CancellationToken.None);
+        var position = await scenario.Store.ActivateAsync(newer, CancellationToken.None);
+        var candidate = scenario.Bundles.AddCorpusBundle("confluence", ("fixture/policies", "inputs/998/marker.txt"));
+        await scenario.Store.StageAsync(candidate, CancellationToken.None);
+        var digests = (await ModelDigestAsync(scenario, older), await ModelDigestAsync(scenario, newer));
+
+        // An old worker left both activated snapshots, and the unactivated candidate, without models.
+        foreach (var id in new[] { older, newer, candidate }) await DropModelAsync(scenario, id);
+        Assert.Equal(2, await scenario.Store.RepairModelsAsync(CancellationToken.None));
+        Assert.Equal(digests, (await ModelDigestAsync(scenario, older), await ModelDigestAsync(scenario, newer)));
+        Assert.Null(await ModelDigestAsync(scenario, candidate));
+        Assert.Equal(0, await scenario.Store.RepairModelsAsync(CancellationToken.None));
+
+        var replay = new ReplayStore(scenario.Db, scenario.Bundles);
+        Assert.Equal((await replay.DescribeCurrentAsync(CancellationToken.None)).StateDigest,
+            (await replay.RebuildAsync(position, CancellationToken.None)).StateDigest);
+    }
+
+    [Fact]
     public async Task A_bundle_without_impact_input_stores_no_model()
     {
         await using var scenario = await Scenario.OpenAsync();

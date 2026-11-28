@@ -129,7 +129,8 @@ resource "aws_cloudwatch_event_rule" "worker" {
   for_each            = toset(["publisher", "indexer"])
   name                = "${var.environment}-${each.key}"
   schedule_expression = "rate(1 minute)"
-  state               = each.key == "publisher" && var.pending_manifest == null ? "DISABLED" : "ENABLED"
+  # ADR 0036: the publisher also repairs missing impact models, so it runs whether or not a manifest is pending.
+  state = "ENABLED"
 }
 resource "aws_cloudwatch_event_target" "worker" {
   for_each = aws_cloudwatch_event_rule.worker

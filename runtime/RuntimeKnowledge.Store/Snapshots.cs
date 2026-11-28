@@ -63,6 +63,48 @@ public sealed class SnapshotStore(Db db, IBundleObjects objects, TimeProvider? c
         return position;
     }
 
+    /// <summary>ADR 0036, amended: builds the missing model of every snapshot the journal has activated in this
+    /// generation whose staged manifest lists impact input. Each model is stored in its own short transaction,
+    /// outside the journal-head lock, and nothing is done while writes are paused for a rebuild. Returns how many
+    /// models it stored.</summary>
+    public async Task<int> RepairModelsAsync(CancellationToken token)
+    {
+        List<string> missing = [];
+        await using (var connection = await db.OpenAsync(token))
+        await using (var tx = await connection.BeginTransactionAsync(token))
+        {
+            var state = await ReadStateAsync(tx, token);
+            if (state.WritesPaused) return 0;
+            await using var command = Command(tx, """
+                SELECT DISTINCT s.snapshot_id FROM workspace_projection.snapshots s
+                 WHERE s.generation = $1
+                   AND EXISTS (SELECT FROM workspace_journal.events e
+                                WHERE e.event_type = 'snapshotActivated' AND e.snapshot_id = s.snapshot_id)
+                   AND EXISTS (SELECT FROM jsonb_array_elements(s.manifest -> 'files') f WHERE f ->> 'role' = 'impactInput')
+                   AND NOT EXISTS (SELECT FROM workspace_projection.impact_models m
+                                    WHERE m.generation = s.generation AND m.snapshot_id = s.snapshot_id)
+                 ORDER BY s.snapshot_id
+                """, state.Generation);
+            await using var rows = await command.ExecuteReaderAsync(token);
+            while (await rows.ReadAsync(token)) missing.Add(rows.GetString(0));
+        }
+
+        var repaired = 0;
+        foreach (var snapshotId in missing)
+        {
+            var bundle = await _reader.ReadAsync(snapshotId, token);
+            await using var connection = await db.OpenAsync(token);
+            await using var tx = await connection.BeginTransactionAsync(token);
+            var state = await ReadStateAsync(tx, token);
+            if (state.WritesPaused) break;
+            if (await ImpactModels.ExistsAsync(tx, state.Generation, snapshotId, token)) continue;
+            await ImpactModels.StageAsync(tx, state, bundle, token);
+            await tx.CommitAsync(token);
+            repaired++;
+        }
+        return repaired;
+    }
+
     // ADR 0036: a snapshot staged without its model, for example by an older worker, gains it here. The bundle is
     // read only when the model is missing and the staged manifest lists impact input.
     private async Task RepairModelAsync(NpgsqlTransaction tx, ProjectionState state, string manifestId, CancellationToken token)

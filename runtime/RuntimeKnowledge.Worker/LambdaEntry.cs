@@ -44,23 +44,29 @@ public sealed class LambdaEntry
 
     public async Task<ImportBatch> ImportHandler(ImportRequest request, ILambdaContext context)
     {
-        if (string.IsNullOrWhiteSpace(request.ManifestId)) return new ImportBatch("idle", null);
         var manifest = request.ManifestId;
         using var deadline = Deadline(context);
         var token = deadline.Token;
         await using var source = await DataSourceAsync(token);
         var db = _db ?? new Db(source!);
-        if (await new IndexRepository(db).ReadActiveProfileAsync(token) is null)
-            return new ImportBatch("waitingForProfile", manifest);
-
         var settings = _settings.GetSection("Workspace:Objects");
         using var client = _objects is null ? Program.CreateObjectClient(settings) : null;
         var objects = _objects ?? new BundleObjects(client!, settings["Bucket"] ??
             throw new InvalidOperationException("Configure the S3 bundle bucket."));
         var snapshots = new BundleImport(new SnapshotStore(db, objects));
+        if (string.IsNullOrWhiteSpace(manifest))
+        {
+            // ADR 0036, amended: with no pending manifest the scheduled publisher only repairs missing models.
+            var repaired = await snapshots.RepairModelsAsync(token);
+            return new ImportBatch(repaired > 0 ? "repaired" : "idle", null);
+        }
+        if (await new IndexRepository(db).ReadActiveProfileAsync(token) is null)
+            return new ImportBatch("waitingForProfile", manifest);
+
         try
         {
             var position = await snapshots.ActivateAsync(manifest, token);
+            await snapshots.RepairModelsAsync(token);
             return new ImportBatch("active", manifest, position);
         }
         catch (WorkspaceException problem) when (problem.Code == "snapshotNotStaged")
