@@ -12,13 +12,13 @@ namespace RuntimeKnowledge.Impact.Engine;
 public static class Candidates
 {
     /// <summary>Finds candidate nodes matching the query or exact IRI.
-    /// Lower-casing uses ToLowerInvariant(), which differs from JavaScript only for U+0130.</summary>
+    /// Lower-casing is JavaScript's, through EcmaText.ToLower.</summary>
     public static JsonObject Find(ImpactModel model, string query = "", string? exactIri = null)
     {
         if (exactIri == null && !query.Trim().Any(c => !char.IsWhiteSpace(c)))
             throw new ImpactException("query or exact IRI is required");
 
-        var phrase = query.Trim().ToLowerInvariant();
+        var phrase = EcmaText.ToLower(query.Trim());
         var tokens = Regex.Split(phrase, @"[^\p{L}\p{N}]+")
             .Where(t => t.Length > 0)
             .Distinct()
@@ -89,7 +89,7 @@ public static class Candidates
 
         void Add(string sourceId, string nodeIri, string text, string kind, bool supported, string reason)
         {
-            var lower = text.ToLowerInvariant();
+            var lower = EcmaText.ToLower(text);
             int rank;
             string matchKind;
             if (exactIri != null)
