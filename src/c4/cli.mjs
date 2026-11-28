@@ -21,6 +21,7 @@ function pair(value) {const index=value?.indexOf('=')??-1;if(index<1 || index===
 const sourceKey=x=>{const [sourceId,nodeIri]=pair(x);return {sourceId,nodeIri};};
 function canonicalPath(path) {const abs=resolve(path);return existsSync(abs)?realpathSync(abs):join(canonicalPath(dirname(abs)),basename(abs));}
 export async function runC4Cli(argv,{cwd=process.cwd(),stdout=process.stdout,stderr=process.stderr}={}) {
+ let staging;
  try {
   const {command,values:v}=parse(argv),checkouts=new Map();
   for(const c of v.checkout??[]) {const [id,path]=pair(c);if(checkouts.has(id)||!isAbsolute(path)) throw new Error('invalid checkout');checkouts.set(id,path);}
@@ -54,7 +55,7 @@ export async function runC4Cli(argv,{cwd=process.cwd(),stdout=process.stdout,std
   }
 
   // Create staging directory
-  const staging=mkdtempSync(join(tmpdir(),'division-impact-'));
+  staging=mkdtempSync(join(tmpdir(),'division-impact-'));
   chmodSync(staging, 0o700);
   const outDir=join(staging,'out');
   mkdirSync(outDir);
@@ -65,7 +66,7 @@ export async function runC4Cli(argv,{cwd=process.cwd(),stdout=process.stdout,std
   writeImpactBundle(bundle,join(staging,'bundle'));
 
   // Build tool flags: command-specific flags with absolute paths, no Node-only flags
-  const pathFlags=new Set(['supplement','input','assessment-file','view-input']);
+  const pathFlags=new Set(['supplement','input','assessment-file','description-file','view-input']);
   const toolArgs=[command];
   for(let i=0;i<argv.length;i++) {
    const flag=argv[i];
@@ -107,8 +108,7 @@ export async function runC4Cli(argv,{cwd=process.cwd(),stdout=process.stdout,std
   return 0;
  } catch(e) { stderr?.write?.(`${e.message}\n`); return 1; }
  finally {
-  // Clean up staging
-  try { rmSync(staging, { recursive: true, force: true }); } catch {}
+  if(staging) rmSync(staging,{recursive:true,force:true});
  }
 }
 if(process.argv[1] && import.meta.url===pathToFileURL(process.argv[1]).href) process.exitCode=await runC4Cli(process.argv.slice(2));

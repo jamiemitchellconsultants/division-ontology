@@ -45,7 +45,7 @@ public static class CommandRunner
                         var starts = GetMultiFlag(args, "--start")
                             .Select(pair)
                             .ToList();
-                        var maxDepth = GetIntFlag(args, "--max-depth", 4);
+                        var maxDepth = GetDepthFlag(args, "--max-depth", 4);
                         var result = Paths.Read(model, starts, maxDepth);
                         files.Add(("paths.json", EcmaJson.File(result)));
                     }
@@ -99,15 +99,7 @@ public static class CommandRunner
                         var views = viewInputs.Select(vi =>
                             JsonNode.Parse(ReadText(vi))!.AsObject()).ToList();
 
-                        var confirmedLeads = record["confirmedLeads"]?.AsArray();
-                        var starts = confirmedLeads != null && confirmedLeads.Count > 0
-                            ? confirmedLeads.Select(n => pair(n!.AsObject())).ToList()
-                            : new List<(string, string)>();
-                        var paths = starts.Count > 0
-                            ? Paths.Read(model, starts, 4)
-                            : new JsonObject();
-
-                        var cited = paths["paths"] as JsonArray ?? new JsonArray();
+                        var cited = CitablePaths(model, record);
                         var frozen = Assessments.Freeze(record, model, cited, views);
                         var markdown = record["schemaVersion"]?.GetValue<int>() == 2
                             ? AssessmentMarkdown.Render(frozen)
@@ -122,45 +114,19 @@ public static class CommandRunner
                         var assessmentFile = GetFlag(args, "--assessment-file");
                         if (inputFile == null)
                             return (1, Array.Empty<(string, string)>(), "input is required");
+                        if (assessmentFile == null)
+                            return (1, Array.Empty<(string, string)>(), "assessment file is required");
 
-                        var inputContent = ReadText(inputFile);
-                        var feedback = JsonNode.Parse(inputContent)!.AsObject();
-
-                        // Load the assessment to compute the digest via validation
-                        JsonObject assessment;
-                        if (assessmentFile != null)
+                        var feedback = JsonNode.Parse(ReadText(inputFile))!.AsObject();
+                        var record = JsonNode.Parse(ReadText(assessmentFile))!.AsObject();
+                        var views = GetMultiFlag(args, "--view-input")
+                            .Select(vi => JsonNode.Parse(ReadText(vi))!.AsObject()).ToList();
+                        var digest = Assessments.Validate(record, model, CitablePaths(model, record), views);
+                        var assessment = new JsonObject
                         {
-                            var assessmentContent = ReadText(assessmentFile);
-                            var record = JsonNode.Parse(assessmentContent)!.AsObject();
-
-                            var confirmedLeads = record["confirmedLeads"]?.AsArray();
-                            var starts = confirmedLeads != null && confirmedLeads.Count > 0
-                                ? confirmedLeads.Select(n => pair(n!.AsObject())).ToList()
-                                : new List<(string, string)>();
-                            var paths = starts.Count > 0
-                                ? Paths.Read(model, starts, 4)
-                                : new JsonObject();
-
-                            var digest = Assessments.Validate(record, model,
-                                (paths["paths"] as JsonArray ?? new JsonArray()),
-                                Array.Empty<JsonObject>());
-                            var requestId = record["requestId"]?.GetValue<string>() ?? "unknown";
-                            assessment = new JsonObject
-                            {
-                                ["requestId"] = requestId,
-                                ["digest"] = digest
-                            };
-                        }
-                        else
-                        {
-                            var requestId = feedback["requestId"]?.GetValue<string>() ?? "unknown";
-                            var assessmentDigest = feedback["assessmentDigest"]?.GetValue<string>() ?? "";
-                            assessment = new JsonObject
-                            {
-                                ["requestId"] = requestId,
-                                ["digest"] = assessmentDigest
-                            };
-                        }
+                            ["requestId"] = record["requestId"]?.GetValue<string>() ?? "unknown",
+                            ["digest"] = digest
+                        };
 
                         var markdown = FeedbackMarkdown.Render(feedback, assessment);
                         files.Add(("feedback.md", markdown));
@@ -204,10 +170,21 @@ public static class CommandRunner
         return result;
     }
 
-    private static int GetIntFlag(string[] args, string name, int defaultValue)
+    private static JsonArray CitablePaths(ImpactModel model, JsonObject record)
+    {
+        var starts = (record["confirmedLeads"] as JsonArray ?? []).Select(n => pair(n!.AsObject())).ToList();
+        return starts.Count > 0 ? Paths.Read(model, starts, 4)["paths"]!.AsArray() : new JsonArray();
+    }
+
+    // As the pilot's Number(): an integral decimal such as "4.0" is accepted; anything else is out of range.
+    private static int GetDepthFlag(string[] args, string name, int defaultValue)
     {
         var flag = GetFlag(args, name);
-        return flag == null ? defaultValue : int.Parse(flag);
+        if (flag == null) return defaultValue;
+        if (!double.TryParse(flag, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var depth)
+            || depth != Math.Floor(depth) || depth < 1 || depth > 6)
+            throw new ImpactException("depth must be from 1 to 6");
+        return (int)depth;
     }
 
     private static (string SourceId, string NodeIri) pair(string value)
