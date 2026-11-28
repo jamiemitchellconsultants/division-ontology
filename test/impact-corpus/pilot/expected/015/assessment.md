@@ -4,7 +4,7 @@ Change Alpha API
 
 Architect: Architect A
 Snapshot: e63348017b778e678b0c349160b8ec2bbc659ff5
-Assessment digest: 406c945ce264f37a371fc3058b590a066b8e5c4f4abcb6fe00fd32cfaa189a55
+Assessment digest: 107de59f11e60f2cc46e8e8449193671e18e607a0f433f3d8aa1a25171fb6d90
 
 ## Confirmed leads
 - fixture/Alpha: https://alpha.example/#system
