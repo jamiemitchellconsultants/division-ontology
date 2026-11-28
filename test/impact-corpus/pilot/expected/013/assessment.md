@@ -8,7 +8,7 @@ Source fixture/Alpha: 980b69eca326c7bc54d4c8e34aa067b6fd509409
 Source fixture/Beta: 9c08221fbb185a173313dd0e3317273cc8d0e992
 Relationship master list: none
 C4 registry: e63348017b778e678b0c349160b8ec2bbc659ff5 (mappings sha256 17123700fb246c23e5bd212b164935c215763356c9b71d579db6eee160bc926f, bindings sha256 449b49e9cae6b1279721b248bad0cdfe2b59527703525a8548e39e9927b09aab)
-Assessment digest: 550e5c17edea22811e7de98c15c0f5162872f5b974d2c34723d07bb084b8df04
+Assessment digest: a378148168f4e9700543acf333049b3828bd2ff60cb6e21453a80f64a7158525
 
 ## Confirmed leads
 - fixture/Alpha: https://alpha.example/#system — Alpha API
