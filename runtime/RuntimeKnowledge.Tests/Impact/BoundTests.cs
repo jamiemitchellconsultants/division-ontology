@@ -41,4 +41,24 @@ public sealed class BoundTests
         Assert.InRange(small["paths"]!.AsArray().Count, 1, 500);
         Assert.DoesNotContain("paths-truncated", Codes(small));
     }
+
+    [Fact]
+    public void Traces_are_reused_within_a_scope_and_not_after_it()                        // ADR 0035 (re-review 37)
+    {
+        JsonObject first, again;
+        using (Paths.ReuseWithin())
+        {
+            first = Paths.Read(Large.Value, Start, 3);
+            again = Paths.Read(Large.Value, Start, 3);
+            Assert.NotSame(first, again);
+            Assert.True(JsonNode.DeepEquals(first, again));
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+            using (Paths.ReuseWithin()) Paths.Read(Large.Value, Start, 6);
+            var traced = watch.Elapsed;
+            watch.Restart();
+            Paths.Read(Large.Value, Start, 6);
+            Assert.True(watch.Elapsed < traced, "a nested scope joins the outer one, so the second read is reused");
+        }
+        Assert.True(JsonNode.DeepEquals(first, Paths.Read(Large.Value, Start, 3)));
+    }
 }

@@ -12,6 +12,7 @@ public static class CommandRunner
 {
     public static (int Exit, IReadOnlyList<(string Name, string Text)> Files, string? Error) Run(string[] args)
     {
+        using var reuse = Paths.ReuseWithin();
         try
         {
             if (args.Length < 2)
