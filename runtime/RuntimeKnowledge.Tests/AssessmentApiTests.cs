@@ -170,11 +170,19 @@ public sealed class AssessmentApiTests
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var read = await editor.GetFromJsonAsync<SavedAssessment>($"api/assessments/{saved.Id:D}", WorkspaceJson.Options);
         Assert.Equal(2, read!.Version);
-        Assert.Equal([1, 2], read.Revisions.Select(r => r.Version));
-        Assert.Equal("fixture-user", read.Revisions[0].Editor.Subject);
-        Assert.Equal("second-manager", read.Revisions[1].Editor.Subject);
+        Assert.DoesNotContain("revisions", await editor.GetStringAsync($"api/assessments/{saved.Id:D}"));
+        var first = await editor.GetFromJsonAsync<AssessmentRevisionPage>($"api/assessments/{saved.Id:D}/revisions?limit=1", WorkspaceJson.Options);
+        Assert.Equal("fixture-user", Assert.Single(first!.Revisions).Editor.Subject);
+        var second = await editor.GetFromJsonAsync<AssessmentRevisionPage>(
+            $"api/assessments/{saved.Id:D}/revisions?limit=1&cursor={Uri.EscapeDataString(first.NextCursor!)}", WorkspaceJson.Options);
+        Assert.Equal("second-manager", Assert.Single(second!.Revisions).Editor.Subject);
+        Assert.Null(second.NextCursor);
         Assert.Contains("750", read.Markdown);
-        Assert.DoesNotContain("750", read.Revisions[0].Markdown);
+        var v1 = await editor.GetFromJsonAsync<AssessmentRevision>($"api/assessments/{saved.Id:D}/revisions/1", WorkspaceJson.Options);
+        Assert.DoesNotContain("750", v1!.Markdown);
+        Assert.Equal(HttpStatusCode.NotFound, (await editor.GetAsync($"api/assessments/{saved.Id:D}/revisions/3")).StatusCode);
+        var otherCursor = await editor.GetAsync($"api/assessments/{Guid.NewGuid():D}/revisions?cursor={Uri.EscapeDataString(first.NextCursor!)}");
+        Assert.Contains("invalidCursor", await BodyAsync(otherCursor));
         var stale = await editor.PutAsJsonAsync($"api/assessments/{saved.Id:D}", new AssessmentEditRequest(snapshot, 1, edited));
         Assert.Equal(HttpStatusCode.Conflict, stale.StatusCode);
         Assert.Contains("versionConflict", await BodyAsync(stale));

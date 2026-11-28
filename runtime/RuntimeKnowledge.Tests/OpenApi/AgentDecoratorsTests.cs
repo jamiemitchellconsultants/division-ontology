@@ -27,6 +27,8 @@ public sealed class AgentDecoratorsTests
         { "get", "/api/assessments", "assessmentList", "workspace_list_assessments", "none", true, true, "parameters", "AssessmentPage" },
         { "get", "/api/assessments/{id}", "getAssessment", "workspace_get_assessment", "none", true, true, "parameters", "SavedAssessment" },
         { "post", "/api/assessments/{id}/successor", "startAssessmentFrom", "workspace_start_assessment_from", "none", true, true, "parameters", "AssessmentSuccessor" },
+        { "get", "/api/assessments/{id}/revisions", "assessmentRevisions", "workspace_list_assessment_revisions", "none", true, true, "parameters", "AssessmentRevisionPage" },
+        { "get", "/api/assessments/{id}/revisions/{version}", "getAssessmentRevision", "workspace_get_assessment_revision", "none", true, true, "parameters", "AssessmentRevision" },
         { "get", "/api/assessments/{id}/markdown", "getAssessmentMarkdown", "workspace_get_assessment_markdown", "none", true, true, "parameters", "none" },
         { "put", "/api/assessments/{id}", "editAssessment", "workspace_edit_assessment", "updates-assessment", false, false, "AssessmentEditRequest", "AssessmentSaved" },
         { "post", "/api/contributions/annotations", "createAnnotation", "workspace_create_annotation", "creates-contribution", false, false, "CreateAnnotation", "ContributionResult" },

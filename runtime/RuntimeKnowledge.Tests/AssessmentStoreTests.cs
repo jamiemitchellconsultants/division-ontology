@@ -32,7 +32,7 @@ public sealed class AssessmentStoreTests
         Assert.Equal(Manager, read.Author);
         Assert.Equal(1, read.Version);
         Assert.False(read.PinnedToEarlierSnapshot);
-        Assert.Single(read.Revisions);
+        Assert.Single((await store.RevisionsAsync(saved.Id, null, 50, CancellationToken.None))!.Revisions);
     }
 
     [Fact]
@@ -67,9 +67,10 @@ public sealed class AssessmentStoreTests
         await store.ReviseAsync(editor, saved.Id, 1, snapshot, Frozen.Replace("\"z\":1", "\"z\":3"), Markdown + "more\n", CancellationToken.None);
         var read = await store.GetAsync(saved.Id, CancellationToken.None);
         Assert.Equal(2, read!.Version);
-        Assert.Equal([1, 2], read.Revisions.Select(r => r.Version));
-        Assert.Equal(Frozen, read.Revisions[0].Frozen.ToJsonString());
-        Assert.Equal(editor, read.Revisions[1].Editor);
+        var revisions = (await store.RevisionsAsync(saved.Id, null, 50, CancellationToken.None))!.Revisions;
+        Assert.Equal([1, 2], revisions.Select(r => r.Version));
+        Assert.Equal(Frozen, (await store.RevisionAsync(saved.Id, 1, CancellationToken.None))!.Frozen.ToJsonString());
+        Assert.Equal(editor, revisions[1].Editor);
         var stale = await Assert.ThrowsAsync<WorkspaceException>(() => store.ReviseAsync(editor, saved.Id, 1, snapshot, Frozen, Markdown, CancellationToken.None));
         Assert.Equal("versionConflict", stale.Code);
     }

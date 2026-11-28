@@ -67,6 +67,21 @@ internal static class AssessmentRoutes
             .WithSummary("Open a saved assessment").WithTags(Assessments)
             .ProducesWorkspaceErrors("assessmentNotFound");
 
+        read.MapGet("/{id:guid}/revisions", async (Guid id, string? cursor, int? limit, AssessmentStore store, HttpContext context,
+                CancellationToken token) =>
+            {
+                var page = await store.RevisionsAsync(id, cursor, limit ?? 50, token) ?? throw NotFound();
+                WorkspaceLinks.Append(context, WorkspaceLinks.NextPage($"/api/assessments/{id:D}/revisions", page.NextCursor, limit: limit));
+                return page;
+            })
+            .WithSummary("List a saved assessment's revisions, oldest first").WithTags(Assessments)
+            .ProducesWorkspaceErrors("invalidLimit", "invalidCursor", "assessmentNotFound");
+
+        read.MapGet("/{id:guid}/revisions/{version:int}", async (Guid id, int version, AssessmentStore store, CancellationToken token) =>
+                await store.RevisionAsync(id, version, token) ?? throw NotFound())
+            .WithSummary("Open one revision of a saved assessment").WithTags(Assessments)
+            .ProducesWorkspaceErrors("assessmentNotFound");
+
         read.MapGet("/{id:guid}/markdown", async (Guid id, AssessmentStore store, CancellationToken token) =>
             {
                 var markdown = await store.MarkdownAsync(id, token) ?? throw NotFound();
@@ -80,8 +95,7 @@ internal static class AssessmentRoutes
                 AssessmentStore store, HttpContext context, CancellationToken token) =>
             {
                 // An assessment pinned to an earlier snapshot is refused before anything is frozen (B33).
-                var current = await store.GetAsync(id, token) ?? throw NotFound();
-                if (current.PinnedToEarlierSnapshot)
+                if (await store.PinnedToEarlierSnapshotAsync(id, token) ?? throw NotFound())
                     throw new WorkspaceException("snapshotMismatch",
                         "This assessment is pinned to an earlier snapshot and cannot be edited. Start a new assessment from it.");
                 var (frozen, markdown) = await FreezeAsync(request.SnapshotId, request.Record, request.Views, cache, token);

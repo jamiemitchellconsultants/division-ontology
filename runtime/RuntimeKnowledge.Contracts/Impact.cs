@@ -55,9 +55,12 @@ public sealed record AssessmentEditRequest(string SnapshotId, int ExpectedVersio
 public sealed record AssessmentPreview(string SnapshotId, string Digest, JsonObject Frozen, string Markdown);
 public sealed record AssessmentSaved(Guid Id, int Version, long Position);
 public sealed record AssessmentRevision(int Version, Actor Editor, DateTimeOffset EditedAt, JsonObject Frozen, string Markdown);
+/// <remarks>Revisions are read separately, a page at a time, so the response stays bounded however often it is edited.</remarks>
 public sealed record SavedAssessment(Guid Id, int Version, string SnapshotId, string RequestId, Actor Author,
     DateTimeOffset SavedAt, DateTimeOffset UpdatedAt, bool PinnedToEarlierSnapshot, Guid? StartedFrom,
-    JsonObject Frozen, string Markdown, IReadOnlyList<AssessmentRevision> Revisions);
+    JsonObject Frozen, string Markdown);
+public sealed record AssessmentRevisionSummary(int Version, Actor Editor, DateTimeOffset EditedAt);
+public sealed record AssessmentRevisionPage(IReadOnlyList<AssessmentRevisionSummary> Revisions, string? NextCursor);
 public sealed record AssessmentSummary(Guid Id, string RequestId, Actor Author, DateTimeOffset SavedAt, string SnapshotId, bool PinnedToEarlierSnapshot);
 public sealed record AssessmentPage(IReadOnlyList<AssessmentSummary> Assessments, string? NextCursor);
 /// <param name="Record">A new schema 2 draft on the active snapshot. It holds only the earlier request and description, and startedFrom.</param>

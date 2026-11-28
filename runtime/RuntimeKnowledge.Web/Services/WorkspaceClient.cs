@@ -27,6 +27,9 @@ public sealed class WorkspaceClient(HttpClient http) : IDisposable
     public Task<SavedAssessment> GetAssessment(Guid id) => Get<SavedAssessment>($"api/assessments/{id:D}");
     public Task<AssessmentPage> ListAssessments(string? cursor = null) =>
         Get<AssessmentPage>(cursor is null ? "api/assessments" : $"api/assessments?cursor={Uri.EscapeDataString(cursor)}");
+    public Task<AssessmentRevisionPage> Revisions(Guid id, string? cursor = null) =>
+        Get<AssessmentRevisionPage>(cursor is null ? $"api/assessments/{id:D}/revisions" : $"api/assessments/{id:D}/revisions?cursor={Uri.EscapeDataString(cursor)}");
+    public Task<AssessmentRevision> Revision(Guid id, int version) => Get<AssessmentRevision>($"api/assessments/{id:D}/revisions/{version}");
     public Task<AssessmentSuccessor> Successor(Guid id) => Post<AssessmentSuccessor>($"api/assessments/{id:D}/successor", new { });
     public Task<AssessmentSaved> EditAssessment(Guid id, AssessmentEditRequest request) =>
         Send<AssessmentSaved>(HttpMethod.Put, $"api/assessments/{id:D}", request);

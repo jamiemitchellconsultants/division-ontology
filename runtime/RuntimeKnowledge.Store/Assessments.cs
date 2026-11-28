@@ -102,21 +102,89 @@ public sealed class AssessmentStore(Db db, TimeProvider? clock = null)
             found = new SavedAssessment(id, row.GetInt32(0), snapshot, row.GetString(2),
                 new Actor(row.GetString(3), row.GetString(4)), row.GetFieldValue<DateTimeOffset>(5), row.GetFieldValue<DateTimeOffset>(6),
                 snapshot != state.SnapshotId, row.IsDBNull(9) ? null : row.GetGuid(9),
-                Parse(row.GetFieldValue<byte[]>(7)), Encoding.UTF8.GetString(row.GetFieldValue<byte[]>(8)), []);
+                Parse(row.GetFieldValue<byte[]>(7)), Encoding.UTF8.GetString(row.GetFieldValue<byte[]>(8)));
         }
+        return found;
+    }
 
-        var revisions = new List<AssessmentRevision>();
+    /// <summary>An assessment's revisions, oldest first, in keyset pages of metadata only (B22). Null when it is unknown.</summary>
+    public async Task<AssessmentRevisionPage?> RevisionsAsync(Guid id, string? cursor, int limit, CancellationToken token)
+    {
+        if (limit is < 1 or > 50) throw new WorkspaceException("invalidLimit", "Revision list limit must be from 1 to 50.");
+        var after = ReadRevisionCursor(cursor, id);
+        await using var connection = await db.OpenAsync(token);
+        await using var tx = await connection.BeginTransactionAsync(IsolationLevel.RepeatableRead, token);
+        var state = await ReadStateAsync(tx, token);
+        if (await ScalarAsync(tx, """
+            SELECT EXISTS (SELECT FROM workspace_projection.assessments WHERE generation = $1 AND assessment_id = $2)
+            """, token, state.Generation, id) is not true) return null;
+        var rows = new List<AssessmentRevisionSummary>();
         await using (var command = Command(tx, """
-            SELECT version, editor_issuer, editor_subject, edited_at, frozen, markdown
-              FROM workspace_projection.assessment_revisions
-              WHERE generation = $1 AND assessment_id = $2 ORDER BY version
-            """, state.Generation, id))
-        await using (var rows = await command.ExecuteReaderAsync(token))
-            while (await rows.ReadAsync(token))
-                revisions.Add(new AssessmentRevision(rows.GetInt32(0), new Actor(rows.GetString(1), rows.GetString(2)),
-                    rows.GetFieldValue<DateTimeOffset>(3), Parse(rows.GetFieldValue<byte[]>(4)),
-                    Encoding.UTF8.GetString(rows.GetFieldValue<byte[]>(5))));
-        return found with { Revisions = revisions };
+            SELECT version, editor_issuer, editor_subject, edited_at FROM workspace_projection.assessment_revisions
+             WHERE generation = $1 AND assessment_id = $2 AND version > $3 ORDER BY version LIMIT $4
+            """, state.Generation, id, after, limit + 1))
+        await using (var reader = await command.ExecuteReaderAsync(token))
+            while (await reader.ReadAsync(token))
+                rows.Add(new AssessmentRevisionSummary(reader.GetInt32(0), new Actor(reader.GetString(1), reader.GetString(2)),
+                    reader.GetFieldValue<DateTimeOffset>(3)));
+        var more = rows.Count > limit;
+        if (more) rows.RemoveAt(rows.Count - 1);
+        return new AssessmentRevisionPage(rows, more ? WriteCursor(new JsonObject { ["v"] = 1, ["id"] = id.ToString("D"), ["after"] = rows[^1].Version }) : null);
+    }
+
+    /// <summary>One revision with its frozen content and Markdown, exactly as saved.</summary>
+    public async Task<AssessmentRevision?> RevisionAsync(Guid id, int version, CancellationToken token)
+    {
+        await using var connection = await db.OpenAsync(token);
+        await using var tx = await connection.BeginTransactionAsync(IsolationLevel.RepeatableRead, token);
+        var state = await ReadStateAsync(tx, token);
+        await using var command = Command(tx, """
+            SELECT editor_issuer, editor_subject, edited_at, frozen, markdown FROM workspace_projection.assessment_revisions
+             WHERE generation = $1 AND assessment_id = $2 AND version = $3
+            """, state.Generation, id, version);
+        await using var row = await command.ExecuteReaderAsync(token);
+        if (!await row.ReadAsync(token)) return null;
+        return new AssessmentRevision(version, new Actor(row.GetString(0), row.GetString(1)), row.GetFieldValue<DateTimeOffset>(2),
+            Parse(row.GetFieldValue<byte[]>(3)), Encoding.UTF8.GetString(row.GetFieldValue<byte[]>(4)));
+    }
+
+    /// <summary>Whether a saved assessment is pinned to an earlier snapshot, without reading its content. Null when unknown.</summary>
+    public async Task<bool?> PinnedToEarlierSnapshotAsync(Guid id, CancellationToken token)
+    {
+        await using var connection = await db.OpenAsync(token);
+        await using var tx = await connection.BeginTransactionAsync(IsolationLevel.RepeatableRead, token);
+        var state = await ReadStateAsync(tx, token);
+        return await ScalarAsync(tx, """
+            SELECT snapshot_id FROM workspace_projection.assessments WHERE generation = $1 AND assessment_id = $2
+            """, token, state.Generation, id) is string snapshot ? snapshot != state.SnapshotId : null;
+    }
+
+    private static string WriteCursor(JsonObject body) =>
+        Convert.ToBase64String(Encoding.UTF8.GetBytes(body.ToJsonString())).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+
+    private static JsonObject ReadCursorBody(string cursor)
+    {
+        var base64 = cursor.Replace('-', '+').Replace('_', '/');
+        base64 = base64.PadRight(base64.Length + (4 - base64.Length % 4) % 4, '=');
+        var body = JsonNode.Parse(Convert.FromBase64String(base64))!.AsObject();
+        if (body["v"]!.GetValue<int>() != 1) throw new FormatException();
+        return body;
+    }
+
+    private static int ReadRevisionCursor(string? cursor, Guid id)
+    {
+        if (cursor is null) return 0;
+        try
+        {
+            var body = ReadCursorBody(cursor);
+            if (Guid.Parse(body["id"]!.GetValue<string>()) != id) throw new FormatException();
+            return body["after"]!.GetValue<int>();
+        }
+        catch (Exception ex) when (ex is FormatException or System.Text.Json.JsonException or InvalidOperationException
+                                       or NullReferenceException or ArgumentException)
+        {
+            throw new WorkspaceException("invalidCursor", "The cursor is not valid for this list. Start again from the first page.");
+        }
     }
 
     /// <summary>Saved assessments, newest first, in keyset pages (B21). Equal save times are ordered by id.</summary>
@@ -151,13 +219,12 @@ public sealed class AssessmentStore(Db db, TimeProvider? clock = null)
 
     private static string WriteListCursor(AssessmentSummary last)
     {
-        var body = new System.Text.Json.Nodes.JsonObject
+        return WriteCursor(new JsonObject
         {
             ["v"] = 1,
             ["t"] = last.SavedAt.ToUniversalTime().ToString("O", System.Globalization.CultureInfo.InvariantCulture),
             ["id"] = last.Id.ToString("D")
-        }.ToJsonString();
-        return Convert.ToBase64String(Encoding.UTF8.GetBytes(body)).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+        });
     }
 
     private static ListCursor? ReadListCursor(string? cursor)
@@ -165,10 +232,7 @@ public sealed class AssessmentStore(Db db, TimeProvider? clock = null)
         if (cursor is null) return null;
         try
         {
-            var base64 = cursor.Replace('-', '+').Replace('_', '/');
-            base64 = base64.PadRight(base64.Length + (4 - base64.Length % 4) % 4, '=');
-            var body = JsonNode.Parse(Convert.FromBase64String(base64))!.AsObject();
-            if (body["v"]!.GetValue<int>() != 1) throw new FormatException();
+            var body = ReadCursorBody(cursor);
             return new ListCursor(DateTimeOffset.Parse(body["t"]!.GetValue<string>(), System.Globalization.CultureInfo.InvariantCulture,
                 System.Globalization.DateTimeStyles.RoundtripKind), Guid.Parse(body["id"]!.GetValue<string>()));
         }

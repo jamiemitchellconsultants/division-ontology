@@ -88,15 +88,16 @@
     <section aria-labelledby="assessment-history">
         <h2 id="assessment-history">History</h2>
         <ol>
-            @foreach (var revision in saved.Revisions)
+            @foreach (var revision in revisions)
             {
                 <li>
                     Version @revision.Version by @revision.Editor.Subject on @revision.EditedAt.ToString("u")
-                    <button type="button" @onclick="() => shown = revision.Version">Show version @revision.Version</button>
-                    @if (shown == revision.Version) { <pre class="assessment-markdown">@revision.Markdown</pre> }
+                    <button type="button" @onclick="() => Show(revision.Version)">Show version @revision.Version</button>
+                    @if (shown?.Version == revision.Version) { <pre class="assessment-markdown">@shown.Markdown</pre> }
                 </li>
             }
         </ol>
+        @if (revisionsCursor is not null) { <button type="button" @onclick="MoreRevisions">Load more versions</button> }
     </section>
 }
 
@@ -107,7 +108,9 @@
     private IReadOnlyList<ImpactPath> paths = [];
     private WorkspaceApiException? error;
     private bool canManage;
-    private int? shown;
+    private AssessmentRevision? shown;
+    private List<AssessmentRevisionSummary> revisions = [];
+    private string? revisionsCursor;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -118,8 +121,27 @@
             // Saved paths are shown step by step; their evidence is listed with its frozen lines below.
             paths = (saved.Frozen["paths"]?.Deserialize<IReadOnlyList<ImpactPath>>(WorkspaceJson.Options) ?? [])
                 .Select(p => p with { Steps = p.Steps.Select(s => s with { Evidence = null }).ToList() }).ToList();
+            var page = await Api.Revisions(Id);
+            (revisions, revisionsCursor, shown) = (page.Revisions.ToList(), page.NextCursor, null);
             canManage = (await Api.Session()).CanManage;
         }
+        catch (WorkspaceApiException problem) { error = problem; }
+    }
+
+    private async Task MoreRevisions()
+    {
+        try
+        {
+            var page = await Api.Revisions(Id, revisionsCursor);
+            revisions.AddRange(page.Revisions);
+            revisionsCursor = page.NextCursor;
+        }
+        catch (WorkspaceApiException problem) { error = problem; }
+    }
+
+    private async Task Show(int version)
+    {
+        try { shown = await Api.Revision(Id, version); }
         catch (WorkspaceApiException problem) { error = problem; }
     }
 

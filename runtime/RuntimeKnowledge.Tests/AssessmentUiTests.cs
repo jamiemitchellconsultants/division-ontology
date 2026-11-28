@@ -177,25 +177,48 @@ public sealed class AssessmentUiTests
                 ["evidence"] = new JsonArray(), ["unresolved"] = new JsonArray() },
             ["digest"] = new string('d', 64)
         },
-        "# Impact assessment: CR-1 v2\n",
-        [new AssessmentRevision(1, new Actor("https://issuer.test", "manager"), DateTimeOffset.UnixEpoch, new JsonObject(), "# v1\n"),
-         new AssessmentRevision(2, new Actor("https://issuer.test", "second-manager"), DateTimeOffset.UnixEpoch, new JsonObject(), "# v2\n")]);
+        "# Impact assessment: CR-1 v2\n");
+
+    private static readonly AssessmentRevision[] Versions =
+    [
+        new(1, new Actor("https://issuer.test", "manager"), DateTimeOffset.UnixEpoch, new JsonObject(), "# v1\n"),
+        new(2, new Actor("https://issuer.test", "second-manager"), DateTimeOffset.UnixEpoch, new JsonObject(), "# v2\n")
+    ];
+
+    // The saved assessment, its revisions one per page, and each revision's content.
+    private static (HttpStatusCode, object) SavedRoutes(SavedAssessment saved, string path)
+    {
+        var id = saved.Id.ToString("D");
+        if (path == $"api/assessments/{id}/revisions" || path.StartsWith($"api/assessments/{id}/revisions?cursor=", StringComparison.Ordinal))
+        {
+            var index = path.Contains("cursor=") ? 1 : 0;
+            var r = Versions[index];
+            return (HttpStatusCode.OK, new AssessmentRevisionPage([new AssessmentRevisionSummary(r.Version, r.Editor, r.EditedAt)],
+                index == 0 ? "page-2" : null));
+        }
+        if (path.StartsWith($"api/assessments/{id}/revisions/", StringComparison.Ordinal))
+            return (HttpStatusCode.OK, Versions[int.Parse(path[^1..]) - 1]);
+        return (HttpStatusCode.OK, saved);
+    }
 
     [Fact]
     public void The_saved_view_shows_pins_banner_history_and_no_approve_control()               // B20, B22, B31, B32, B34
     {
-        var (context, _, _) = Context(canManage: true, (_, _, _) => (HttpStatusCode.OK, Saved(pinned: true)));
+        var (context, _, _) = Context(canManage: true, (_, path, _) => SavedRoutes(Saved(pinned: true), path));
         using var _ = context;
         var page = context.Render<SavedAssessmentView>(p => p.Add(c => c.Id, Guid.Parse("11111111-1111-1111-1111-111111111111")));
         page.WaitForAssertion(() => Assert.Contains("Pinned to an earlier snapshot", page.Markup));
         Assert.Contains(new string('a', 40), page.Markup);
         Assert.Contains(new string('e', 40), page.Markup);
-        Assert.Contains("second-manager", page.Markup);
         Assert.Contains("no-relationship-master-list", page.Markup);
         Assert.DoesNotContain(page.FindAll("button"), b => System.Text.RegularExpressions.Regex.IsMatch(b.TextContent, "approve|sign[- ]?off",
             System.Text.RegularExpressions.RegexOptions.IgnoreCase));
         page.FindAll("button").Single(b => b.TextContent == "Show version 1").Click();
-        Assert.Equal("# v1\n", page.Find("pre.assessment-markdown").TextContent);
+        page.WaitForAssertion(() => Assert.Equal("# v1\n", page.Find("pre.assessment-markdown").TextContent));
+        Assert.DoesNotContain("second-manager", page.Markup);
+        page.FindAll("button").Single(b => b.TextContent == "Load more versions").Click();
+        page.WaitForAssertion(() => Assert.Contains("second-manager", page.Markup));
+        Assert.DoesNotContain(page.FindAll("button"), b => b.TextContent == "Load more versions");
     }
 
     [Fact]
@@ -203,7 +226,7 @@ public sealed class AssessmentUiTests
     {
         foreach (var pinned in new[] { true, false })
         {
-            var (context, _, _) = Context(canManage: true, (_, _, _) => (HttpStatusCode.OK, Saved(pinned)));
+            var (context, _, _) = Context(canManage: true, (_, path, _) => SavedRoutes(Saved(pinned), path));
             using var _ = context;
             var page = context.Render<SavedAssessmentView>(p => p.Add(c => c.Id, Guid.Parse("11111111-1111-1111-1111-111111111111")));
             page.WaitForAssertion(() => Assert.Contains("History", page.Markup));
@@ -214,7 +237,7 @@ public sealed class AssessmentUiTests
     [Fact]
     public void Start_from_this_one_is_hidden_for_readers_and_starts_a_draft_with_started_from()   // B35
     {
-        var (readerContext, _, _) = Context(canManage: false, (_, _, _) => (HttpStatusCode.OK, Saved(pinned: true)));
+        var (readerContext, _, _) = Context(canManage: false, (_, path, _) => SavedRoutes(Saved(pinned: true), path));
         using (readerContext)
         {
             var view = readerContext.Render<SavedAssessmentView>(p => p.Add(c => c.Id, Guid.Parse("11111111-1111-1111-1111-111111111111")));
@@ -231,7 +254,7 @@ public sealed class AssessmentUiTests
         });
         var (context, draft, api) = Context(canManage: true, (_, path, _) => path.EndsWith("/successor")
             ? (HttpStatusCode.OK, successor)
-            : (HttpStatusCode.OK, Saved(pinned: true)));
+            : SavedRoutes(Saved(pinned: true), path));
         using var _ = context;
         var page = context.Render<SavedAssessmentView>(p => p.Add(c => c.Id, Guid.Parse("11111111-1111-1111-1111-111111111111")));
         page.WaitForAssertion(() => Assert.Contains(page.FindAll("button"), b => b.TextContent == "Start a new assessment from this one"));
@@ -247,7 +270,7 @@ public sealed class AssessmentUiTests
     public void A_successor_links_back_to_the_assessment_it_started_from()                     // B35
     {
         var earlier = Guid.Parse("22222222-2222-2222-2222-222222222222");
-        var (context, _, _) = Context(canManage: false, (_, _, _) => (HttpStatusCode.OK, Saved(pinned: false) with { StartedFrom = earlier }));
+        var (context, _, _) = Context(canManage: false, (_, path, _) => SavedRoutes(Saved(pinned: false) with { StartedFrom = earlier }, path));
         using var _ = context;
         var page = context.Render<SavedAssessmentView>(p => p.Add(c => c.Id, Guid.Parse("11111111-1111-1111-1111-111111111111")));
         page.WaitForAssertion(() => Assert.Contains("Started from", page.Markup));

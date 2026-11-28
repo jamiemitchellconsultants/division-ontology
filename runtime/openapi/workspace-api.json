@@ -404,7 +404,7 @@
           "Assessments"
         ],
         "summary": "Open a saved assessment",
-        "description": "Returns a saved assessment exactly as it was frozen, with every revision. pinnedToEarlierSnapshot=true means a newer snapshot is active: the assessment still opens unchanged, but it can no longer be edited.",
+        "description": "Returns a saved assessment's current version exactly as it was frozen; list earlier versions with assessmentRevisions. pinnedToEarlierSnapshot=true means a newer snapshot is active: the assessment still opens unchanged, but it can no longer be edited.",
         "operationId": "getAssessment",
         "parameters": [
           {
@@ -434,6 +434,13 @@
                   "id": "$request.path.id"
                 },
                 "description": "Download its Markdown."
+              },
+              "assessmentRevisions": {
+                "operationId": "assessmentRevisions",
+                "parameters": {
+                  "id": "$request.path.id"
+                },
+                "description": "List its revisions."
               },
               "editAssessment": {
                 "operationId": "editAssessment",
@@ -556,7 +563,7 @@
                 "parameters": {
                   "id": "$request.path.id"
                 },
-                "description": "Read back the edited assessment and its revisions."
+                "description": "Read back the edited assessment."
               }
             }
           },
@@ -679,7 +686,7 @@
                 "parameters": {
                   "id": "$request.path.id"
                 },
-                "description": "Open the saved assessment with its frozen content and revisions."
+                "description": "Open the saved assessment with its frozen content."
               }
             }
           },
@@ -721,6 +728,216 @@
         "x-agent-side-effects": "none",
         "x-agent-input": "parameters",
         "x-agent-output": "none"
+      }
+    },
+    "/api/assessments/{id}/revisions": {
+      "get": {
+        "tags": [
+          "Assessments"
+        ],
+        "summary": "List a saved assessment's revisions, oldest first",
+        "description": "Cursor-paginated revision metadata for a saved assessment, oldest first, at most 50 per page: version, editor and time. Pass the previous page's nextCursor as cursor with the same limit; never invent a cursor. Treat nextCursor=null as the end. Open one revision's content with getAssessmentRevision.",
+        "operationId": "assessmentRevisions",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssessmentRevisionPage"
+                }
+              }
+            },
+            "links": {
+              "next": {
+                "operationId": "assessmentRevisions",
+                "parameters": {
+                  "id": "$request.path.id",
+                  "cursor": "$response.body#/nextCursor",
+                  "limit": "$request.query.limit"
+                },
+                "description": "Fetch the next page using this page's nextCursor, keeping the same limit."
+              },
+              "assessmentRevision": {
+                "operationId": "getAssessmentRevision",
+                "parameters": {
+                  "id": "$request.path.id"
+                },
+                "description": "Open a listed revision; supply its version."
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/unreadableRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "404": {
+            "description": "Not Found. Codes: assessmentNotFound",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "assessmentNotFound"
+            ]
+          },
+          "422": {
+            "description": "Unprocessable Entity. Codes: invalidCursor, invalidLimit",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "invalidCursor",
+              "invalidLimit"
+            ]
+          },
+          "500": {
+            "$ref": "#/components/responses/internalError"
+          }
+        },
+        "security": [
+          {
+            "bearer": [ ]
+          }
+        ],
+        "x-workspace-role": "ReadKnowledgeGraph",
+        "x-agent-tool-name": "workspace_list_assessment_revisions",
+        "x-agent-idempotent": true,
+        "x-agent-retryable": true,
+        "x-agent-side-effects": "none",
+        "x-agent-input": "parameters",
+        "x-agent-output": "AssessmentRevisionPage"
+      }
+    },
+    "/api/assessments/{id}/revisions/{version}": {
+      "get": {
+        "tags": [
+          "Assessments"
+        ],
+        "summary": "Open one revision of a saved assessment",
+        "description": "Returns one revision of a saved assessment, with its editor, time, frozen content and Markdown exactly as saved.",
+        "operationId": "getAssessmentRevision",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssessmentRevision"
+                }
+              }
+            },
+            "links": {
+              "assessment": {
+                "operationId": "getAssessment",
+                "parameters": {
+                  "id": "$request.path.id"
+                },
+                "description": "Open the assessment's current version."
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/unreadableRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "404": {
+            "description": "Not Found. Codes: assessmentNotFound",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProblem"
+                }
+              }
+            },
+            "x-workspace-codes": [
+              "assessmentNotFound"
+            ]
+          },
+          "500": {
+            "$ref": "#/components/responses/internalError"
+          }
+        },
+        "security": [
+          {
+            "bearer": [ ]
+          }
+        ],
+        "x-workspace-role": "ReadKnowledgeGraph",
+        "x-agent-tool-name": "workspace_get_assessment_revision",
+        "x-agent-idempotent": true,
+        "x-agent-retryable": true,
+        "x-agent-side-effects": "none",
+        "x-agent-input": "parameters",
+        "x-agent-output": "AssessmentRevision"
       }
     },
     "/api/assessments/{id}/successor": {
@@ -2775,6 +2992,52 @@
           }
         }
       },
+      "AssessmentRevisionPage": {
+        "required": [
+          "revisions",
+          "nextCursor"
+        ],
+        "type": "object",
+        "properties": {
+          "revisions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AssessmentRevisionSummary"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AssessmentRevisionSummary": {
+        "required": [
+          "version",
+          "editor",
+          "editedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "editor": {
+            "$ref": "#/components/schemas/Actor"
+          },
+          "editedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "AssessmentSaved": {
         "required": [
           "id",
@@ -4553,8 +4816,7 @@
           "pinnedToEarlierSnapshot",
           "startedFrom",
           "frozen",
-          "markdown",
-          "revisions"
+          "markdown"
         ],
         "type": "object",
         "properties": {
@@ -4602,12 +4864,6 @@
           },
           "markdown": {
             "type": "string"
-          },
-          "revisions": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/AssessmentRevision"
-            }
           }
         }
       },
@@ -5112,7 +5368,7 @@
     "errors": "application/problem+json with a stable code per operation's x-workspace-codes",
     "hateoas": "follow each success response's links and the runtime Link response headers",
     "linkRelations": {
-      "next": "listInventory, listHistory, assessmentList, traverseGraph or searchImpact: the next page of the same listing, walk or search (registered relation)",
+      "next": "listInventory, listHistory, assessmentList, assessmentRevisions, traverseGraph or searchImpact: the next page of the same listing, walk or search (registered relation)",
       "service-desc": "this OpenAPI document at /api/openapi/v1.json (registered relation)",
       "service-doc": "the interactive docs at /api/docs (registered relation)",
       "https://github.com/jamiemitchellconsultants/division-ontology#link-relations/session": "getSession",
