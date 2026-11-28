@@ -198,10 +198,12 @@ public static class Paths
     {
         // Term gaps are recorded for every visited node, including one the depth limit stops at.
         var crossings = Crossings(walk, current);
-        if (steps.Count >= walk.MaxDepth) return;
+        // B7 and B8 apply to every node reached, so the depth limit stops steps, not the skipped-relationship counts.
+        var atLimit = steps.Count >= walk.MaxDepth;
         var model = walk.Model;
 
         var source = model.Source(current.SourceId);
+        if (atLimit && (source == null || source.Status != "available" || model.MasterList == null)) return;
         if (source == null || source.Status != "available")
         {
             walk.Gaps.Add(new JsonObject
@@ -227,7 +229,8 @@ public static class Paths
 
             if (subject != current.NodeIri && obj != current.NodeIri) continue;
             var relationship = assertion["relationship"]!.GetValue<string>();
-            var iri = assertion["iri"]!.GetValue<string>();
+            // Assertion IRIs are unique only within a source.
+            var iri = source.Id + "\u0000" + assertion["iri"]!.GetValue<string>();
             switch (model.MasterList.Impact(relationship))
             {
                 case null:
@@ -241,6 +244,8 @@ public static class Paths
                         walk.NotFollowed[relationship] = counted = new HashSet<string>(StringComparer.Ordinal);
                     counted.Add(iri);
                     break;
+                case var _ when atLimit:
+                    break;
                 case var impact:
                     if (subject == current.NodeIri && impact is "subject-to-object" or "both")
                         edges.Add(AssertionEdge(walk, source, assertion, obj, "subject-to-object"));
@@ -249,6 +254,8 @@ public static class Paths
                     break;
             }
         }
+
+        if (atLimit) return;
 
         var binding = model.Registry.BindingFrom(current.SourceId, current.NodeIri);
         if (binding != null)

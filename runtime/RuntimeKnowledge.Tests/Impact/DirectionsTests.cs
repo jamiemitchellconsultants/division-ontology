@@ -76,4 +76,45 @@ public sealed class DirectionsTests
         Assert.Equal(["snapshotId", "registryCommit", "masterList", "notFollowed", "coverage", "paths", "gaps"], r.Select(p => p.Key));
         Assert.Equal(r["masterList"]!.ToJsonString(), Assessments.New(model, "CR", "x")["pins"]!["masterList"]!.ToJsonString());
     }
+
+    private const string B = "https://beta.example/#";
+
+    private static ImpactModel CommunicatesOnly(Action<JsonObject> change) =>
+        TestModels.MakeModel(change, masterList: new JsonObject
+        {
+            ["schemaVersion"] = 1,
+            ["relationships"] = new JsonArray(new JsonObject { ["iri"] = K + "communicates-with", ["impact"] = "subject-to-object" })
+        });
+
+    private static void AddAssertion(JsonObject input, int source, string iri, string subject, string obj, string relationship, string? node = null)
+    {
+        var graph = input["sources"]!.AsArray()[source]!["graph"]!.AsObject();
+        if (node != null)
+            graph["nodes"]!.AsArray().Add(new JsonObject { ["iri"] = node, ["kind"] = K + "component", ["label"] = "Added" });
+        graph["assertions"]!.AsArray().Add(new JsonObject
+        {
+            ["iri"] = iri, ["subject"] = subject, ["object"] = obj, ["relationship"] = relationship,
+            ["basis"] = "direct", ["evidenceIris"] = new JsonArray()
+        });
+    }
+
+    [Fact]
+    public void An_unlisted_relationship_at_a_node_reached_at_the_depth_limit_is_a_gap()           // B8 (PR #220 review 28)
+    {
+        var model = CommunicatesOnly(input => AddAssertion(input, 0, A + "dep", A + "external", A + "elsewhere", K + "depends-on", A + "elsewhere"));
+        var gaps = Paths.Read(model, [("fixture/Alpha", A + "system")], 1)["gaps"]!.AsArray();
+        var gap = Assert.Single(gaps, g => g!["relationship"]?.GetValue<string>() == K + "depends-on")!;
+        Assert.Equal(A + "external", Assert.Single(gap["nodes"]!.AsArray())!["nodeIri"]!.GetValue<string>());
+        Assert.DoesNotContain(Steps(Paths.Read(model, [("fixture/Alpha", A + "system")], 1)), s => s["assertionIri"]?.GetValue<string>() == A + "dep");
+    }
+
+    [Fact]
+    public void Skipped_assertions_sharing_an_iri_in_two_sources_are_counted_twice()             // B8 (PR #220 review 27)
+    {
+        var model = CommunicatesOnly(input => AddAssertion(input, 1, A + "one", B + "system", B + "part", K + "contains", B + "part"));
+        var gaps = Paths.Read(model, [("fixture/Alpha", A + "system")])["gaps"]!.AsArray();
+        var gap = Assert.Single(gaps, g => g!["relationship"]?.GetValue<string>() == K + "contains")!;
+        Assert.Contains(gap["nodes"]!.AsArray(), n => n!["nodeIri"]!.GetValue<string>() == B + "system");
+        Assert.Equal(2, gap["assertions"]!.GetValue<int>());
+    }
 }
