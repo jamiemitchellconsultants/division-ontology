@@ -33,11 +33,16 @@ public sealed class SnapshotStore(Db db, IBundleObjects objects, TimeProvider? c
         var state = await ReadStateAsync(tx, cancellationToken);
         if (state.WritesPaused) throw new WorkspaceException("writesPaused", "Workspace writes are paused for rebuild.");
         if (state.SnapshotId == manifestId)
+        {
+            await RepairModelAsync(tx, state, manifestId, cancellationToken);
+            await tx.CommitAsync(cancellationToken);
             return state.ActivationPosition ?? throw new InvalidOperationException("Activation position missing.");
+        }
         if (await ScalarAsync(tx, """
             SELECT EXISTS (SELECT FROM workspace_projection.snapshots WHERE generation = $1 AND snapshot_id = $2)
             """, cancellationToken, state.Generation, manifestId) is not true)
             throw new WorkspaceException("snapshotNotStaged", "Stage and validate the snapshot before activation.");
+        await RepairModelAsync(tx, state, manifestId, cancellationToken);
 
         var profile = await IndexRepository.ReadActiveProfileAsync(tx, cancellationToken);
         if (profile is not null && !await IndexRepository.BaselineReadyAsync(tx, state.Generation, manifestId,
@@ -57,6 +62,18 @@ public sealed class SnapshotStore(Db db, IBundleObjects objects, TimeProvider? c
         return position;
     }
 
+    // ADR 0036: a snapshot staged without its model, for example by an older worker, gains it here. The bundle is
+    // read only when the model is missing and the staged manifest lists impact input.
+    private async Task RepairModelAsync(NpgsqlTransaction tx, ProjectionState state, string manifestId, CancellationToken token)
+    {
+        if (await ImpactModels.ExistsAsync(tx, state.Generation, manifestId, token)) return;
+        if (await ScalarAsync(tx, """
+            SELECT EXISTS (SELECT FROM workspace_projection.snapshots s, jsonb_array_elements(s.manifest -> 'files') f
+                            WHERE s.generation = $1 AND s.snapshot_id = $2 AND f ->> 'role' = 'impactInput')
+            """, token, state.Generation, manifestId) is not true) return;
+        await ImpactModels.StageAsync(tx, state, await _reader.ReadAsync(manifestId, token), token);
+    }
+
     internal static async Task StageProjectionAsync(NpgsqlTransaction tx, ProjectionState state,
         VerifiedBundle bundle, CancellationToken token)
     {
@@ -65,7 +82,11 @@ public sealed class SnapshotStore(Db db, IBundleObjects objects, TimeProvider? c
             INSERT INTO workspace_projection.snapshots (generation, snapshot_id, manifest, gaps)
                 VALUES ($1, $2, $3::jsonb, $4::jsonb) ON CONFLICT DO NOTHING
             """, token, state.Generation, snapshotId, Json(bundle.Manifest), Json(bundle.Projection.Gaps)) == 0)
+        {
+            // Already staged, perhaps by a worker that predates impact models: repair a missing one (ADR 0036).
+            await ImpactModels.StageAsync(tx, state, bundle, token);
             return;
+        }
 
         foreach (var entity in bundle.Projection.Entities.OrderBy(row => row.Key.StorageKey, StringComparer.Ordinal))
         {
