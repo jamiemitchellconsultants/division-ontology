@@ -27,21 +27,42 @@ public static class EcmaText
         return result.ToString();
     }
 
-    // Unicode's Final_Sigma condition: a cased letter before (skipping case-ignorables) and none after.
-    private static bool IsFinalSigma(string text, int at)
+    /// <summary>The pilot's split(/[^\p{L}\p{N}]+/u): runs of letters and numbers, by Unicode scalar, so letters
+    /// outside the Basic Multilingual Plane are kept.</summary>
+    public static IEnumerable<string> Tokens(string text)
     {
-        var before = at - 1;
-        while (before >= 0 && IsCaseIgnorable(text[before])) before--;
-        if (before < 0 || !IsCased(text[before])) return false;
-        var after = at + 1;
-        while (after < text.Length && IsCaseIgnorable(text[after])) after++;
-        return after == text.Length || !IsCased(text[after]);
+        var token = new StringBuilder();
+        foreach (var rune in text.EnumerateRunes())
+        {
+            if (Rune.IsLetter(rune) || Rune.IsNumber(rune)) { token.Append(rune.ToString()); continue; }
+            if (token.Length > 0) { yield return token.ToString(); token.Clear(); }
+        }
+        if (token.Length > 0) yield return token.ToString();
     }
 
-    private static bool IsCased(char c) => char.GetUnicodeCategory(c) is
+    // Unicode's Final_Sigma condition: a cased letter before (skipping case-ignorables) and none after, by scalar.
+    private static bool IsFinalSigma(string text, int at)
+    {
+        Rune? Before(int end, out int start)
+        {
+            start = end;
+            if (end < 0) return null;
+            if (char.IsLowSurrogate(text[end]) && end > 0 && char.IsHighSurrogate(text[end - 1])) start = end - 1;
+            return Rune.TryGetRuneAt(text, start, out var r) ? r : null;
+        }
+        var index = at - 1;
+        Rune? before;
+        while ((before = Before(index, out var start)) is { } r && IsCaseIgnorable(r)) index = start - 1;
+        if (before is not { } cased || !IsCased(cased)) return false;
+        var after = at + 1;
+        while (after < text.Length && Rune.TryGetRuneAt(text, after, out var r) && IsCaseIgnorable(r)) after += r.Utf16SequenceLength;
+        return after >= text.Length || !Rune.TryGetRuneAt(text, after, out var next) || !IsCased(next);
+    }
+
+    private static bool IsCased(Rune r) => Rune.GetUnicodeCategory(r) is
         UnicodeCategory.UppercaseLetter or UnicodeCategory.LowercaseLetter or UnicodeCategory.TitlecaseLetter;
 
-    private static bool IsCaseIgnorable(char c) => c is '\'' or '.' or ':' or '·' or '’' ||
-        char.GetUnicodeCategory(c) is UnicodeCategory.NonSpacingMark or UnicodeCategory.EnclosingMark or
+    private static bool IsCaseIgnorable(Rune r) => r.Value is '\'' or '.' or ':' or 0x00B7 or 0x2019 ||
+        Rune.GetUnicodeCategory(r) is UnicodeCategory.NonSpacingMark or UnicodeCategory.EnclosingMark or
             UnicodeCategory.Format or UnicodeCategory.ModifierLetter or UnicodeCategory.ModifierSymbol;
 }

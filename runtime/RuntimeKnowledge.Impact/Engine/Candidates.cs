@@ -32,10 +32,7 @@ public static class Candidates
             throw new ImpactException("query or exact IRI is required");
 
         var phrase = EcmaText.ToLower(query.Trim());
-        var tokens = Regex.Split(phrase, @"[^\p{L}\p{N}]+")
-            .Where(t => t.Length > 0)
-            .Distinct()
-            .ToList();
+        var tokens = EcmaText.Tokens(phrase).Distinct(StringComparer.Ordinal).ToList();
 
         var leads = new List<JsonObject>();
         var evidenceGaps = new SortedDictionary<string, JsonObject>(StringComparer.Ordinal);
@@ -118,9 +115,7 @@ public static class Candidates
             }
             else
             {
-                var terms = Regex.Split(lower, @"[^\p{L}\p{N}]+")
-                    .Where(t => t.Length > 0)
-                    .ToHashSet();
+                var terms = EcmaText.Tokens(lower).ToHashSet(StringComparer.Ordinal);
                 if (!tokens.Any(t => terms.Contains(t))) return;
                 rank = 2;
                 matchKind = "token";
