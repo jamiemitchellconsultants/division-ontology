@@ -96,7 +96,11 @@ else if (searchGaps is not null)
     private void UseInDraft()
     {
         if (paths is null || !ContinuesDraft) return;
-        Draft.UsePaths(paths.Paths, tracedStarts);
+        if (!Draft.UsePaths(paths.Paths, tracedStarts))
+        {
+            message = $"Assessment {Draft.RequestId} already cites {AssessmentDraft.MaxTraces} traces, the most it can. Start another assessment for these paths.";
+            return;
+        }
         Navigation.NavigateTo("assessments/draft");
     }
 

@@ -70,10 +70,15 @@ public sealed class AssessmentDraft
         Changed?.Invoke();
     }
 
+    /// <summary>The most traces a record may list (ADR 0035).</summary>
+    public const int MaxTraces = 5;
+
     /// <summary>Takes the paths of one trace into the draft. Paths from earlier traces stay citable, and the trace
-    /// is recorded once in the record's `traces`, so validation re-traces exactly what was shown (ADR 0035).</summary>
-    public void UsePaths(IReadOnlyList<ImpactPath> paths, IReadOnlyList<ImpactKey>? starts = null, int maxDepth = 4)
+    /// is recorded once in the record's `traces`, so validation re-traces exactly what was shown (ADR 0035).
+    /// Returns false, changing nothing, when it would be a trace beyond <see cref="MaxTraces"/>.</summary>
+    public bool UsePaths(IReadOnlyList<ImpactPath> paths, IReadOnlyList<ImpactKey>? starts = null, int maxDepth = 4)
     {
+        if (starts is { Count: > 0 } && Record is { } current && TraceCountWith(current, starts, maxDepth) > MaxTraces) return false;
         var known = Paths.Select(p => p.Id).ToHashSet(StringComparer.Ordinal);
         Paths = [.. Paths, .. paths.Where(p => known.Add(p.Id))];
         if (starts is { Count: > 0 })
@@ -82,6 +87,14 @@ public sealed class AssessmentDraft
             if (Record is { } record) AddTrace(record, starts, maxDepth);
         }
         Changed?.Invoke();
+        return true;
+    }
+
+    private static int TraceCountWith(JsonObject record, IReadOnlyList<ImpactKey> starts, int maxDepth)
+    {
+        var probe = record.DeepClone().AsObject();
+        AddTrace(probe, starts, maxDepth);
+        return probe["traces"]!.AsArray().Count;
     }
 
     private static void AddTrace(JsonObject record, IReadOnlyList<ImpactKey> starts, int maxDepth)

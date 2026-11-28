@@ -103,6 +103,25 @@ public sealed class ImpactUiTests
     }
 
     [Fact]
+    public void A_draft_at_five_traces_does_not_take_paths_from_a_sixth()                    // ADR 0035, amended
+    {
+        var draft = new AssessmentDraft();
+        draft.Start(Snapshot, "CR-6", "Claim threshold", "Analyst A", AssessmentDraft.Pins(SearchPage([])));
+        foreach (var depth in Enumerable.Range(1, 5)) Assert.True(draft.UsePaths([], [Key("z")], depth));
+        var (context, page, _) = Render(SearchThen(SearchPage([Lead("a")]), PathsResult(new ImpactPath("p1", [AssertionStep("a", "c")]))), draft);
+        using var _ = context;
+        page.Find("form").Submit();
+        page.WaitForAssertion(() => Assert.Single(page.FindAll("li input[type=checkbox]")));
+        Choose(page, 0);
+        Click(page, "Trace impact");
+        page.WaitForAssertion(() => Assert.Contains("Impact paths", page.Markup));
+        Click(page, "Use these paths in assessment CR-6");
+        Assert.Contains("already cites 5 traces, the most it can. Start another assessment for these paths.", page.Markup);
+        Assert.Equal(5, draft.Record!["traces"]!.AsArray().Count);
+        Assert.Empty(draft.Paths);
+    }
+
+    [Fact]
     public void A_graph_lead_and_a_catalog_concept_with_the_same_key_both_render()          // B1 (PR #220 review 24)
     {
         var concept = Lead("a") with { Kind = "concept", SourceCommit = null, Reason = "Catalog concept" };
