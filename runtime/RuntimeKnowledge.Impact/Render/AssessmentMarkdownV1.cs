@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
 using RuntimeKnowledge.Impact;
 using RuntimeKnowledge.Impact.Engine;
+using RuntimeKnowledge.Impact.Json;
 using ImpactModel = RuntimeKnowledge.Impact.Model.ImpactModel;
 
 namespace RuntimeKnowledge.Impact.Render;
@@ -14,7 +15,7 @@ public static class AssessmentMarkdownV1
             throw new ImpactException("architect is required");
 
         var frozen = Assessments.Freeze(record, model, paths, views);
-        var digest = frozen["digest"]!.GetValue<string>();
+        var digest = EcmaJson.CanonicalDigest(record);
         var escaped = Escape;
 
         var lines = new List<string>

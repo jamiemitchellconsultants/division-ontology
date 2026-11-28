@@ -44,9 +44,15 @@ public static class Assessments
         }
     };
 
-    /// <summary>Validates the record and returns the digest of its frozen form.</summary>
-    public static string Validate(JsonObject record, ImpactModel model, JsonArray paths, IReadOnlyList<JsonObject> views) =>
-        Freeze(record, model, paths, views)["digest"]!.GetValue<string>();
+    /// <summary>Validates the record and returns its assessment digest: for schema 2 the digest of its frozen form,
+    /// and for schema 1 the pilot's digest of the canonical record, so existing schema 1 feedback still validates (B37).</summary>
+    public static string Validate(JsonObject record, ImpactModel model, JsonArray paths, IReadOnlyList<JsonObject> views)
+    {
+        var frozen = Freeze(record, model, paths, views);
+        return record["schemaVersion"] is JsonValue v && v.TryGetValue<int>(out var schema) && schema == 1
+            ? EcmaJson.CanonicalDigest(record)
+            : frozen["digest"]!.GetValue<string>();
+    }
 
     /// <summary>Validates the record and freezes it with everything it cites.</summary>
     public static JsonObject Freeze(JsonObject record, ImpactModel model, JsonArray paths, IReadOnlyList<JsonObject> views)
