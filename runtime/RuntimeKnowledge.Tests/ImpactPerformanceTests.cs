@@ -54,10 +54,10 @@ public sealed class ImpactPerformanceTests(ITestOutputHelper output)
         Assert.True(pathsP95 <= 5000, $"paths p95 {pathsP95:F0} ms exceeds 5000 ms");
     }
 
-    // ADR 0035: preview re-traces every listed trace, so its worst case is 20 traces of 20 starts each. Its budget is
-    // the paths route's, once per trace.
+    // ADR 0035: preview re-traces every listed trace, so its worst case is 5 traces of 20 starts each. It must finish
+    // within the 30 s API Gateway allows on AWS.
     [Fact]
-    public async Task Preview_with_twenty_traces_of_twenty_starts_stays_within_twenty_path_budgets()
+    public async Task Preview_with_five_traces_of_twenty_starts_stays_within_the_gateway_limit()
     {
         string? snapshot = null;
         await using var api = await ApiFixture.OpenAsync("Keycloak", async scenario =>
@@ -71,9 +71,9 @@ public sealed class ImpactPerformanceTests(ITestOutputHelper output)
         var search = await (await reader.PostAsJsonAsync("api/impact/search", new ImpactSearchRequest("claim 4", null)))
             .Content.ReadFromJsonAsync<ImpactSearchResult>(WorkspaceJson.Options);
         var draft = new RuntimeKnowledge.Web.Services.AssessmentDraft();
-        draft.Start(snapshot!, "CR-42", "Twenty traces", "Analyst A", RuntimeKnowledge.Web.Services.AssessmentDraft.Pins(search!));
+        draft.Start(snapshot!, "CR-42", "Five traces", "Analyst A", RuntimeKnowledge.Web.Services.AssessmentDraft.Pins(search!));
         var traces = new System.Text.Json.Nodes.JsonArray();
-        for (var t = 0; t < 20; t++)
+        for (var t = 0; t < 5; t++)
             traces.Add(new System.Text.Json.Nodes.JsonObject
             {
                 ["starts"] = new System.Text.Json.Nodes.JsonArray(Enumerable.Range(0, 20).Select(s => (System.Text.Json.Nodes.JsonNode)
@@ -92,7 +92,7 @@ public sealed class ImpactPerformanceTests(ITestOutputHelper output)
             Assert.True(response.IsSuccessStatusCode, await response.Content.ReadAsStringAsync());
             times.Add(watch.Elapsed.TotalMilliseconds);
         }
-        output.WriteLine($"{{\"preview_20x20_max_ms\":{times.Max():F0}}}");
-        Assert.True(times.Max() <= 20 * 5000, $"preview {times.Max():F0} ms exceeds twenty paths budgets");
+        output.WriteLine($"{{\"preview_5x20_max_ms\":{times.Max():F0}}}");
+        Assert.True(times.Max() <= 30000, $"preview {times.Max():F0} ms exceeds the 30 s gateway limit");
     }
 }

@@ -4,7 +4,7 @@ Tasks 36 to 42 answer the PR #220 review. The behaviours were amended in PR #228
 
 ## Interfaces
 
-- **`traces` (ADR 0035).** In a schema 2 record: `"traces": [{"starts": [{"sourceId", "nodeIri"}], "maxDepth": 1..6}]`, at most 20 entries, each with 1 to 20 starts. Absent means `[{"starts": confirmedLeads, "maxDepth": 4}]`, and nothing is traced when there are no confirmed leads. Anything else is refused with `invalid traces`, which the API reports as `invalidAssessment`.
+- **`traces` (ADR 0035).** In a schema 2 record: `"traces": [{"starts": [{"sourceId", "nodeIri"}], "maxDepth": 1..6}]`, at most 5 entries (ADR 0035, amended in PR #231), each with 1 to 20 starts. Absent means `[{"starts": confirmedLeads, "maxDepth": 4}]`, and nothing is traced when there are no confirmed leads. Anything else is refused with `invalid traces`, which the API reports as `invalidAssessment`.
 - **`Assessments.CitablePaths(ImpactModel, JsonObject record)`** returns the union of the paths of every trace, in trace order, each path once by id. The API's freeze step and the command line's `assessment-render` and `feedback-render` all use it.
 - **B39 support.** A likely impact with an empty `evidenceIris` is valid when one of its cited paths has a `reviewedLinkCrossing` step whose `to` is the impact's key. The Markdown line for such an impact adds `; reviewed links through <shared term> at catalog <commit>`.
 - **Excerpts (B34).** Every frozen evidence record gets `lines` when its text can be read, whatever its role, and an `evidence-text-unavailable` gap when it cannot (B27). Markdown still prints `lines` only under a page.

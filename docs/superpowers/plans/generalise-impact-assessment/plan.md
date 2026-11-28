@@ -349,7 +349,7 @@ Every behaviour id appears once above: B1–B3, B5–B39, which is 38 behaviours
 ## I7. Review amendments
 
 ### Task 36: The record lists its traces (ADR 0035, B17)
-- [ ] Write failing engine tests: a path from a depth 5 trace and one from an unconfirmed start validate when the record lists their traces; a record without traces keeps confirmed leads at depth 4; more than 20 traces, more than 20 starts or a depth outside 1 to 6 is refused.
+- [ ] Write failing engine tests: a path from a depth 5 trace and one from an unconfirmed start validate when the record lists their traces; a record without traces keeps confirmed leads at depth 4; more than 5 traces (ADR 0035, amended in PR #231), more than 20 starts or a depth outside 1 to 6 is refused.
 - [ ] Implement `Assessments.CitablePaths(model, record)` and use it in the API and the command line.
 - [ ] Commit `feat: validate citations against the traces a record lists` and push.
 
@@ -379,6 +379,6 @@ Every behaviour id appears once above: B1–B3, B5–B39, which is 38 behaviours
 - [ ] Commit `fix: repair a missing impact model on import` and push.
 
 ### Task 42: Measure the worst-case preview (Q1)
-- [ ] Add a performance test that previews a record listing 20 traces of 20 starts on the Q1 fixture, and record the result.
-- [ ] Commit `test: measure preview with twenty traces` and push. **I7 ends: stop**, then rerun the build phase's closing steps.
+- [ ] Add a performance test that previews a record listing 5 traces of 20 starts on the Q1 fixture, within API Gateway's 30 s, and record the result. A 20-trace cap measured 37.8 s and was lowered to 5 in PR #231.
+- [ ] Commit `test: measure preview with five traces` and push. **I7 ends: stop**, then rerun the build phase's closing steps.
 
