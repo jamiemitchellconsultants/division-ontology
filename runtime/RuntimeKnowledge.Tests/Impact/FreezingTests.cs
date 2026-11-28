@@ -34,6 +34,43 @@ public sealed class FreezingTests
     }
 
     [Fact]
+    public void Evidence_resolves_in_the_source_of_the_cited_step_when_an_iri_is_reused()   // B25 (PR #220 review 3)
+    {
+        const string A = "https://alpha.example/#", B = "https://beta.example/#";
+        var model = TestModels.MakeModel(input =>
+        {
+            var beta = input["sources"]!.AsArray()[1]!["graph"]!.AsObject();
+            beta["nodes"]!.AsArray().Add(new JsonObject { ["iri"] = B + "part", ["kind"] = "https://ontology-kit.dev/schema#component", ["label"] = "Beta part" });
+            beta["assertions"]!.AsArray().Add(new JsonObject
+            {
+                ["iri"] = B + "contains", ["subject"] = B + "system", ["object"] = B + "part",
+                ["relationship"] = "https://ontology-kit.dev/schema#contains", ["basis"] = "direct", ["evidenceIris"] = new JsonArray(A + "evidence")
+            });
+            beta["evidence"]!.AsArray().Add(new JsonObject
+            {
+                ["iri"] = A + "evidence", ["path"] = "src/beta.ts", ["startLine"] = 3, ["endLine"] = 4,
+                ["blobId"] = new string('2', 40), ["role"] = "implementation"
+            });
+        });
+        var paths = Paths.Read(model, [("fixture/Beta", B + "system")])["paths"]!.AsArray();
+        var path = paths.Single(p => p!["steps"]!.AsArray().Any(s => s!["assertionIri"]?.GetValue<string>() == B + "contains"))!;
+        var record = Assessments.New(model, "CR-3", "x");
+        record["confirmedLeads"] = new JsonArray(new JsonObject { ["sourceId"] = "fixture/Beta", ["nodeIri"] = B + "system" });
+        record["likelyImpacts"] = new JsonArray(new JsonObject
+        {
+            ["key"] = new JsonObject { ["sourceId"] = "fixture/Beta", ["nodeIri"] = B + "part" },
+            ["reason"] = "Beta part changes",
+            ["pathIds"] = new JsonArray(path["id"]!.GetValue<string>()),
+            ["evidenceIris"] = new JsonArray(A + "evidence")
+        });
+
+        var evidence = Assert.Single(Freezing.Freeze(record, model, paths, [])["evidence"]!.AsArray())!;
+        Assert.Equal("fixture/Beta", evidence["sourceId"]!.GetValue<string>());
+        Assert.Equal("src/beta.ts", evidence["path"]!.GetValue<string>());
+        Assert.Equal(new string('d', 40), evidence["commit"]!.GetValue<string>());
+    }
+
+    [Fact]
     public void Init_writes_schema_2_with_pins()                                     // B32 (command line)
     {
         var record = Assessments.New(Confluence(), "CR-9", "x");

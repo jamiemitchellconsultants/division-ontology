@@ -25,7 +25,7 @@ public static class Freezing
             ["paths"] = new JsonArray(CitedPaths(record, paths).Select(p => p.DeepClone()).ToArray())
         };
 
-        var evidence = FrozenEvidence(record, model);
+        var evidence = FrozenEvidence(record, model, paths);
         frozen["evidence"] = new JsonArray(evidence.Select(e => (JsonNode)e.Frozen).ToArray());
 
         var snapshotGaps = Coverage.Gaps(model);
@@ -102,16 +102,39 @@ public static class Freezing
         return cited;
     }
 
-    private static List<(JsonObject Frozen, JsonObject? Gap)> FrozenEvidence(JsonObject record, ImpactModel model)
+    private static List<(JsonObject Frozen, JsonObject? Gap)> FrozenEvidence(JsonObject record, ImpactModel model, JsonArray paths)
     {
-        var iris = record["likelyImpacts"]!.AsArray()
-            .SelectMany(i => i!["evidenceIris"]!.AsArray().Select(e => e!.GetValue<string>()))
-            .Distinct(StringComparer.Ordinal);
-        var result = new List<(string SourceId, string Iri, JsonObject Frozen, JsonObject? Gap)>();
-        foreach (var iri in iris)
+        var byId = new Dictionary<string, JsonObject>(StringComparer.Ordinal);
+        foreach (var p in paths) byId.TryAdd(p!["id"]!.GetValue<string>(), p.AsObject());
+
+        // An evidence IRI is only unique within its source, so each citation resolves in the source of the
+        // cited step that carries it.
+        var citations = new SortedSet<(string SourceId, string Iri)>(Comparer<(string SourceId, string Iri)>.Create((a, b) =>
         {
-            var source = model.Sources.FirstOrDefault(s => s.EvidenceNode(iri) != null);
-            if (source == null) continue;
+            var bySource = string.CompareOrdinal(a.SourceId, b.SourceId);
+            return bySource != 0 ? bySource : string.CompareOrdinal(a.Iri, b.Iri);
+        }));
+        foreach (var impact in record["likelyImpacts"]!.AsArray())
+        {
+            var iris = impact!["evidenceIris"]!.AsArray().Select(e => e!.GetValue<string>()).ToHashSet(StringComparer.Ordinal);
+            foreach (var id in impact["pathIds"]!.AsArray())
+            {
+                if (!byId.TryGetValue(id!.GetValue<string>(), out var path)) continue;
+                foreach (var step in path["steps"]!.AsArray())
+                {
+                    var sourceId = step!["subject"]?["sourceId"]?.GetValue<string>();
+                    if (sourceId == null) continue;
+                    foreach (var iri in step["evidenceIris"]?.AsArray() ?? [])
+                        if (iris.Contains(iri!.GetValue<string>())) citations.Add((sourceId, iri.GetValue<string>()));
+                }
+            }
+        }
+
+        var result = new List<(string SourceId, string Iri, JsonObject Frozen, JsonObject? Gap)>();
+        foreach (var (sourceId, iri) in citations)
+        {
+            var source = model.Source(sourceId);
+            if (source?.EvidenceNode(iri) == null) continue;
             var evidence = source.EvidenceNode(iri)!;
             var frozen = new JsonObject
             {
