@@ -181,6 +181,36 @@ public sealed class AssessmentApiTests
     }
 
     [Fact]
+    public async Task An_edit_cannot_change_the_request_id_or_the_assessment_it_started_from() // B22, B35 (PR #220 review 12)
+    {
+        var (api, snapshot) = await OpenAsync();
+        await using var _ = api;
+        var manager = api.ClientWithToken(Manage);
+        var earlier = (await (await manager.PostAsJsonAsync("api/assessments", new AssessmentDraftRequest(snapshot, Draft())))
+            .Content.ReadFromJsonAsync<AssessmentSaved>(WorkspaceJson.Options))!.Id;
+        var successor = Draft();
+        successor["startedFrom"] = new JsonObject { ["assessmentId"] = earlier.ToString("D") };
+        var id = (await (await manager.PostAsJsonAsync("api/assessments", new AssessmentDraftRequest(snapshot, successor)))
+            .Content.ReadFromJsonAsync<AssessmentSaved>(WorkspaceJson.Options))!.Id;
+
+        var renamed = successor.DeepClone().AsObject();
+        renamed["requestId"] = "CR-99";
+        var unlinked = successor.DeepClone().AsObject();
+        unlinked.Remove("startedFrom");
+        var relinked = successor.DeepClone().AsObject();
+        relinked["startedFrom"] = new JsonObject { ["assessmentId"] = Guid.NewGuid().ToString("D") };
+        foreach (var record in new[] { renamed, unlinked, relinked })
+        {
+            var response = await manager.PutAsJsonAsync($"api/assessments/{id:D}", new AssessmentEditRequest(snapshot, 1, record));
+            Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+            Assert.Contains("invalidAssessment", await BodyAsync(response));
+        }
+        var read = await manager.GetFromJsonAsync<SavedAssessment>($"api/assessments/{id:D}", WorkspaceJson.Options);
+        Assert.Equal(1, read!.Version);
+        Assert.Equal(earlier, read.StartedFrom);
+    }
+
+    [Fact]
     public async Task Edits_after_a_new_snapshot_are_snapshot_mismatch()                      // B33
     {
         var (api, snapshot) = await OpenAsync();

@@ -56,7 +56,7 @@ public sealed class AssessmentStore(Db db, TimeProvider? clock = null)
         var state = await ReadWritableAsync(tx, token);
         var active = state.RequireSnapshot();
         await using (var read = Command(tx, """
-            SELECT version, snapshot_id, request_id FROM workspace_projection.assessments
+            SELECT version, snapshot_id, request_id, started_from FROM workspace_projection.assessments
               WHERE generation = $1 AND assessment_id = $2 FOR UPDATE
             """, state.Generation, id))
         await using (var row = await read.ExecuteReaderAsync(token))
@@ -64,7 +64,9 @@ public sealed class AssessmentStore(Db db, TimeProvider? clock = null)
             if (!await row.ReadAsync(token))
                 throw new WorkspaceException("assessmentNotFound", "The assessment was not found.");
             var (version, snapshot, requestId) = (row.GetInt32(0), row.GetString(1), row.GetString(2));
+            Guid? startedFrom = row.IsDBNull(3) ? null : row.GetGuid(3);
             await row.CloseAsync();
+            RequireSameIdentity(frozenJson, requestId, startedFrom);
             if (version != expectedVersion)
                 throw new WorkspaceException("versionConflict", "The assessment changed since you opened it. Reload it before editing.");
             if (snapshot != active)
@@ -237,16 +239,35 @@ public sealed class AssessmentStore(Db db, TimeProvider? clock = null)
             throw new WorkspaceException("actorRequired", "A verified acting identity is required.");
     }
 
+    // The projection keeps the first save's request id and backlink, so every revision must carry the same ones.
+    private static void RequireSameIdentity(string frozenJson, string requestId, Guid? startedFrom)
+    {
+        var record = JsonNode.Parse(frozenJson)?["record"] as JsonObject;
+        var revisedRequest = record?["requestId"] is JsonValue r && r.TryGetValue<string>(out var text) ? text : null;
+        var revisedFrom = record?["startedFrom"]?["assessmentId"] is JsonValue f && f.TryGetValue<string>(out var from)
+            && Guid.TryParse(from, out var parsed) ? parsed : (Guid?)null;
+        if (record?["startedFrom"] is not null && revisedFrom is null || revisedRequest != requestId || revisedFrom != startedFrom)
+            throw new WorkspaceException("invalidAssessment",
+                "An edit keeps the assessment's request ID and the assessment it started from.");
+    }
+
     // B31: a second guard behind the engine's. The workspace records assessments; it never approves them.
     private static void RefuseApproval(string frozenJson)
     {
         JsonObject? record;
         try { record = JsonNode.Parse(frozenJson)?["record"] as JsonObject; }
         catch (System.Text.Json.JsonException) { throw new WorkspaceException("invalidAssessment", "The assessment content is not valid JSON."); }
-        if (record is not null && record.Select(p => p.Key).Any(k =>
-                k is "approved" or "approvalStatus" || k.Contains("signoff", StringComparison.OrdinalIgnoreCase)))
+        if (Claims(record))
             throw new WorkspaceException("approvalNotSupported", "Assessments record impact; approval and sign-off are not supported.");
     }
+
+    private static bool Claims(JsonNode? node) => node switch
+    {
+        JsonObject o => o.Any(p => p.Key is "approved" or "approvalStatus" || p.Key.Contains("signoff", StringComparison.OrdinalIgnoreCase) ||
+                                   p.Key.Contains("sign-off", StringComparison.OrdinalIgnoreCase) || Claims(p.Value)),
+        JsonArray a => a.Any(Claims),
+        _ => false
+    };
 
     private static JsonObject Parse(byte[] bytes) => JsonNode.Parse(bytes)!.AsObject();
 
